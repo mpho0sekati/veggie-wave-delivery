@@ -1,22 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useMemo, useState } from "react";
-import { Hand, Minus, Plus, ScanLine, Star, Truck, MapPin, CheckCircle2 } from "lucide-react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import {
+  Hand,
+  Minus,
+  Plus,
+  ScanLine,
+  Star,
+  Truck,
+  MapPin,
+  CheckCircle2,
+  Crosshair,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  BUYER_POSITION,
-  CATALOG,
-  distanceKm,
-  formatRand,
-  walkMinutes,
-} from "@/lib/veggie-data";
-import { updateState, useAppState } from "@/lib/veggie-store";
+import { CATALOG, distanceKm, formatRand, walkMinutes } from "@/lib/veggie-data";
+import { setBuyerLocation, updateState, useAppState } from "@/lib/veggie-store";
+import { useGeolocation } from "@/lib/use-geolocation";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,14 +54,23 @@ function BuyerPage() {
   const state = useAppState();
   const [qty, setQty] = useState<Record<string, number>>({});
   const [payOpen, setPayOpen] = useState(false);
+  const buyer = state.buyer;
+  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
+    setBuyerLocation(pos);
+  }, []);
+  const { status: geoStatus, locate } = useGeolocation(onPosition);
 
   const online = state.runners.filter((r) => r.online);
-  const nearest = useMemo(() => {
-    const sorted = [...online].sort(
-      (a, b) => distanceKm(BUYER_POSITION, a) - distanceKm(BUYER_POSITION, b),
-    );
-    return sorted[0] ?? null;
-  }, [online]);
+  const nearbyRunners = useMemo(
+    () =>
+      [...online]
+        .map((r) => ({ runner: r, km: distanceKm(buyer, r) }))
+        .sort((a, b) => a.km - b.km),
+    [online, buyer],
+  );
+  const nearest = nearbyRunners[0]?.runner ?? null;
+  const nearestKm = nearbyRunners[0]?.km ?? 0;
+
 
   const picked = CATALOG.filter((c) => (qty[c.id] ?? 0) > 0);
   const total = picked.reduce((sum, c) => sum + c.price * (qty[c.id] ?? 0), 0);
@@ -105,7 +120,11 @@ function BuyerPage() {
         <div>
           <h1 className="text-2xl font-bold">Veggie Wave</h1>
           <p className="text-sm text-muted-foreground">
-            {online.length} runners near you
+            {geoStatus === "locating"
+              ? "Finding your location…"
+              : buyer.located
+                ? `${online.length} runners around you`
+                : `${online.length} runners · location not shared`}
           </p>
         </div>
         <Button asChild variant="secondary" size="sm">
@@ -122,28 +141,65 @@ function BuyerPage() {
               runners={state.runners}
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
+              buyerPosition={buyer}
             />
           </Suspense>
         </ClientOnly>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="absolute top-3 left-3 z-[400] shadow-lift"
+          onClick={locate}
+        >
+          <Crosshair /> {buyer.located ? "Recentre on me" : "Use my location"}
+        </Button>
       </section>
 
-      {nearest && !request && (
-        <Card className="mx-4 mt-4 flex flex-row items-center gap-3 p-4">
-          <span className="flex size-10 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
-            {nearest.name.charAt(0)}
-          </span>
-          <div className="flex-1">
-            <p className="font-semibold">{nearest.name} is closest</p>
-            <p className="text-sm text-muted-foreground">
-              {distanceKm(BUYER_POSITION, nearest).toFixed(1)} km ·{" "}
-              {walkMinutes(distanceKm(BUYER_POSITION, nearest))} min
-            </p>
-          </div>
-          <Badge variant="secondary">
-            <Star className="size-3" /> {nearest.rating.toFixed(1)}
-          </Badge>
-        </Card>
+      {(geoStatus === "denied" || geoStatus === "unsupported") && !buyer.located && (
+        <p className="mx-5 mt-3 text-sm text-muted-foreground">
+          Location is off, so we&apos;re showing a default area. Allow location access to see
+          the runners closest to you.
+        </p>
       )}
+
+      {nearest && !request && (
+        <>
+          <Card className="mx-4 mt-4 flex flex-row items-center gap-3 p-4">
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
+              {nearest.name.charAt(0)}
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold">{nearest.name} is closest to you</p>
+              <p className="text-sm text-muted-foreground">
+                {nearestKm.toFixed(1)} km · {walkMinutes(nearestKm)} min
+              </p>
+            </div>
+            <Badge variant="secondary">
+              <Star className="size-3" /> {nearest.rating.toFixed(1)}
+            </Badge>
+          </Card>
+
+          {nearbyRunners.length > 1 && (
+            <ul className="mx-4 mt-2 space-y-2">
+              {nearbyRunners.slice(1).map(({ runner, km }) => (
+                <li
+                  key={runner.id}
+                  className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+                >
+                  <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
+                    {runner.name.charAt(0)}
+                  </span>
+                  <p className="flex-1 text-sm font-medium">{runner.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {km.toFixed(1)} km · {walkMinutes(km)} min
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
 
       {!request && (
         <>
