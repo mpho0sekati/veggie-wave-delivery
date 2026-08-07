@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { BUYER_POSITION, CATALOG, distanceKm, formatRand, walkMinutes } from "@/lib/veggie-data";
+import { CATALOG, distanceKm, formatRand, walkMinutes } from "@/lib/veggie-data";
 import { updateState, useAppState } from "@/lib/veggie-store";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
@@ -47,7 +47,7 @@ function RunnerPage() {
 
   const me = state.runners.find((r) => r.id === MY_ID)!;
   const request = state.request;
-  const km = distanceKm(BUYER_POSITION, me);
+  const km = distanceKm(state.buyer, me);
 
   const onPickAvatar = (file?: File | null) => {
     if (!file) return;
@@ -160,6 +160,7 @@ function RunnerPage() {
               runners={state.runners}
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
+              buyerPosition={state.buyer}
             />
           </Suspense>
         </ClientOnly>
