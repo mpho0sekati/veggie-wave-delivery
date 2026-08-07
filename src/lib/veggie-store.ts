@@ -55,6 +55,20 @@ export function updateState(fn: (prev: AppState) => AppState) {
   write(fn(read()));
 }
 
+/** Move the buyer to their real position and bring nearby runners along, keeping relative offsets. */
+export function setBuyerLocation(pos: { lat: number; lng: number }) {
+  updateState((prev) => {
+    const dLat = pos.lat - prev.buyer.lat;
+    const dLng = pos.lng - prev.buyer.lng;
+    return {
+      ...prev,
+      buyer: { lat: pos.lat, lng: pos.lng, located: true },
+      runners: prev.runners.map((r) => ({ ...r, lat: r.lat + dLat, lng: r.lng + dLng })),
+    };
+  });
+}
+
+
 export function useAppState(): AppState {
   const [state, setState] = useState<AppState>(initialState);
 
