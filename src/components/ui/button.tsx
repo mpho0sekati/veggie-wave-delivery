@@ -16,13 +16,17 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        wave: "bg-accent text-accent-foreground shadow-lift hover:bg-accent/90 font-display text-base font-bold",
+        capitec: "bg-capitec text-capitec-foreground shadow hover:bg-capitec/90",
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
+        lg: "h-11 rounded-xl px-6",
+        xl: "h-14 rounded-2xl px-8 text-base",
         icon: "h-9 w-9",
       },
+
     },
     defaultVariants: {
       variant: "default",
