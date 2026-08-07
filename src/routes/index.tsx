@@ -120,7 +120,11 @@ function BuyerPage() {
         <div>
           <h1 className="text-2xl font-bold">Veggie Wave</h1>
           <p className="text-sm text-muted-foreground">
-            {online.length} runners near you
+            {geoStatus === "locating"
+              ? "Finding your location…"
+              : buyer.located
+                ? `${online.length} runners around you`
+                : `${online.length} runners · location not shared`}
           </p>
         </div>
         <Button asChild variant="secondary" size="sm">
@@ -137,28 +141,65 @@ function BuyerPage() {
               runners={state.runners}
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
+              buyerPosition={buyer}
             />
           </Suspense>
         </ClientOnly>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="absolute top-3 left-3 z-[400] shadow-lift"
+          onClick={locate}
+        >
+          <Crosshair /> {buyer.located ? "Recentre on me" : "Use my location"}
+        </Button>
       </section>
 
-      {nearest && !request && (
-        <Card className="mx-4 mt-4 flex flex-row items-center gap-3 p-4">
-          <span className="flex size-10 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
-            {nearest.name.charAt(0)}
-          </span>
-          <div className="flex-1">
-            <p className="font-semibold">{nearest.name} is closest</p>
-            <p className="text-sm text-muted-foreground">
-              {distanceKm(BUYER_POSITION, nearest).toFixed(1)} km ·{" "}
-              {walkMinutes(distanceKm(BUYER_POSITION, nearest))} min
-            </p>
-          </div>
-          <Badge variant="secondary">
-            <Star className="size-3" /> {nearest.rating.toFixed(1)}
-          </Badge>
-        </Card>
+      {(geoStatus === "denied" || geoStatus === "unsupported") && !buyer.located && (
+        <p className="mx-5 mt-3 text-sm text-muted-foreground">
+          Location is off, so we&apos;re showing a default area. Allow location access to see
+          the runners closest to you.
+        </p>
       )}
+
+      {nearest && !request && (
+        <>
+          <Card className="mx-4 mt-4 flex flex-row items-center gap-3 p-4">
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
+              {nearest.name.charAt(0)}
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold">{nearest.name} is closest to you</p>
+              <p className="text-sm text-muted-foreground">
+                {nearestKm.toFixed(1)} km · {walkMinutes(nearestKm)} min
+              </p>
+            </div>
+            <Badge variant="secondary">
+              <Star className="size-3" /> {nearest.rating.toFixed(1)}
+            </Badge>
+          </Card>
+
+          {nearbyRunners.length > 1 && (
+            <ul className="mx-4 mt-2 space-y-2">
+              {nearbyRunners.slice(1).map(({ runner, km }) => (
+                <li
+                  key={runner.id}
+                  className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+                >
+                  <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
+                    {runner.name.charAt(0)}
+                  </span>
+                  <p className="flex-1 text-sm font-medium">{runner.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {km.toFixed(1)} km · {walkMinutes(km)} min
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
 
       {!request && (
         <>
