@@ -1,22 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useMemo, useState } from "react";
-import { Hand, Minus, Plus, ScanLine, Star, Truck, MapPin, CheckCircle2 } from "lucide-react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import {
+  Hand,
+  Minus,
+  Plus,
+  ScanLine,
+  Star,
+  Truck,
+  MapPin,
+  CheckCircle2,
+  Crosshair,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  BUYER_POSITION,
-  CATALOG,
-  distanceKm,
-  formatRand,
-  walkMinutes,
-} from "@/lib/veggie-data";
-import { updateState, useAppState } from "@/lib/veggie-store";
+import { CATALOG, distanceKm, formatRand, walkMinutes } from "@/lib/veggie-data";
+import { setBuyerLocation, updateState, useAppState } from "@/lib/veggie-store";
+import { useGeolocation } from "@/lib/use-geolocation";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
