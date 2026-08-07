@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SEED_RUNNERS, type Runner } from "./veggie-data";
+import { BUYER_POSITION, SEED_RUNNERS, type Runner } from "./veggie-data";
 
 export type WaveStatus = "waving" | "accepted" | "delivered" | "paid";
 
@@ -16,6 +16,7 @@ export type WaveRequest = {
 export type AppState = {
   runners: Runner[];
   request: WaveRequest | null;
+  buyer: { lat: number; lng: number; located: boolean };
   me: { id: string; name: string; avatar: string | null; online: boolean };
 };
 
@@ -26,9 +27,11 @@ function initialState(): AppState {
   return {
     runners: SEED_RUNNERS,
     request: null,
+    buyer: { ...BUYER_POSITION, located: false },
     me: { id: "me", name: "", avatar: null, online: false },
   };
 }
+
 
 function read(): AppState {
   if (typeof window === "undefined") return initialState();
