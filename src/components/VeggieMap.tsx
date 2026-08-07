@@ -32,15 +32,16 @@ function buyerIcon(waving: boolean) {
   });
 }
 
-export default function VeggieMap({ runners, activeRunnerId, waving }: Props) {
+export default function VeggieMap({ runners, activeRunnerId, waving, buyerPosition }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const buyer = buyerPosition ?? BUYER_POSITION;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, {
-      center: [BUYER_POSITION.lat, BUYER_POSITION.lng],
+      center: [buyer.lat, buyer.lng],
       zoom: 15,
       zoomControl: false,
       attributionControl: true,
@@ -58,14 +59,20 @@ export default function VeggieMap({ runners, activeRunnerId, waving }: Props) {
       mapRef.current = null;
       layerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map) map.setView([buyer.lat, buyer.lng], map.getZoom(), { animate: true });
+  }, [buyer.lat, buyer.lng]);
 
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     layer.clearLayers();
 
-    L.circle([BUYER_POSITION.lat, BUYER_POSITION.lng], {
+    L.circle([buyer.lat, buyer.lng], {
       radius: waving ? 700 : 380,
       color: "oklch(0.62 0.16 145)",
       weight: 1,
@@ -73,7 +80,7 @@ export default function VeggieMap({ runners, activeRunnerId, waving }: Props) {
       fillOpacity: 0.12,
     }).addTo(layer);
 
-    L.marker([BUYER_POSITION.lat, BUYER_POSITION.lng], {
+    L.marker([buyer.lat, buyer.lng], {
       icon: buyerIcon(Boolean(waving)),
     }).addTo(layer);
 
@@ -92,13 +99,14 @@ export default function VeggieMap({ runners, activeRunnerId, waving }: Props) {
           L.polyline(
             [
               [r.lat, r.lng],
-              [BUYER_POSITION.lat, BUYER_POSITION.lng],
+              [buyer.lat, buyer.lng],
             ],
             { color: "oklch(0.72 0.17 62)", weight: 3, dashArray: "6 8" },
           ).addTo(layer);
         }
       });
-  }, [runners, activeRunnerId, waving]);
+  }, [runners, activeRunnerId, waving, buyer.lat, buyer.lng]);
 
   return <div ref={containerRef} className="h-full w-full" aria-label="Map of nearby veggie runners" />;
 }
+
