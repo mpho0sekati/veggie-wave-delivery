@@ -7,7 +7,9 @@ type Props = {
   runners: Runner[];
   activeRunnerId?: string | null;
   waving?: boolean;
+  buyerPosition?: { lat: number; lng: number };
 };
+
 
 function runnerIcon(active: boolean, initial: string, avatar?: string | null) {
   const inner = avatar
