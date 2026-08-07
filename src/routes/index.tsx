@@ -54,14 +54,23 @@ function BuyerPage() {
   const state = useAppState();
   const [qty, setQty] = useState<Record<string, number>>({});
   const [payOpen, setPayOpen] = useState(false);
+  const buyer = state.buyer;
+  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
+    setBuyerLocation(pos);
+  }, []);
+  const { status: geoStatus, locate } = useGeolocation(onPosition);
 
   const online = state.runners.filter((r) => r.online);
-  const nearest = useMemo(() => {
-    const sorted = [...online].sort(
-      (a, b) => distanceKm(BUYER_POSITION, a) - distanceKm(BUYER_POSITION, b),
-    );
-    return sorted[0] ?? null;
-  }, [online]);
+  const nearbyRunners = useMemo(
+    () =>
+      [...online]
+        .map((r) => ({ runner: r, km: distanceKm(buyer, r) }))
+        .sort((a, b) => a.km - b.km),
+    [online, buyer],
+  );
+  const nearest = nearbyRunners[0]?.runner ?? null;
+  const nearestKm = nearbyRunners[0]?.km ?? 0;
+
 
   const picked = CATALOG.filter((c) => (qty[c.id] ?? 0) > 0);
   const total = picked.reduce((sum, c) => sum + c.price * (qty[c.id] ?? 0), 0);
