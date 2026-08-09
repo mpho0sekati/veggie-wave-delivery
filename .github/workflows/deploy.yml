@@ -24,11 +24,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build
+      - name: Build for Netlify
         run: bun run build
+        env:
+          NITRO_PRESET: netlify
 
       - name: Deploy to Netlify
-        run: npx netlify-cli deploy --dir=dist/client --prod
+        run: npx netlify-cli deploy --prod
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
