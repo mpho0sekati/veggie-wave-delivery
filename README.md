@@ -14,13 +14,25 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
+## Deployment
+
+A GitHub Actions pipeline deploys the app to Netlify automatically on every push to `main`.
+
+1. Connect this project to GitHub from the Lovable editor (**+ → GitHub → Connect project**).
+2. Create a site in Netlify and copy its **Site ID**.
+3. Create a [Netlify personal access token](https://app.netlify.com/user/applications/personal).
+4. In your GitHub repository, add two secrets under **Settings → Secrets and variables → Actions**:
+   - `NETLIFY_AUTH_TOKEN` — your Netlify personal access token
+   - `NETLIFY_SITE_ID` — your Netlify site ID
+5. Push to `main` (or merge a PR). The workflow in `.github/workflows/deploy.yml` will build the app with the Netlify preset and deploy it.
+
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Prefer working locally? You need Bun (or Node.js and npm) — [install Bun](https://bun.sh/docs/installation).
 
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
-npm i
-npm run dev
+bun i
+bun run dev
 ```
