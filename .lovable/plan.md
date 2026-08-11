@@ -39,13 +39,24 @@ Replaces the Capitec placeholder with a self-contained demo payment:
 ### 5. Township-fit details
 - Rename "runner" to "trader" in the UI (keeping the same screens).
 - Add a short note field on the wave ("gate 4, blue house") so the trader can find the buyer.
-- Add staples traders commonly sell: potatoes, onions, cabbage, butternut, avocado, chillies.
+
+### 6. Demand insights for traders
+- Buyers can ask for anything: alongside the icon grid there's a "Something else?" field (e.g. "blueberries") that gets recorded with the wave, even if no trader stocks it.
+- Every wave logs demand per item: how many times it was requested, and how often it went unfilled because nobody nearby had it.
+- New "What's in demand" card on the trader page, ranked list, e.g.:
+  - "Tomatoes — 12 waves this week, you're stocked"
+  - "Blueberries — 7 waves, nobody nearby sells them. Add it?"
+  - "Spinach — 9 waves, only 1 trader stocked"
+- Each suggestion has an "Add to my stock" button that drops the item straight into the stock editor with a suggested price (average of what other traders charge, or a default for brand-new items).
+- Free-text requests that come up repeatedly get promoted into the catalog as a new item with a matching fruit/veg icon, so they become tappable for the next buyer.
+
 
 ## Technical notes
 
 - `src/lib/veggie-data.ts`: extend `Runner` with `stock: { itemId, price, available }[]`; add new catalog items; keep icons only, no photos.
-- `src/lib/veggie-store.ts`: add `wallet` (buyer balance, PIN) and `orders: WaveRequest[]` history to `AppState`; add actions `setStock`, `payWithWavePay`, `payCash`, `archiveRequest`. Keep the same localStorage + custom-event sync.
-- `src/routes/runner.tsx`: stock editor (checkbox + price input per item), earnings card.
-- `src/routes/index.tsx`: match-aware trader ranking, per-trader pricing, wave timer, Wave Pay dialog with PIN entry, history list.
-- New `src/components/WavePayDialog.tsx` and `src/components/StockEditor.tsx` to keep route files small.
+- `src/lib/veggie-store.ts`: add `wallet` (buyer balance, PIN), `orders: WaveRequest[]` history and `demand: { itemId or text, requests, unfilled, lastAt }[]` to `AppState`; add actions `setStock`, `payWithWavePay`, `payCash`, `archiveRequest`, `logDemand`, `promoteToCatalog`. Keep the same localStorage + custom-event sync.
+- `src/routes/runner.tsx`: stock editor (checkbox + price input per item), earnings card, demand-insights card with one-tap "add to my stock".
+
+- `src/routes/index.tsx`: match-aware trader ranking, per-trader pricing, "something else" request field, wave timer, Wave Pay dialog with PIN entry, history list.
+- New `src/components/WavePayDialog.tsx`, `src/components/StockEditor.tsx` and `src/components/DemandInsights.tsx` to keep route files small.
 - Design system and Leaflet map stay as-is; new UI uses existing tokens and shadcn components.
