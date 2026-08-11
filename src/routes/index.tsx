@@ -1,28 +1,47 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand,
   Minus,
   Plus,
-  ScanLine,
   Star,
-  Truck,
+  Store,
   MapPin,
   CheckCircle2,
   Crosshair,
+  Wallet,
+  History,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CATALOG, distanceKm, formatRand, walkMinutes } from "@/lib/veggie-data";
-import { setBuyerLocation, updateState, useAppState } from "@/lib/veggie-store";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  catalogWith,
+  distanceKm,
+  formatRand,
+  priceFor,
+  walkMinutes,
+  type Runner,
+} from "@/lib/veggie-data";
+import {
+  archiveRequest,
+  logDemand,
+  payCash,
+  setBuyerLocation,
+  updateState,
+  useAppState,
+} from "@/lib/veggie-store";
 import { useGeolocation } from "@/lib/use-geolocation";
+import WavePayDialog from "@/components/WavePayDialog";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
+const WAVE_TIMEOUT_MS = 120_000;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,13 +50,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "See the nearest veggie runner on the map, wave to signal what you need, and pay instantly with Capitec Scan to Pay.",
+          "See the nearest township veggie trader on the map, wave for what you need, and pay instantly with Wave Pay.",
       },
       { property: "og:title", content: "Veggie Wave — Raise your hand for fresh veggies" },
       {
         property: "og:description",
         content:
-          "Live map of nearby veggie runners. Wave, get your fruit and veg delivered, pay by Capitec scan.",
+          "Live map of nearby veggie traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with Wave Pay.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -50,9 +69,24 @@ function MapSkeleton() {
   return <div className="h-full w-full animate-pulse bg-muted" />;
 }
 
+function useTicker(active: boolean) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [active]);
+}
+
+function clock(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
 function BuyerPage() {
   const state = useAppState();
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const buyer = state.buyer;
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
@@ -60,28 +94,38 @@ function BuyerPage() {
   }, []);
   const { status: geoStatus, locate } = useGeolocation(onPosition);
 
+  const catalog = useMemo(() => catalogWith(state.customItems), [state.customItems]);
   const online = state.runners.filter((r) => r.online);
-  const nearbyRunners = useMemo(
-    () =>
-      [...online]
-        .map((r) => ({ runner: r, km: distanceKm(buyer, r) }))
-        .sort((a, b) => a.km - b.km),
-    [online, buyer],
-  );
-  const nearest = nearbyRunners[0]?.runner ?? null;
-  const nearestKm = nearbyRunners[0]?.km ?? 0;
+  const picked = catalog.filter((c) => (qty[c.id] ?? 0) > 0);
 
-
-  const picked = CATALOG.filter((c) => (qty[c.id] ?? 0) > 0);
-  const total = picked.reduce((sum, c) => sum + c.price * (qty[c.id] ?? 0), 0);
   const request = state.request;
-  const assigned = state.runners.find((r) => r.id === request?.runnerId) ?? null;
+  useTicker(request?.status === "waving");
+
+  /** Traders ranked by how much of the basket they can fill, then by distance. */
+  const ranked = useMemo(() => {
+    return online
+      .map((runner) => {
+        const km = distanceKm(buyer, runner);
+        const have = picked.filter((p) => priceFor(runner, p.id) !== null);
+        const total = have.reduce(
+          (sum, p) => sum + (priceFor(runner, p.id) ?? 0) * (qty[p.id] ?? 0),
+          0,
+        );
+        return { runner, km, have: have.length, total };
+      })
+      .sort((a, b) => b.have - a.have || a.km - b.km);
+  }, [online, buyer, picked, qty]);
+
+  const best = ranked[0] ?? null;
+  const total = best?.total ?? 0;
+  const assigned: Runner | null =
+    state.runners.find((r) => r.id === request?.runnerId) ?? null;
 
   const bump = (id: string, delta: number) =>
     setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) }));
 
   const wave = () => {
-    if (!picked.length) {
+    if (!picked.length && !wish.trim()) {
       toast.error("Pick what you need first");
       return;
     }
@@ -90,6 +134,7 @@ function BuyerPage() {
       request: {
         id: crypto.randomUUID(),
         items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
+        wish: wish.trim(),
         total,
         note: `${picked.length} items`,
         status: "waving",
@@ -97,22 +142,33 @@ function BuyerPage() {
         createdAt: Date.now(),
       },
     }));
-    toast.success("Hand raised — nearby runners can see you waving");
+    logDemand([
+      ...picked.map((p) => ({ itemId: p.id, label: p.name })),
+      ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
+    ]);
+    toast.success("Hand raised — traders nearby can see you waving");
   };
+
+  const waveAgain = () =>
+    updateState((prev) => ({
+      ...prev,
+      request: prev.request ? { ...prev.request, createdAt: Date.now() } : null,
+    }));
 
   const cancel = () => {
     updateState((prev) => ({ ...prev, request: null }));
     setQty({});
+    setWish("");
   };
 
-  const markPaid = () => {
-    updateState((prev) => ({
-      ...prev,
-      request: prev.request ? { ...prev.request, status: "paid" } : null,
-    }));
-    setPayOpen(false);
-    toast.success("Paid with Capitec Scan to Pay");
+  const finish = () => {
+    archiveRequest();
+    setQty({});
+    setWish("");
   };
+
+  const waitedMs = request ? Date.now() - request.createdAt : 0;
+  const timedOut = request?.status === "waving" && waitedMs > WAVE_TIMEOUT_MS;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
@@ -123,13 +179,13 @@ function BuyerPage() {
             {geoStatus === "locating"
               ? "Finding your location…"
               : buyer.located
-                ? `${online.length} runners around you`
-                : `${online.length} runners · location not shared`}
+                ? `${online.length} traders around you`
+                : `${online.length} traders · location not shared`}
           </p>
         </div>
         <Button asChild variant="secondary" size="sm">
           <Link to="/runner">
-            <Truck /> I&apos;m a runner
+            <Store /> I&apos;m a trader
           </Link>
         </Button>
       </header>
@@ -157,57 +213,81 @@ function BuyerPage() {
 
       {(geoStatus === "denied" || geoStatus === "unsupported") && !buyer.located && (
         <p className="mx-5 mt-3 text-sm text-muted-foreground">
-          Location is off, so we&apos;re showing a default area. Allow location access to see
-          the runners closest to you.
+          Location is off, so we&apos;re showing a default area. Allow location access to see the
+          traders closest to you.
         </p>
       )}
 
-      {nearest && !request && (
-        <>
-          <Card className="mx-4 mt-4 flex flex-row items-center gap-3 p-4">
-            <span className="flex size-10 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
-              {nearest.name.charAt(0)}
-            </span>
-            <div className="flex-1">
-              <p className="font-semibold">{nearest.name} is closest to you</p>
-              <p className="text-sm text-muted-foreground">
-                {nearestKm.toFixed(1)} km · {walkMinutes(nearestKm)} min
-              </p>
-            </div>
-            <Badge variant="secondary">
-              <Star className="size-3" /> {nearest.rating.toFixed(1)}
-            </Badge>
-          </Card>
-
-          {nearbyRunners.length > 1 && (
-            <ul className="mx-4 mt-2 space-y-2">
-              {nearbyRunners.slice(1).map(({ runner, km }) => (
-                <li
-                  key={runner.id}
-                  className="flex items-center gap-3 rounded-2xl border px-4 py-3"
-                >
-                  <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
-                    {runner.name.charAt(0)}
-                  </span>
-                  <p className="flex-1 text-sm font-medium">{runner.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {km.toFixed(1)} km · {walkMinutes(km)} min
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
-
-
       {!request && (
         <>
+          <div className="mx-4 mt-4 flex items-center justify-between rounded-2xl bg-secondary px-4 py-3">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Wallet className="size-4 text-primary" /> Wave Pay balance
+            </span>
+            <span className="font-display font-semibold">
+              {formatRand(state.wallet.balance)}
+            </span>
+          </div>
+
+          {ranked.length > 0 && (
+            <>
+              <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
+              <ul className="mx-4 mt-2 space-y-2">
+                {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
+                  const partial = picked.length > 0 && have < picked.length;
+                  return (
+                    <li
+                      key={runner.id}
+                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+                        index === 0 ? "border-primary bg-secondary" : ""
+                      }`}
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-semibold text-primary-foreground">
+                        {runner.avatar ? (
+                          <img
+                            src={runner.avatar}
+                            alt={`${runner.name}'s profile`}
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          runner.name.charAt(0)
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">
+                          {runner.name}
+                          {index === 0 && picked.length > 0 && !partial ? " · best match" : ""}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {km.toFixed(1)} km · {walkMinutes(km)} min ·{" "}
+                          {picked.length
+                            ? `has ${have}/${picked.length}`
+                            : `${runner.stock.length} items`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {picked.length > 0 && (
+                          <p className="font-display text-sm font-semibold">
+                            {formatRand(runnerTotal)}
+                          </p>
+                        )}
+                        <Badge variant={partial ? "outline" : "secondary"}>
+                          {partial ? "partial" : <><Star className="size-3" /> {runner.rating.toFixed(1)}</>}
+                        </Badge>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
           <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
           <div className="grid grid-cols-2 gap-3 px-4 pt-3">
-            {CATALOG.map((item) => {
+            {catalog.map((item) => {
               const Icon = item.icon;
               const count = qty[item.id] ?? 0;
+              const sellers = online.filter((r) => priceFor(r, item.id) !== null).length;
               return (
                 <Card
                   key={item.id}
@@ -217,7 +297,16 @@ function BuyerPage() {
                   <div>
                     <p className="font-semibold leading-tight">{item.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.unit} · {formatRand(item.price)}
+                      {item.unit} ·{" "}
+                      {sellers
+                        ? `from ${formatRand(
+                            Math.min(
+                              ...online
+                                .map((r) => priceFor(r, item.id))
+                                .filter((p): p is number => p !== null),
+                            ),
+                          )}`
+                        : "nobody stocked"}
                     </p>
                   </div>
                   <div className="flex items-center justify-between">
@@ -243,6 +332,19 @@ function BuyerPage() {
               );
             })}
           </div>
+
+          <div className="mx-4 mt-4 space-y-2">
+            <Label htmlFor="wish">Something else?</Label>
+            <Input
+              id="wish"
+              placeholder="e.g. blueberries"
+              value={wish}
+              onChange={(e) => setWish(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Even if nobody has it yet, we tell the traders people are asking for it.
+            </p>
+          </div>
         </>
       )}
 
@@ -252,7 +354,7 @@ function BuyerPage() {
             {request.status === "waving" && (
               <>
                 <Hand className="size-5 animate-wave text-accent" />
-                <p className="font-semibold">Waving… waiting for a runner</p>
+                <p className="font-semibold">Waving… waiting for a trader</p>
               </>
             )}
             {request.status === "accepted" && assigned && (
@@ -270,13 +372,23 @@ function BuyerPage() {
             {request.status === "paid" && (
               <>
                 <CheckCircle2 className="size-5 text-primary" />
-                <p className="font-semibold">Paid. Enjoy your veggies!</p>
+                <p className="font-semibold">
+                  Paid {request.paidWith === "cash" ? "in cash" : "with Wave Pay"}. Enjoy your
+                  veggies!
+                </p>
               </>
             )}
           </div>
+
+          {request.status === "waving" && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="size-4" /> waiting… {clock(waitedMs)}
+            </p>
+          )}
+
           <ul className="space-y-1 text-sm text-muted-foreground">
             {request.items.map((line) => {
-              const item = CATALOG.find((c) => c.id === line.id);
+              const item = catalog.find((c) => c.id === line.id);
               if (!item) return null;
               const Icon = item.icon;
               return (
@@ -286,19 +398,40 @@ function BuyerPage() {
                 </li>
               );
             })}
+            {request.wish && <li className="italic">also asked for: {request.wish}</li>}
           </ul>
           <p className="font-display text-xl font-bold">{formatRand(request.total)}</p>
+
+          {timedOut && (
+            <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
+              <p>Nobody has answered yet.</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={waveAgain}>
+                  <Hand /> Wave again
+                </Button>
+                <Button size="sm" variant="outline" onClick={cancel}>
+                  Try another trader
+                </Button>
+              </div>
+            </div>
+          )}
+
           {request.status === "delivered" && (
-            <Button variant="capitec" size="lg" onClick={() => setPayOpen(true)}>
-              <ScanLine /> Capitec Scan to Pay
-            </Button>
+            <>
+              <Button variant="wave" size="lg" onClick={() => setPayOpen(true)}>
+                <Wallet /> Pay {formatRand(request.total)} with Wave Pay
+              </Button>
+              <Button variant="outline" onClick={payCash}>
+                I paid cash
+              </Button>
+            </>
           )}
           {request.status !== "paid" ? (
             <Button variant="ghost" onClick={cancel}>
               Cancel request
             </Button>
           ) : (
-            <Button variant="outline" onClick={cancel}>
+            <Button variant="outline" onClick={finish}>
               New order
             </Button>
           )}
@@ -314,31 +447,43 @@ function BuyerPage() {
         </div>
       )}
 
-      <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle>Capitec Scan to Pay</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4">
-            <div
-              className="size-40 rounded-xl border bg-foreground"
-              style={{
-                backgroundImage:
-                  "repeating-conic-gradient(var(--foreground) 0% 25%, var(--card) 0% 50%)",
-                backgroundSize: "16px 16px",
-              }}
-              aria-label="Capitec payment QR code"
-            />
-            <p className="text-center text-sm text-muted-foreground">
-              Scan this code in the Capitec app to pay{" "}
-              {formatRand(request?.total ?? 0)} to your runner.
-            </p>
-            <Button variant="capitec" className="w-full" onClick={markPaid}>
-              I&apos;ve paid
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {!request && state.orders.length > 0 && (
+        <section className="px-4 pb-8">
+          <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
+            <History className="size-5 text-primary" /> Past waves
+          </h2>
+          <ul className="space-y-2">
+            {state.orders.map((order) => {
+              const trader = state.runners.find((r) => r.id === order.runnerId);
+              return (
+                <li key={order.id} className="rounded-2xl border px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">{trader?.name ?? "No trader"}</p>
+                    <p className="font-display font-semibold">{formatRand(order.total)}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {order.items.length} items ·{" "}
+                    {order.status === "paid"
+                      ? order.paidWith === "cash"
+                        ? "paid cash"
+                        : "paid with Wave Pay"
+                      : "not completed"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <WavePayDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        amount={request?.total ?? 0}
+        balance={state.wallet.balance}
+        traderName={assigned?.name ?? "your trader"}
+        onPaid={() => undefined}
+      />
     </main>
   );
 }
