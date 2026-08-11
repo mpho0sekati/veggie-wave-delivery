@@ -54,8 +54,9 @@ Replaces the Capitec placeholder with a self-contained demo payment:
 ## Technical notes
 
 - `src/lib/veggie-data.ts`: extend `Runner` with `stock: { itemId, price, available }[]`; add new catalog items; keep icons only, no photos.
-- `src/lib/veggie-store.ts`: add `wallet` (buyer balance, PIN) and `orders: WaveRequest[]` history to `AppState`; add actions `setStock`, `payWithWavePay`, `payCash`, `archiveRequest`. Keep the same localStorage + custom-event sync.
-- `src/routes/runner.tsx`: stock editor (checkbox + price input per item), earnings card.
+- `src/lib/veggie-store.ts`: add `wallet` (buyer balance, PIN), `orders: WaveRequest[]` history and `demand: { itemId or text, requests, unfilled, lastAt }[]` to `AppState`; add actions `setStock`, `payWithWavePay`, `payCash`, `archiveRequest`, `logDemand`, `promoteToCatalog`. Keep the same localStorage + custom-event sync.
+- `src/routes/runner.tsx`: stock editor (checkbox + price input per item), earnings card, demand-insights card with one-tap "add to my stock".
+
 - `src/routes/index.tsx`: match-aware trader ranking, per-trader pricing, wave timer, Wave Pay dialog with PIN entry, history list.
 - New `src/components/WavePayDialog.tsx` and `src/components/StockEditor.tsx` to keep route files small.
 - Design system and Leaflet map stay as-is; new UI uses existing tokens and shadcn components.
