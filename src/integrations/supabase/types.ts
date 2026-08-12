@@ -14,16 +14,217 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      catalog_items: {
+        Row: {
+          created_at: string
+          icon_key: string
+          id: string
+          name: string
+          price: number
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          icon_key?: string
+          id: string
+          name: string
+          price?: number
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          icon_key?: string
+          id?: string
+          name?: string
+          price?: number
+          unit?: string
+        }
+        Relationships: []
+      }
+      demand: {
+        Row: {
+          item_id: string | null
+          key: string
+          label: string
+          last_at: string
+          requests: number
+          unfilled: number
+        }
+        Insert: {
+          item_id?: string | null
+          key: string
+          label: string
+          last_at?: string
+          requests?: number
+          unfilled?: number
+        }
+        Update: {
+          item_id?: string | null
+          key?: string
+          label?: string
+          last_at?: string
+          requests?: number
+          unfilled?: number
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          buyer_id: string
+          buyer_lat: number | null
+          buyer_lng: number | null
+          created_at: string
+          id: string
+          items: Json
+          note: string
+          paid_with: string | null
+          status: string
+          total: number
+          trader_id: string | null
+          updated_at: string
+          wish: string
+        }
+        Insert: {
+          buyer_id: string
+          buyer_lat?: number | null
+          buyer_lng?: number | null
+          created_at?: string
+          id?: string
+          items?: Json
+          note?: string
+          paid_with?: string | null
+          status?: string
+          total?: number
+          trader_id?: string | null
+          updated_at?: string
+          wish?: string
+        }
+        Update: {
+          buyer_id?: string
+          buyer_lat?: number | null
+          buyer_lng?: number | null
+          created_at?: string
+          id?: string
+          items?: Json
+          note?: string
+          paid_with?: string | null
+          status?: string
+          total?: number
+          trader_id?: string | null
+          updated_at?: string
+          wish?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          earnings: number
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          online: boolean
+          rating: number
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          earnings?: number
+          id: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          online?: boolean
+          rating?: number
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          earnings?: number
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          online?: boolean
+          rating?: number
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock: {
+        Row: {
+          available: boolean
+          id: string
+          item_id: string
+          price: number
+          quantity: number
+          trader_id: string
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          id?: string
+          item_id: string
+          price?: number
+          quantity?: number
+          trader_id: string
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          id?: string
+          item_id?: string
+          price?: number
+          quantity?: number
+          trader_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          pin: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          pin?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          pin?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_demand: {
+        Args: { _item_id: string; _label: string; _stocked: boolean }
+        Returns: undefined
+      }
+      pay_order: {
+        Args: { _method: string; _order_id: string; _pin: string }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "buyer" | "trader"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +351,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["buyer", "trader"],
+    },
   },
 } as const
