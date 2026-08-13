@@ -92,7 +92,7 @@ function BuyerPage() {
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
   }, []);
-  const { status: geoStatus, locate } = useGeolocation(onPosition);
+  const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
   const catalog = useMemo(() => catalogWith(state.customItems), [state.customItems]);
   const online = state.runners.filter((r) => r.online);
@@ -198,6 +198,7 @@ function BuyerPage() {
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
+              onPickPosition={onPosition}
             />
           </Suspense>
         </ClientOnly>
@@ -207,14 +208,18 @@ function BuyerPage() {
           className="absolute top-3 left-3 z-[400] shadow-lift"
           onClick={locate}
         >
-          <Crosshair /> {buyer.located ? "Recentre on me" : "Use my location"}
+          <Crosshair />
+          {geoStatus === "locating"
+            ? "Locating…"
+            : buyer.located
+              ? "Recentre on me"
+              : "Use my location"}
         </Button>
       </section>
 
-      {(geoStatus === "denied" || geoStatus === "unsupported") && !buyer.located && (
+      {geoMessage && geoStatus !== "locating" && (
         <p className="mx-5 mt-3 text-sm text-muted-foreground">
-          Location is off, so we&apos;re showing a default area. Allow location access to see the
-          traders closest to you.
+          {geoMessage} You can also long-press the map to drop your own pin.
         </p>
       )}
 

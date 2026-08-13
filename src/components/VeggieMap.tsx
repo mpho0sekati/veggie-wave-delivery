@@ -8,6 +8,8 @@ type Props = {
   activeRunnerId?: string | null;
   waving?: boolean;
   buyerPosition?: { lat: number; lng: number };
+  /** Long-press / right-click the map to drop your own pin when GPS is unavailable. */
+  onPickPosition?: (pos: { lat: number; lng: number }) => void;
 };
 
 
@@ -32,10 +34,18 @@ function buyerIcon(waving: boolean) {
   });
 }
 
-export default function VeggieMap({ runners, activeRunnerId, waving, buyerPosition }: Props) {
+export default function VeggieMap({
+  runners,
+  activeRunnerId,
+  waving,
+  buyerPosition,
+  onPickPosition,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const pickRef = useRef(onPickPosition);
+  pickRef.current = onPickPosition;
   const buyer = buyerPosition ?? BUYER_POSITION;
 
   useEffect(() => {
@@ -46,6 +56,9 @@ export default function VeggieMap({ runners, activeRunnerId, waving, buyerPositi
       zoomControl: false,
       attributionControl: true,
     });
+    map.on("contextmenu", (e: L.LeafletMouseEvent) =>
+      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
+    );
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "© OpenStreetMap contributors",
