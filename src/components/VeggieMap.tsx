@@ -34,11 +34,30 @@ function buyerIcon(waving: boolean) {
   });
 }
 
-export default function VeggieMap({ runners, activeRunnerId, waving, buyerPosition }: Props) {
+export default function VeggieMap({
+  runners,
+  activeRunnerId,
+  waving,
+  buyerPosition,
+  onPickPosition,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const pickRef = useRef(onPickPosition);
+  pickRef.current = onPickPosition;
   const buyer = buyerPosition ?? BUYER_POSITION;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const handler = (e: L.LeafletMouseEvent) =>
+      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
+    map.on("contextmenu", handler);
+    return () => {
+      map.off("contextmenu", handler);
+    };
+  });
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
