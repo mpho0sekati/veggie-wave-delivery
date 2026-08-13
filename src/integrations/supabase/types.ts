@@ -192,26 +192,55 @@ export type Database = {
         Row: {
           balance: number
           created_at: string
-          pin: string
+          pin_hash: string
           user_id: string
         }
         Insert: {
           balance?: number
           created_at?: string
-          pin?: string
+          pin_hash: string
           user_id: string
         }
         Update: {
           balance?: number
           created_at?: string
-          pin?: string
+          pin_hash?: string
           user_id?: string
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      trader_directory: {
+        Row: {
+          avatar: string | null
+          id: string | null
+          lat: number | null
+          lng: number | null
+          name: string | null
+          online: boolean | null
+          rating: number | null
+        }
+        Insert: {
+          avatar?: string | null
+          id?: string | null
+          lat?: number | null
+          lng?: number | null
+          name?: string | null
+          online?: boolean | null
+          rating?: number | null
+        }
+        Update: {
+          avatar?: string | null
+          id?: string | null
+          lat?: number | null
+          lng?: number | null
+          name?: string | null
+          online?: boolean | null
+          rating?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       log_demand: {
