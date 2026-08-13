@@ -120,7 +120,6 @@ export type Database = {
         Row: {
           avatar: string | null
           created_at: string
-          earnings: number
           id: string
           lat: number | null
           lng: number | null
@@ -133,7 +132,6 @@ export type Database = {
         Insert: {
           avatar?: string | null
           created_at?: string
-          earnings?: number
           id: string
           lat?: number | null
           lng?: number | null
@@ -146,7 +144,6 @@ export type Database = {
         Update: {
           avatar?: string | null
           created_at?: string
-          earnings?: number
           id?: string
           lat?: number | null
           lng?: number | null
@@ -188,6 +185,24 @@ export type Database = {
         }
         Relationships: []
       }
+      trader_earnings: {
+        Row: {
+          earnings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          earnings?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          earnings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           balance: number
@@ -211,36 +226,7 @@ export type Database = {
       }
     }
     Views: {
-      trader_directory: {
-        Row: {
-          avatar: string | null
-          id: string | null
-          lat: number | null
-          lng: number | null
-          name: string | null
-          online: boolean | null
-          rating: number | null
-        }
-        Insert: {
-          avatar?: string | null
-          id?: string | null
-          lat?: number | null
-          lng?: number | null
-          name?: string | null
-          online?: boolean | null
-          rating?: number | null
-        }
-        Update: {
-          avatar?: string | null
-          id?: string | null
-          lat?: number | null
-          lng?: number | null
-          name?: string | null
-          online?: boolean | null
-          rating?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       log_demand: {
