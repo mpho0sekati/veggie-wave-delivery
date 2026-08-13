@@ -8,6 +8,8 @@ type Props = {
   activeRunnerId?: string | null;
   waving?: boolean;
   buyerPosition?: { lat: number; lng: number };
+  /** Long-press / right-click the map to drop your own pin when GPS is unavailable. */
+  onPickPosition?: (pos: { lat: number; lng: number }) => void;
 };
 
 
