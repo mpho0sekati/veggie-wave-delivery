@@ -79,8 +79,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Veggie Wave" },
-      { name: "description", content: "Wave for fresh fruit and veg delivered by the nearest runner." },
+      { title: "Mdeko — Veggie Wave" },
+      {
+        name: "description",
+        content:
+          "Mdeko · Veggie Wave — raise your hand and the nearest township trader brings the fruit and veg you need.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
