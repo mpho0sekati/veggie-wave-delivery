@@ -35,7 +35,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
-  --shadow-lift: 0 18px 40px -20px oklch(0.3 0.06 145 / 0.35);
+  --shadow-lift: 0 18px 40px -20px oklch(0.3 0.06 145 / 0.3);
 }
 
 :root {
@@ -154,4 +154,46 @@
 .leaflet-container {
   background: oklch(0.94 0.02 120);
   font-family: var(--font-sans);
+}
+
+/* ---- Mdeko brand polish ---- */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-rise {
+  animation: rise-in 0.35s ease-out both;
+}
+
+@utility bg-brand {
+  background-image: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    oklch(0.63 0.16 152) 55%,
+    var(--accent) 130%
+  );
+}
+
+@utility text-brand {
+  background-image: linear-gradient(100deg, var(--primary), oklch(0.62 0.15 158));
+  background-clip: text;
+  color: transparent;
+}
+
+@utility shadow-glow {
+  box-shadow: 0 14px 34px -16px oklch(0.55 0.15 146 / 0.55);
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
