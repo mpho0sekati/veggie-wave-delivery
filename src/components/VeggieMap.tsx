@@ -49,17 +49,6 @@ export default function VeggieMap({
   const buyer = buyerPosition ?? BUYER_POSITION;
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const handler = (e: L.LeafletMouseEvent) =>
-      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
-    map.on("contextmenu", handler);
-    return () => {
-      map.off("contextmenu", handler);
-    };
-  });
-
-  useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, {
       center: [buyer.lat, buyer.lng],
@@ -67,6 +56,9 @@ export default function VeggieMap({
       zoomControl: false,
       attributionControl: true,
     });
+    map.on("contextmenu", (e: L.LeafletMouseEvent) =>
+      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
+    );
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "© OpenStreetMap contributors",
