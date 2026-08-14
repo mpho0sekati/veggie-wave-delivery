@@ -38,6 +38,8 @@ import {
 } from "@/lib/veggie-store";
 import { useGeolocation } from "@/lib/use-geolocation";
 import WavePayDialog from "@/components/WavePayDialog";
+import BrandMark from "@/components/BrandMark";
+import OrderStepper from "@/components/OrderStepper";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
@@ -173,7 +175,7 @@ function BuyerPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col pb-4">
-      <header className="animate-rise-in flex items-center justify-between gap-3 px-5 pt-6 pb-3">
+      <header className="animate-rise flex items-center justify-between gap-3 px-5 pt-6 pb-3">
         <BrandMark
           subtitle={
             geoStatus === "locating"
