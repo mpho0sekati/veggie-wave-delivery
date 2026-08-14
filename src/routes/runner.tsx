@@ -12,6 +12,8 @@ import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/li
 import { updateState, useAppState } from "@/lib/veggie-store";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
+import BrandMark from "@/components/BrandMark";
+import OrderStepper from "@/components/OrderStepper";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
@@ -194,7 +196,8 @@ function RunnerPage() {
         )}
 
         {request && (
-          <Card className="gap-3 p-5">
+          <Card className="animate-rise gap-4 p-5">
+            <OrderStepper status={request.status} />
             <div className="flex items-center gap-2">
               <Hand
                 className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`}
