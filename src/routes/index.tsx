@@ -237,58 +237,77 @@ function BuyerPage() {
             </span>
           </div>
 
-          {ranked.length > 0 && (
-            <>
-              <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
-              <ul className="mx-4 mt-2 space-y-2">
-                {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
-                  const partial = picked.length > 0 && have < picked.length;
-                  return (
-                    <li
-                      key={runner.id}
-                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
-                        index === 0 ? "border-primary bg-secondary" : ""
-                      }`}
-                    >
-                      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-semibold text-primary-foreground">
-                        {runner.avatar ? (
-                          <img
-                            src={runner.avatar}
-                            alt={`${runner.name}'s profile`}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          runner.name.charAt(0)
+          <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
+          {ranked.length === 0 ? (
+            <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
+              <Store className="size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                No Mdeko trader is online around you yet. Pick what you need anyway — the next
+                trader to come online will see your wave.
+              </p>
+            </Card>
+          ) : (
+            <ul className="mx-4 mt-2 space-y-2">
+              {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
+                const partial = picked.length > 0 && have < picked.length;
+                const bestMatch = index === 0 && picked.length > 0 && !partial;
+                return (
+                  <li
+                    key={runner.id}
+                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
+                      index === 0 ? "border-primary bg-secondary shadow-glow" : "bg-card"
+                    }`}
+                  >
+                    <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
+                      {runner.avatar ? (
+                        <img
+                          src={runner.avatar}
+                          alt={`${runner.name}'s profile`}
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        runner.name.charAt(0)
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-2 truncate font-semibold">
+                        {runner.name}
+                        {bestMatch && (
+                          <Badge className="shrink-0" variant="default">
+                            best match
+                          </Badge>
                         )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">
-                          {runner.name}
-                          {index === 0 && picked.length > 0 && !partial ? " · best match" : ""}
+                      </p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="size-3.5" /> {km.toFixed(1)} km
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3.5" /> {walkMinutes(km)} min
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="size-3.5" /> {runner.rating.toFixed(1)}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {picked.length > 0 && (
+                        <p className="font-display text-sm font-semibold">
+                          {formatRand(runnerTotal)}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {km.toFixed(1)} km · {walkMinutes(km)} min ·{" "}
-                          {picked.length
-                            ? `has ${have}/${picked.length}`
-                            : `${runner.stock.length} items`}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {picked.length > 0 && (
-                          <p className="font-display text-sm font-semibold">
-                            {formatRand(runnerTotal)}
-                          </p>
-                        )}
-                        <Badge variant={partial ? "outline" : "secondary"}>
-                          {partial ? "partial" : <><Star className="size-3" /> {runner.rating.toFixed(1)}</>}
-                        </Badge>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
+                      )}
+                      <Badge variant={partial ? "outline" : "secondary"}>
+                        {picked.length
+                          ? `has ${have}/${picked.length}`
+                          : `${runner.stock.length} items`}
+                      </Badge>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
+
 
           <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
           <div className="grid grid-cols-2 gap-3 px-4 pt-3">
