@@ -172,24 +172,24 @@ function BuyerPage() {
   const timedOut = request?.status === "waving" && waitedMs > WAVE_TIMEOUT_MS;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="flex items-center justify-between px-5 pt-6 pb-3">
-        <div>
-          <h1 className="text-2xl font-bold">Veggie Wave</h1>
-          <p className="text-sm text-muted-foreground">
-            {geoStatus === "locating"
+    <main className="mx-auto flex min-h-screen max-w-md flex-col pb-4">
+      <header className="animate-rise-in flex items-center justify-between gap-3 px-5 pt-6 pb-3">
+        <BrandMark
+          subtitle={
+            geoStatus === "locating"
               ? "Finding your location…"
               : buyer.located
                 ? `${online.length} traders around you`
-                : `${online.length} traders · location not shared`}
-          </p>
-        </div>
-        <Button asChild variant="secondary" size="sm">
+                : `${online.length} traders · location not shared`
+          }
+        />
+        <Button asChild variant="secondary" size="sm" className="shrink-0">
           <Link to="/runner">
             <Store /> I&apos;m a trader
           </Link>
         </Button>
       </header>
+
 
       <section className="relative mx-4 h-72 overflow-hidden rounded-3xl border shadow-lift">
         <ClientOnly fallback={<MapSkeleton />}>
