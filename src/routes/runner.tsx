@@ -12,19 +12,22 @@ import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/li
 import { updateState, useAppState } from "@/lib/veggie-store";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
+import BrandMark from "@/components/BrandMark";
+import OrderStepper from "@/components/OrderStepper";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
 export const Route = createFileRoute("/runner")({
   head: () => ({
     meta: [
-      { title: "Trader mode — Veggie Wave stall dashboard" },
+      { title: "Trader stall — Mdeko · Veggie Wave" },
       {
         name: "description",
         content:
-          "Go online as a township veggie trader, set your own stock and prices, see who is waving nearby and get paid with Wave Pay.",
+          "Go online as a township veggie trader on Mdeko, set your own stock and prices, see who is waving nearby and get paid with Mdeko Pay.",
       },
-      { property: "og:title", content: "Trader mode — Veggie Wave" },
+      { property: "og:title", content: "Trader stall — Mdeko · Veggie Wave" },
+
       {
         property: "og:description",
         content:
@@ -106,19 +109,18 @@ function RunnerPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="flex items-center gap-3 px-5 pt-6 pb-3">
+      <header className="animate-rise flex items-center gap-2 px-4 pt-6 pb-3">
         <Button asChild variant="ghost" size="icon" aria-label="Back to buyer view">
           <Link to="/">
             <ArrowLeft />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Trader mode</h1>
-          <p className="text-sm text-muted-foreground">
-            {me.online ? "You're online" : "You're offline"} · {km.toFixed(1)} km from the wave
-          </p>
-        </div>
+        <BrandMark
+          subtitle={`Trader stall · ${me.online ? "you're online" : "you're offline"}`}
+          className="min-w-0"
+        />
       </header>
+
 
       <Card className="mx-4 gap-4 p-5">
         <div className="flex items-center gap-4">
@@ -187,14 +189,19 @@ function RunnerPage() {
         {!request && (
           <Card className="items-center gap-2 p-8 text-center">
             <Hand className="size-8 text-muted-foreground" />
+            <p className="font-semibold">No hands up right now</p>
             <p className="text-sm text-muted-foreground">
-              No one is waving right now. Stay online and you&apos;ll see the next one here.
+              {me.online
+                ? "Keep your stall online — the next wave nearby lands here."
+                : "Switch on “Available for deliveries” so nearby waves reach you."}
             </p>
           </Card>
+
         )}
 
         {request && (
-          <Card className="gap-3 p-5">
+          <Card className="animate-rise gap-4 p-5">
+            <OrderStepper status={request.status} />
             <div className="flex items-center gap-2">
               <Hand
                 className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`}
@@ -204,7 +211,7 @@ function RunnerPage() {
                 {request.status === "accepted" && "You accepted — deliver now"}
                 {request.status === "delivered" && "Waiting for payment"}
                 {request.status === "paid" &&
-                  (request.paidWith === "cash" ? "Paid in cash" : "Paid with Wave Pay")}
+                  (request.paidWith === "cash" ? "Paid in cash" : "Paid with Mdeko Pay")}
               </p>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -249,7 +256,7 @@ function RunnerPage() {
             )}
             {request.status === "delivered" && (
               <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">
-                <Wallet className="size-4 text-primary" /> Ask the customer to pay with Wave Pay,
+                <Wallet className="size-4 text-primary" /> Ask the customer to pay with Mdeko Pay,
                 or take cash.
               </p>
             )}

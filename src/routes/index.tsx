@@ -38,6 +38,8 @@ import {
 } from "@/lib/veggie-store";
 import { useGeolocation } from "@/lib/use-geolocation";
 import WavePayDialog from "@/components/WavePayDialog";
+import BrandMark from "@/components/BrandMark";
+import OrderStepper from "@/components/OrderStepper";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
@@ -46,17 +48,17 @@ const WAVE_TIMEOUT_MS = 120_000;
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Veggie Wave — Raise your hand, fresh veggies come to you" },
+      { title: "Mdeko · Veggie Wave — raise your hand for fresh veggies" },
       {
         name: "description",
         content:
-          "See the nearest township veggie trader on the map, wave for what you need, and pay instantly with Wave Pay.",
+          "Mdeko shows the nearest township veggie trader on the map. Raise your hand for what you need and pay instantly with Mdeko Pay.",
       },
-      { property: "og:title", content: "Veggie Wave — Raise your hand for fresh veggies" },
+      { property: "og:title", content: "Mdeko · Veggie Wave — raise your hand for fresh veggies" },
       {
         property: "og:description",
         content:
-          "Live map of nearby veggie traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with Wave Pay.",
+          "Live map of nearby Mdeko traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with Mdeko Pay.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -64,6 +66,7 @@ export const Route = createFileRoute("/")({
   }),
   component: BuyerPage,
 });
+
 
 function MapSkeleton() {
   return <div className="h-full w-full animate-pulse bg-muted" />;
@@ -171,24 +174,24 @@ function BuyerPage() {
   const timedOut = request?.status === "waving" && waitedMs > WAVE_TIMEOUT_MS;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="flex items-center justify-between px-5 pt-6 pb-3">
-        <div>
-          <h1 className="text-2xl font-bold">Veggie Wave</h1>
-          <p className="text-sm text-muted-foreground">
-            {geoStatus === "locating"
+    <main className="mx-auto flex min-h-screen max-w-md flex-col pb-4">
+      <header className="animate-rise flex items-center justify-between gap-3 px-5 pt-6 pb-3">
+        <BrandMark
+          subtitle={
+            geoStatus === "locating"
               ? "Finding your location…"
               : buyer.located
                 ? `${online.length} traders around you`
-                : `${online.length} traders · location not shared`}
-          </p>
-        </div>
-        <Button asChild variant="secondary" size="sm">
+                : `${online.length} traders · location not shared`
+          }
+        />
+        <Button asChild variant="secondary" size="sm" className="shrink-0">
           <Link to="/runner">
             <Store /> I&apos;m a trader
           </Link>
         </Button>
       </header>
+
 
       <section className="relative mx-4 h-72 overflow-hidden rounded-3xl border shadow-lift">
         <ClientOnly fallback={<MapSkeleton />}>
@@ -227,65 +230,84 @@ function BuyerPage() {
         <>
           <div className="mx-4 mt-4 flex items-center justify-between rounded-2xl bg-secondary px-4 py-3">
             <span className="flex items-center gap-2 text-sm font-medium">
-              <Wallet className="size-4 text-primary" /> Wave Pay balance
+              <Wallet className="size-4 text-primary" /> Mdeko Pay balance
             </span>
             <span className="font-display font-semibold">
               {formatRand(state.wallet.balance)}
             </span>
           </div>
 
-          {ranked.length > 0 && (
-            <>
-              <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
-              <ul className="mx-4 mt-2 space-y-2">
-                {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
-                  const partial = picked.length > 0 && have < picked.length;
-                  return (
-                    <li
-                      key={runner.id}
-                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
-                        index === 0 ? "border-primary bg-secondary" : ""
-                      }`}
-                    >
-                      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-semibold text-primary-foreground">
-                        {runner.avatar ? (
-                          <img
-                            src={runner.avatar}
-                            alt={`${runner.name}'s profile`}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          runner.name.charAt(0)
+          <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
+          {ranked.length === 0 ? (
+            <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
+              <Store className="size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                No Mdeko trader is online around you yet. Pick what you need anyway — the next
+                trader to come online will see your wave.
+              </p>
+            </Card>
+          ) : (
+            <ul className="mx-4 mt-2 space-y-2">
+              {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
+                const partial = picked.length > 0 && have < picked.length;
+                const bestMatch = index === 0 && picked.length > 0 && !partial;
+                return (
+                  <li
+                    key={runner.id}
+                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
+                      index === 0 ? "border-primary bg-secondary shadow-glow" : "bg-card"
+                    }`}
+                  >
+                    <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
+                      {runner.avatar ? (
+                        <img
+                          src={runner.avatar}
+                          alt={`${runner.name}'s profile`}
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        runner.name.charAt(0)
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-2 truncate font-semibold">
+                        {runner.name}
+                        {bestMatch && (
+                          <Badge className="shrink-0" variant="default">
+                            best match
+                          </Badge>
                         )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">
-                          {runner.name}
-                          {index === 0 && picked.length > 0 && !partial ? " · best match" : ""}
+                      </p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="size-3.5" /> {km.toFixed(1)} km
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3.5" /> {walkMinutes(km)} min
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="size-3.5" /> {runner.rating.toFixed(1)}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {picked.length > 0 && (
+                        <p className="font-display text-sm font-semibold">
+                          {formatRand(runnerTotal)}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {km.toFixed(1)} km · {walkMinutes(km)} min ·{" "}
-                          {picked.length
-                            ? `has ${have}/${picked.length}`
-                            : `${runner.stock.length} items`}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {picked.length > 0 && (
-                          <p className="font-display text-sm font-semibold">
-                            {formatRand(runnerTotal)}
-                          </p>
-                        )}
-                        <Badge variant={partial ? "outline" : "secondary"}>
-                          {partial ? "partial" : <><Star className="size-3" /> {runner.rating.toFixed(1)}</>}
-                        </Badge>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
+                      )}
+                      <Badge variant={partial ? "outline" : "secondary"}>
+                        {picked.length
+                          ? `has ${have}/${picked.length}`
+                          : `${runner.stock.length} items`}
+                      </Badge>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
+
 
           <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
           <div className="grid grid-cols-2 gap-3 px-4 pt-3">
@@ -354,9 +376,11 @@ function BuyerPage() {
       )}
 
       {request && (
-        <Card className="mx-4 mt-4 gap-3 p-5">
+        <Card className="animate-rise mx-4 mt-4 gap-4 p-5">
+          <OrderStepper status={request.status} />
           <div className="flex items-center gap-2">
             {request.status === "waving" && (
+
               <>
                 <Hand className="size-5 animate-wave text-accent" />
                 <p className="font-semibold">Waving… waiting for a trader</p>
@@ -378,7 +402,7 @@ function BuyerPage() {
               <>
                 <CheckCircle2 className="size-5 text-primary" />
                 <p className="font-semibold">
-                  Paid {request.paidWith === "cash" ? "in cash" : "with Wave Pay"}. Enjoy your
+                  Paid {request.paidWith === "cash" ? "in cash" : "with Mdeko Pay"}. Enjoy your
                   veggies!
                 </p>
               </>
@@ -424,7 +448,7 @@ function BuyerPage() {
           {request.status === "delivered" && (
             <>
               <Button variant="wave" size="lg" onClick={() => setPayOpen(true)}>
-                <Wallet /> Pay {formatRand(request.total)} with Wave Pay
+                <Wallet /> Pay {formatRand(request.total)} with Mdeko Pay
               </Button>
               <Button variant="outline" onClick={payCash}>
                 I paid cash
@@ -444,13 +468,19 @@ function BuyerPage() {
       )}
 
       {!request && (
-        <div className="sticky bottom-0 mt-6 border-t bg-background/90 p-4 backdrop-blur">
-          <Button size="xl" variant="wave" className="w-full" onClick={wave}>
+        <div className="sticky bottom-0 z-[500] mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
+          <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
             <Hand className="animate-wave" /> Raise my hand
             {total > 0 ? ` · ${formatRand(total)}` : ""}
           </Button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {picked.length || wish.trim()
+              ? "The nearest Mdeko trader who has your items sees the wave first."
+              : "Tap an item above, then raise your hand."}
+          </p>
         </div>
       )}
+
 
       {!request && state.orders.length > 0 && (
         <section className="px-4 pb-8">
@@ -471,7 +501,7 @@ function BuyerPage() {
                     {order.status === "paid"
                       ? order.paidWith === "cash"
                         ? "paid cash"
-                        : "paid with Wave Pay"
+                        : "paid with Mdeko Pay"
                       : "not completed"}
                   </p>
                 </li>
