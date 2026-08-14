@@ -46,17 +46,17 @@ const WAVE_TIMEOUT_MS = 120_000;
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Veggie Wave — Raise your hand, fresh veggies come to you" },
+      { title: "Mdeko · Veggie Wave — raise your hand for fresh veggies" },
       {
         name: "description",
         content:
-          "See the nearest township veggie trader on the map, wave for what you need, and pay instantly with Wave Pay.",
+          "Mdeko shows the nearest township veggie trader on the map. Raise your hand for what you need and pay instantly with Mdeko Pay.",
       },
-      { property: "og:title", content: "Veggie Wave — Raise your hand for fresh veggies" },
+      { property: "og:title", content: "Mdeko · Veggie Wave — raise your hand for fresh veggies" },
       {
         property: "og:description",
         content:
-          "Live map of nearby veggie traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with Wave Pay.",
+          "Live map of nearby Mdeko traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with Mdeko Pay.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -64,6 +64,7 @@ export const Route = createFileRoute("/")({
   }),
   component: BuyerPage,
 });
+
 
 function MapSkeleton() {
   return <div className="h-full w-full animate-pulse bg-muted" />;
