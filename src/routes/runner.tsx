@@ -189,10 +189,14 @@ function RunnerPage() {
         {!request && (
           <Card className="items-center gap-2 p-8 text-center">
             <Hand className="size-8 text-muted-foreground" />
+            <p className="font-semibold">No hands up right now</p>
             <p className="text-sm text-muted-foreground">
-              No one is waving right now. Stay online and you&apos;ll see the next one here.
+              {me.online
+                ? "Keep your stall online — the next wave nearby lands here."
+                : "Switch on “Available for deliveries” so nearby waves reach you."}
             </p>
           </Card>
+
         )}
 
         {request && (
