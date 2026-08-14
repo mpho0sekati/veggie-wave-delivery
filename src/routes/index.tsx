@@ -357,9 +357,11 @@ function BuyerPage() {
       )}
 
       {request && (
-        <Card className="mx-4 mt-4 gap-3 p-5">
+        <Card className="animate-rise mx-4 mt-4 gap-4 p-5">
+          <OrderStepper status={request.status} />
           <div className="flex items-center gap-2">
             {request.status === "waving" && (
+
               <>
                 <Hand className="size-5 animate-wave text-accent" />
                 <p className="font-semibold">Waving… waiting for a trader</p>
