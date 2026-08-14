@@ -22,7 +22,7 @@ export const Route = createFileRoute("/runner")({
       {
         name: "description",
         content:
-          "Go online as a township veggie trader, set your own stock and prices, see who is waving nearby and get paid with Wave Pay.",
+          "Go online as a township veggie trader, set your own stock and prices, see who is waving nearby and get paid with Mdeko Pay.",
       },
       { property: "og:title", content: "Trader mode — Veggie Wave" },
       {
@@ -204,7 +204,7 @@ function RunnerPage() {
                 {request.status === "accepted" && "You accepted — deliver now"}
                 {request.status === "delivered" && "Waiting for payment"}
                 {request.status === "paid" &&
-                  (request.paidWith === "cash" ? "Paid in cash" : "Paid with Wave Pay")}
+                  (request.paidWith === "cash" ? "Paid in cash" : "Paid with Mdeko Pay")}
               </p>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -249,7 +249,7 @@ function RunnerPage() {
             )}
             {request.status === "delivered" && (
               <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">
-                <Wallet className="size-4 text-primary" /> Ask the customer to pay with Wave Pay,
+                <Wallet className="size-4 text-primary" /> Ask the customer to pay with Mdeko Pay,
                 or take cash.
               </p>
             )}

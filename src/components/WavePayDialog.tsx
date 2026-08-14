@@ -35,7 +35,7 @@ export default function WavePayDialog({
       return;
     }
     if (result === "insufficient") {
-      toast.error("Not enough in your Wave Pay balance");
+      toast.error("Not enough in your Mdeko Pay balance");
       return;
     }
     if (result !== "ok") {
@@ -52,7 +52,7 @@ export default function WavePayDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xs">
         <DialogHeader>
-          <DialogTitle>Wave Pay</DialogTitle>
+          <DialogTitle>Mdeko Pay</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl bg-secondary p-4 text-center">

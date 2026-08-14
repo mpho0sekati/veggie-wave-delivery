@@ -230,7 +230,7 @@ function BuyerPage() {
         <>
           <div className="mx-4 mt-4 flex items-center justify-between rounded-2xl bg-secondary px-4 py-3">
             <span className="flex items-center gap-2 text-sm font-medium">
-              <Wallet className="size-4 text-primary" /> Wave Pay balance
+              <Wallet className="size-4 text-primary" /> Mdeko Pay balance
             </span>
             <span className="font-display font-semibold">
               {formatRand(state.wallet.balance)}
@@ -402,7 +402,7 @@ function BuyerPage() {
               <>
                 <CheckCircle2 className="size-5 text-primary" />
                 <p className="font-semibold">
-                  Paid {request.paidWith === "cash" ? "in cash" : "with Wave Pay"}. Enjoy your
+                  Paid {request.paidWith === "cash" ? "in cash" : "with Mdeko Pay"}. Enjoy your
                   veggies!
                 </p>
               </>
@@ -448,7 +448,7 @@ function BuyerPage() {
           {request.status === "delivered" && (
             <>
               <Button variant="wave" size="lg" onClick={() => setPayOpen(true)}>
-                <Wallet /> Pay {formatRand(request.total)} with Wave Pay
+                <Wallet /> Pay {formatRand(request.total)} with Mdeko Pay
               </Button>
               <Button variant="outline" onClick={payCash}>
                 I paid cash
@@ -501,7 +501,7 @@ function BuyerPage() {
                     {order.status === "paid"
                       ? order.paidWith === "cash"
                         ? "paid cash"
-                        : "paid with Wave Pay"
+                        : "paid with Mdeko Pay"
                       : "not completed"}
                   </p>
                 </li>
