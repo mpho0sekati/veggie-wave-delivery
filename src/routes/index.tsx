@@ -468,13 +468,19 @@ function BuyerPage() {
       )}
 
       {!request && (
-        <div className="sticky bottom-0 mt-6 border-t bg-background/90 p-4 backdrop-blur">
-          <Button size="xl" variant="wave" className="w-full" onClick={wave}>
+        <div className="sticky bottom-0 z-[500] mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
+          <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
             <Hand className="animate-wave" /> Raise my hand
             {total > 0 ? ` · ${formatRand(total)}` : ""}
           </Button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {picked.length || wish.trim()
+              ? "The nearest Mdeko trader who has your items sees the wave first."
+              : "Tap an item above, then raise your hand."}
+          </p>
         </div>
       )}
+
 
       {!request && state.orders.length > 0 && (
         <section className="px-4 pb-8">
