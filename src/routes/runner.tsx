@@ -18,13 +18,14 @@ const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 export const Route = createFileRoute("/runner")({
   head: () => ({
     meta: [
-      { title: "Trader mode — Veggie Wave stall dashboard" },
+      { title: "Trader stall — Mdeko · Veggie Wave" },
       {
         name: "description",
         content:
-          "Go online as a township veggie trader, set your own stock and prices, see who is waving nearby and get paid with Mdeko Pay.",
+          "Go online as a township veggie trader on Mdeko, set your own stock and prices, see who is waving nearby and get paid with Mdeko Pay.",
       },
-      { property: "og:title", content: "Trader mode — Veggie Wave" },
+      { property: "og:title", content: "Trader stall — Mdeko · Veggie Wave" },
+
       {
         property: "og:description",
         content:
