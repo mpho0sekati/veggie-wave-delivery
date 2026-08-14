@@ -107,19 +107,18 @@ function RunnerPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="flex items-center gap-3 px-5 pt-6 pb-3">
+      <header className="animate-rise flex items-center gap-2 px-4 pt-6 pb-3">
         <Button asChild variant="ghost" size="icon" aria-label="Back to buyer view">
           <Link to="/">
             <ArrowLeft />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Trader mode</h1>
-          <p className="text-sm text-muted-foreground">
-            {me.online ? "You're online" : "You're offline"} · {km.toFixed(1)} km from the wave
-          </p>
-        </div>
+        <BrandMark
+          subtitle={`Trader stall · ${me.online ? "you're online" : "you're offline"}`}
+          className="min-w-0"
+        />
       </header>
+
 
       <Card className="mx-4 gap-4 p-5">
         <div className="flex items-center gap-4">
