@@ -1,12 +1,9 @@
-<!-- LOVABLE:BEGIN -->
+# AGENTS.md — Development Guidelines
 
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
+This repository contains **Mdeko Veggie Wave**, a web application built with TanStack Start, React 19, Vite, Tailwind CSS v4, and Leaflet.
 
-<!-- LOVABLE:END -->
+## Key Directives
+
+- **Runtime & Package Manager:** Use `bun` (`bun run build`, `bun run dev`, `bun run lint`).
+- **Code Standards:** Ensure all TypeScript, React Hook, and Prettier checks pass cleanly (`bun run lint`).
+- **Testing:** Perform end-to-end testing with Playwright scripts before submitting changes.
