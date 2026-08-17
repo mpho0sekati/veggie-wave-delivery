@@ -154,7 +154,17 @@
 .leaflet-container {
   background: oklch(0.94 0.02 120);
   font-family: var(--font-sans);
+  z-index: 0;
 }
+
+/* keep Leaflet panes/controls below app chrome (sticky pay bar, dialogs) */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  z-index: 1 !important;
+}
+
 
 /* ---- Mdeko brand polish ---- */
 @keyframes rise-in {
