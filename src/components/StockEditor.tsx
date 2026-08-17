@@ -48,8 +48,8 @@ export default function StockEditor({ runnerId, stock, customItems, highlightIte
         <h2 className="text-lg font-semibold">My stock today</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Switch on what you have and set your own price. Switched off means buyers won&apos;t see
-        it from you.
+        Switch on what you have and set your own price. Switched off means buyers won&apos;t see it
+        from you.
       </p>
       <ul className="divide-y">
         {catalog.map((item) => {
@@ -97,7 +97,10 @@ export default function StockEditor({ runnerId, stock, customItems, highlightIte
         {stock.length} of {catalog.length} items in stock
       </p>
       {stock.length === 0 && (
-        <Button variant="secondary" onClick={() => toast.info("Switch on at least one item so buyers can wave you")}>
+        <Button
+          variant="secondary"
+          onClick={() => toast.info("Switch on at least one item so buyers can wave you")}
+        >
           Nothing in stock yet
         </Button>
       )}

@@ -47,7 +47,6 @@ export default function WavePayDialog({
     toast.success(`${formatRand(amount)} sent to ${traderName}`);
   };
 
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xs">

@@ -4,12 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { catalogWith, formatRand, iconFor, iconKeyFromName } from "@/lib/veggie-data";
-import {
-  promoteToCatalog,
-  setStock,
-  suggestedPrice,
-  type AppState,
-} from "@/lib/veggie-store";
+import { promoteToCatalog, setStock, suggestedPrice, type AppState } from "@/lib/veggie-store";
 
 type Props = { state: AppState; runnerId: string; onAdded?: (itemId: string) => void };
 
@@ -51,8 +46,8 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
       </div>
       {!rows.length && (
         <p className="text-sm text-muted-foreground">
-          Nothing recorded yet. As people wave, you&apos;ll see here what they ask for most and
-          what nobody nearby is selling.
+          Nothing recorded yet. As people wave, you&apos;ll see here what they ask for most and what
+          nobody nearby is selling.
         </p>
       )}
       <ul className="space-y-2">
