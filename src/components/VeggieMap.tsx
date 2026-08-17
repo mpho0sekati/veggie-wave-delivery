@@ -57,9 +57,11 @@ export default function VeggieMap({
       // don't hijack page scroll — pinch/ctrl+wheel and the zoom buttons still work
       scrollWheelZoom: false,
     });
-    map.on("contextmenu", (e: L.LeafletMouseEvent) =>
-      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
-    );
+    const handleMapPick = (e: L.LeafletMouseEvent) => {
+      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
+    };
+    map.on("click", handleMapPick);
+    map.on("contextmenu", handleMapPick);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "© OpenStreetMap contributors",

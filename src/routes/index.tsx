@@ -95,6 +95,7 @@ function BuyerPage() {
   const buyer = state.buyer;
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
+    toast.success("Location pin updated on map");
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
@@ -240,11 +241,9 @@ function BuyerPage() {
         </Button>
       </section>
 
-      {geoMessage && geoStatus !== "locating" && (
-        <p className="mx-5 mt-3 text-sm text-muted-foreground">
-          {geoMessage} You can also long-press the map to drop your own pin.
-        </p>
-      )}
+      <p className="mx-5 mt-3 text-sm text-muted-foreground">
+        {geoMessage ? `${geoMessage} ` : ""}Tap or click anywhere on the map to drop your pin.
+      </p>
 
       {!request && (
         <>
