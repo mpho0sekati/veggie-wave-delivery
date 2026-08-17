@@ -57,7 +57,6 @@ export default function VeggieMap({
       attributionControl: true,
       // don't hijack page scroll — pinch/ctrl+wheel and the zoom buttons still work
       scrollWheelZoom: false,
-      tap: false,
     });
     map.on("contextmenu", (e: L.LeafletMouseEvent) =>
       pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),

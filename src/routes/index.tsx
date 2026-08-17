@@ -13,6 +13,8 @@ import {
   Wallet,
   History,
   Clock,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -119,6 +121,12 @@ function BuyerPage() {
       .sort((a, b) => b.have - a.have || a.km - b.km);
   }, [online, buyer, picked, qty]);
 
+  const [isCollapsed, setIsCollapsed] = useState(Boolean(request));
+
+  useEffect(() => {
+    setIsCollapsed(Boolean(request));
+  }, [Boolean(request)]);
+
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
   const assigned: Runner | null =
@@ -193,7 +201,11 @@ function BuyerPage() {
       </header>
 
 
-      <section className="relative mx-4 h-72 overflow-hidden rounded-3xl border shadow-lift">
+      <section
+        className={`relative mx-4 overflow-hidden rounded-3xl border shadow-lift transition-[height] duration-300 ${
+          isCollapsed ? "h-40" : "h-72"
+        }`}
+      >
         <ClientOnly fallback={<MapSkeleton />}>
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
@@ -217,6 +229,16 @@ function BuyerPage() {
             : buyer.located
               ? "Recentre on me"
               : "Use my location"}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="absolute top-3 right-3 z-[400] shadow-lift"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          aria-label={isCollapsed ? "Expand map" : "Collapse map"}
+        >
+          {isCollapsed ? <ChevronDown /> : <ChevronUp />}
+          {isCollapsed ? "Expand" : "Collapse"}
         </Button>
       </section>
 
