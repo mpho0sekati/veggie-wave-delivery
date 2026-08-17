@@ -1,8 +1,8 @@
 # Veggie Signal
 
-Simple app that lets you see the veggies guy location and you can raise your hand to signal that you need veggies  and the closet one will deliver what you need simple app no pictures of veggies just icons off fruits and vegetables using open source map and Capitec smart scanner pay you as seller needs only upload your profile picture have a smartphone
+Simple app that lets you see the veggies guy location and you can raise your hand to signal that you need veggies and the closet one will deliver what you need simple app no pictures of veggies just icons off fruits and vegetables using open source map and Capitec smart scanner pay you as seller needs only upload your profile picture have a smartphone
 
- When get the button please wave so I can see button for the runner
+When get the button please wave so I can see button for the runner
 
 This project was built with [Lovable](https://lovable.dev).
 

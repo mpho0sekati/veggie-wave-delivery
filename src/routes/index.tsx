@@ -69,7 +69,6 @@ export const Route = createFileRoute("/")({
   component: BuyerPage,
 });
 
-
 function MapSkeleton() {
   return <div className="h-full w-full animate-pulse bg-muted" />;
 }
@@ -121,16 +120,16 @@ function BuyerPage() {
       .sort((a, b) => b.have - a.have || a.km - b.km);
   }, [online, buyer, picked, qty]);
 
-  const [isCollapsed, setIsCollapsed] = useState(Boolean(request));
+  const hasRequest = Boolean(request);
+  const [isCollapsed, setIsCollapsed] = useState(hasRequest);
 
   useEffect(() => {
-    setIsCollapsed(Boolean(request));
-  }, [Boolean(request)]);
+    setIsCollapsed(hasRequest);
+  }, [hasRequest]);
 
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
-  const assigned: Runner | null =
-    state.runners.find((r) => r.id === request?.runnerId) ?? null;
+  const assigned: Runner | null = state.runners.find((r) => r.id === request?.runnerId) ?? null;
 
   const bump = (id: string, delta: number) =>
     setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) }));
@@ -200,7 +199,6 @@ function BuyerPage() {
         </Button>
       </header>
 
-
       <section
         className={`relative mx-4 overflow-hidden rounded-3xl border shadow-lift transition-[height] duration-300 ${
           isCollapsed ? "h-40" : "h-72"
@@ -254,9 +252,7 @@ function BuyerPage() {
             <span className="flex items-center gap-2 text-sm font-medium">
               <Wallet className="size-4 text-primary" /> Mdeko Pay balance
             </span>
-            <span className="font-display font-semibold">
-              {formatRand(state.wallet.balance)}
-            </span>
+            <span className="font-display font-semibold">{formatRand(state.wallet.balance)}</span>
           </div>
 
           <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
@@ -330,7 +326,6 @@ function BuyerPage() {
             </ul>
           )}
 
-
           <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
           <div className="grid grid-cols-2 gap-3 px-4 pt-3">
             {catalog.map((item) => {
@@ -402,7 +397,6 @@ function BuyerPage() {
           <OrderStepper status={request.status} />
           <div className="flex items-center gap-2">
             {request.status === "waving" && (
-
               <>
                 <Hand className="size-5 animate-wave text-accent" />
                 <p className="font-semibold">Waving… waiting for a trader</p>
@@ -502,7 +496,6 @@ function BuyerPage() {
           </p>
         </div>
       )}
-
 
       {!request && state.orders.length > 0 && (
         <section className="px-4 pb-8">

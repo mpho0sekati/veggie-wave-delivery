@@ -121,7 +121,6 @@ function RunnerPage() {
         />
       </header>
 
-
       <Card className="mx-4 gap-4 p-5">
         <div className="flex items-center gap-4">
           <button
@@ -196,7 +195,6 @@ function RunnerPage() {
                 : "Switch on “Available for deliveries” so nearby waves reach you."}
             </p>
           </Card>
-
         )}
 
         {request && (

@@ -12,7 +12,6 @@ type Props = {
   onPickPosition?: (pos: { lat: number; lng: number }) => void;
 };
 
-
 function runnerIcon(active: boolean, initial: string, avatar?: string | null) {
   const inner = avatar
     ? `<img src="${avatar}" alt="" class="h-full w-full rounded-full object-cover" />`
@@ -81,7 +80,6 @@ export default function VeggieMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
   useEffect(() => {
     const map = mapRef.current;
     if (map) map.setView([buyer.lat, buyer.lng], map.getZoom(), { animate: true });
@@ -112,9 +110,7 @@ export default function VeggieMap({
           icon: runnerIcon(active, r.name.charAt(0), r.avatar),
         })
           .addTo(layer)
-          .bindPopup(
-            `<strong>${r.name}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`,
-          );
+          .bindPopup(`<strong>${r.name}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`);
         if (active) {
           L.polyline(
             [
@@ -127,6 +123,7 @@ export default function VeggieMap({
       });
   }, [runners, activeRunnerId, waving, buyer.lat, buyer.lng]);
 
-  return <div ref={containerRef} className="h-full w-full" aria-label="Map of nearby veggie runners" />;
+  return (
+    <div ref={containerRef} className="h-full w-full" aria-label="Map of nearby veggie runners" />
+  );
 }
-

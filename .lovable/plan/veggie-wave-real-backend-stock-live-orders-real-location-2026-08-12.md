@@ -12,6 +12,7 @@ This turns the single-phone demo into a real multi-phone app on Lovable Cloud (d
 ## 2. Full stock management (traders)
 
 Per catalog item, a trader sets:
+
 - **In stock** on/off
 - **Price** in Rands
 - **Quantity available** (a number the trader edits by hand — it does not auto-deduct)
@@ -21,6 +22,7 @@ Buyers only see items where in-stock is on and quantity is above zero. Quantity 
 ## 3. Live order status across phones
 
 One shared order record moves through: waving → accepted → on the way → delivered → paid (or cancelled).
+
 - Buyer waves; every nearby online trader who stocks the items sees it appear instantly.
 - First trader to accept claims it; other traders see it disappear.
 - Trader taps "On the way" then "Delivered"; the buyer's screen updates live without refreshing.

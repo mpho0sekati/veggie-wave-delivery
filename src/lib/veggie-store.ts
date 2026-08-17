@@ -131,7 +131,6 @@ export function logDemand(entries: { itemId: string | null; label: string }[]) {
           unfilled: existing.unfilled + bump.unfilled,
           lastAt: bump.lastAt,
         };
-
     }
     return { ...prev, demand };
   });
