@@ -55,6 +55,9 @@ export default function VeggieMap({
       zoom: 15,
       zoomControl: false,
       attributionControl: true,
+      // don't hijack page scroll — pinch/ctrl+wheel and the zoom buttons still work
+      scrollWheelZoom: false,
+      tap: false,
     });
     map.on("contextmenu", (e: L.LeafletMouseEvent) =>
       pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
@@ -67,13 +70,18 @@ export default function VeggieMap({
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   useEffect(() => {
     const map = mapRef.current;
