@@ -8,6 +8,7 @@ type Props = {
   activeRunnerId?: string | null;
   waving?: boolean;
   buyerPosition?: { lat: number; lng: number };
+  recenterTrigger?: number;
   /** Long-press / right-click the map to drop your own pin when GPS is unavailable. */
   onPickPosition?: (pos: { lat: number; lng: number }) => void;
 };
@@ -57,9 +58,11 @@ export default function VeggieMap({
       // don't hijack page scroll — pinch/ctrl+wheel and the zoom buttons still work
       scrollWheelZoom: false,
     });
-    map.on("contextmenu", (e: L.LeafletMouseEvent) =>
-      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
-    );
+    const handleMapPick = (e: L.LeafletMouseEvent) => {
+      pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
+    };
+    map.on("click", handleMapPick);
+    map.on("contextmenu", handleMapPick);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "© OpenStreetMap contributors",
@@ -83,7 +86,7 @@ export default function VeggieMap({
   useEffect(() => {
     const map = mapRef.current;
     if (map) map.setView([buyer.lat, buyer.lng], map.getZoom(), { animate: true });
-  }, [buyer.lat, buyer.lng]);
+  }, [buyer.lat, buyer.lng, recenterTrigger]);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -106,11 +109,16 @@ export default function VeggieMap({
       .filter((r) => r.online)
       .forEach((r) => {
         const active = r.id === activeRunnerId;
-        L.marker([r.lat, r.lng], {
+        const marker = L.marker([r.lat, r.lng], {
           icon: runnerIcon(active, r.name.charAt(0), r.avatar),
         })
           .addTo(layer)
           .bindPopup(`<strong>${r.name}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`);
+
+        if (active) {
+          map.setView([r.lat, r.lng], map.getZoom(), { animate: true });
+          marker.openPopup();
+        }
         if (active) {
           L.polyline(
             [

@@ -92,9 +92,12 @@ function BuyerPage() {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
   const buyer = state.buyer;
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
+    setRecenterTrigger((prev) => prev + 1);
+    toast.success("Location pin updated on map");
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
@@ -122,6 +125,7 @@ function BuyerPage() {
 
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
+  const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsCollapsed(hasRequest);
@@ -208,9 +212,10 @@ function BuyerPage() {
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
               runners={state.runners}
-              activeRunnerId={request?.runnerId ?? null}
+              activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
+              recenterTrigger={recenterTrigger}
               onPickPosition={onPosition}
             />
           </Suspense>
@@ -219,7 +224,10 @@ function BuyerPage() {
           size="sm"
           variant="secondary"
           className="absolute top-3 left-3 z-[400] shadow-lift"
-          onClick={locate}
+          onClick={() => {
+            locate();
+            setRecenterTrigger((prev) => prev + 1);
+          }}
         >
           <Crosshair />
           {geoStatus === "locating"
@@ -240,11 +248,9 @@ function BuyerPage() {
         </Button>
       </section>
 
-      {geoMessage && geoStatus !== "locating" && (
-        <p className="mx-5 mt-3 text-sm text-muted-foreground">
-          {geoMessage} You can also long-press the map to drop your own pin.
-        </p>
-      )}
+      <p className="mx-5 mt-3 text-sm text-muted-foreground">
+        {geoMessage ? `${geoMessage} ` : ""}Tap or click anywhere on the map to drop your pin.
+      </p>
 
       {!request && (
         <>
@@ -269,11 +275,20 @@ function BuyerPage() {
               {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
                 const partial = picked.length > 0 && have < picked.length;
                 const bestMatch = index === 0 && picked.length > 0 && !partial;
+                const isSelected = selectedRunnerId === runner.id;
                 return (
                   <li
                     key={runner.id}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
-                      index === 0 ? "border-primary bg-secondary shadow-glow" : "bg-card"
+                    onClick={() => {
+                      setSelectedRunnerId((prev) => (prev === runner.id ? null : runner.id));
+                      if (isCollapsed) setIsCollapsed(false);
+                    }}
+                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/10 shadow-glow ring-2 ring-primary/30"
+                        : index === 0
+                          ? "border-primary bg-secondary shadow-glow"
+                          : "bg-card hover:bg-secondary/50"
                     }`}
                   >
                     <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
