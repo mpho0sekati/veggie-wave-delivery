@@ -38,13 +38,16 @@ export function useGeolocation(onPosition: (pos: { lat: number; lng: number }) =
       maximumAge: 0,
     });
 
-    if (watchRef.current === null) {
-      watchRef.current = navigator.geolocation.watchPosition(handle, fail, {
-        enableHighAccuracy: true,
-        timeout: 30000,
-        maximumAge: 5000,
-      });
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
     }
+
+    watchRef.current = navigator.geolocation.watchPosition(handle, fail, {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0,
+    });
   }, []);
 
   useEffect(() => {

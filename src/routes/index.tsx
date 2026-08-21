@@ -92,9 +92,11 @@ function BuyerPage() {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
   const buyer = state.buyer;
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
+    setRecenterTrigger((prev) => prev + 1);
     toast.success("Location pin updated on map");
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
@@ -213,6 +215,7 @@ function BuyerPage() {
               activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
+              recenterTrigger={recenterTrigger}
               onPickPosition={onPosition}
             />
           </Suspense>
@@ -221,7 +224,10 @@ function BuyerPage() {
           size="sm"
           variant="secondary"
           className="absolute top-3 left-3 z-[400] shadow-lift"
-          onClick={locate}
+          onClick={() => {
+            locate();
+            setRecenterTrigger((prev) => prev + 1);
+          }}
         >
           <Crosshair />
           {geoStatus === "locating"
