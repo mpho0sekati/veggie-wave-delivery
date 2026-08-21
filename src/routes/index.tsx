@@ -32,8 +32,10 @@ import {
 } from "@/lib/veggie-data";
 import {
   archiveRequest,
+  cancelRequest,
   logDemand,
   payCash,
+  refundOrder,
   setBuyerLocation,
   updateState,
   useAppState,
@@ -170,9 +172,10 @@ function BuyerPage() {
     }));
 
   const cancel = () => {
-    updateState((prev) => ({ ...prev, request: null }));
+    cancelRequest();
     setQty({});
     setWish("");
+    toast.info("Request cancelled");
   };
 
   const finish = () => {
@@ -521,19 +524,50 @@ function BuyerPage() {
             {state.orders.map((order) => {
               const trader = state.runners.find((r) => r.id === order.runnerId);
               return (
-                <li key={order.id} className="rounded-2xl border px-4 py-3 text-sm">
+                <li key={order.id} className="rounded-2xl border px-4 py-3 text-sm space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{trader?.name ?? "No trader"}</p>
                     <p className="font-display font-semibold">{formatRand(order.total)}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {order.items.length} items ·{" "}
-                    {order.status === "paid"
-                      ? order.paidWith === "cash"
-                        ? "paid cash"
-                        : "paid with Mdeko Pay"
-                      : "not completed"}
-                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {order.items.length} items ·{" "}
+                      {order.status === "paid"
+                        ? order.paidWith === "cash"
+                          ? "paid cash"
+                          : "paid with Mdeko Pay"
+                        : order.status}
+                    </span>
+                    <Badge
+                      variant={
+                        order.status === "paid"
+                          ? "default"
+                          : order.status === "refunded"
+                            ? "secondary"
+                            : order.status === "cancelled" || order.status === "failed"
+                              ? "outline"
+                              : "outline"
+                      }
+                      className="capitalize text-[0.65rem]"
+                    >
+                      {order.status}
+                    </Badge>
+                  </div>
+                  {order.status === "paid" && order.paidWith === "wave-pay" && (
+                    <div className="pt-1 border-t flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          refundOrder(order.id);
+                          toast.success(`Refunded ${formatRand(order.total)} to Mdeko Pay balance`);
+                        }}
+                      >
+                        Request Refund
+                      </Button>
+                    </div>
+                  )}
                 </li>
               );
             })}
