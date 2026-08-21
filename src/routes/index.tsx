@@ -27,7 +27,10 @@ import {
   distanceKm,
   formatRand,
   priceFor,
-  walkMinutes,
+  calculateDeliveryFee,
+  estimateDeliveryMinutes,
+  formatDistance,
+  MAX_SUITABLE_DISTANCE_KM,
   type Runner,
 } from "@/lib/veggie-data";
 import {
@@ -116,12 +119,17 @@ function BuyerPage() {
       .map((runner) => {
         const km = distanceKm(buyer, runner);
         const have = picked.filter((p) => priceFor(runner, p.id) !== null);
-        const total = have.reduce(
+        const subtotal = have.reduce(
           (sum, p) => sum + (priceFor(runner, p.id) ?? 0) * (qty[p.id] ?? 0),
           0,
         );
-        return { runner, km, have: have.length, total };
+        const deliveryFee = calculateDeliveryFee(km);
+        const total = subtotal > 0 ? subtotal + deliveryFee : 0;
+        const etaMin = estimateDeliveryMinutes(km);
+        const isSuitable = km <= MAX_SUITABLE_DISTANCE_KM;
+        return { runner, km, have: have.length, subtotal, deliveryFee, total, etaMin, isSuitable };
       })
+      .filter((r) => r.isSuitable)
       .sort((a, b) => b.have - a.have || a.km - b.km);
   }, [online, buyer, picked, qty]);
 
@@ -316,14 +324,17 @@ function BuyerPage() {
                       </p>
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <MapPin className="size-3.5" /> {km.toFixed(1)} km
+                          <MapPin className="size-3.5 text-primary" /> {formatDistance(km)} away
                         </span>
                         <span className="flex items-center gap-1">
-                          <Clock className="size-3.5" /> {walkMinutes(km)} min
+                          <Clock className="size-3.5" /> {etaMin} min ETA
                         </span>
                         <span className="flex items-center gap-1">
-                          <Star className="size-3.5" /> {runner.rating.toFixed(1)}
+                          <Star className="size-3.5 text-amber-500" /> {runner.rating.toFixed(1)}
                         </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Delivery fee: {formatRand(calculateDeliveryFee(km))}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
