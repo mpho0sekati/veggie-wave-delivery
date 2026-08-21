@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/lib/veggie-data";
-import { updateState, useAppState } from "@/lib/veggie-store";
+import { cancelRequest, failRequest, updateState, useAppState } from "@/lib/veggie-store";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import BrandMark from "@/components/BrandMark";
@@ -248,9 +248,35 @@ function RunnerPage() {
               </Button>
             )}
             {request.status === "accepted" && (
-              <Button size="lg" variant="wave" onClick={deliver}>
-                <CheckCircle2 /> I&apos;ve arrived — request payment
-              </Button>
+              <div className="space-y-2">
+                <Button size="lg" variant="wave" className="w-full" onClick={deliver}>
+                  <CheckCircle2 /> I&apos;ve arrived — request payment
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      failRequest("Trader marked delivery as unreachable/failed");
+                      toast.error("Delivery marked as failed");
+                    }}
+                  >
+                    Mark Failed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={() => {
+                      cancelRequest("Trader cancelled wave acceptance");
+                      toast.info("Wave cancelled");
+                    }}
+                  >
+                    Decline Wave
+                  </Button>
+                </div>
+              </div>
             )}
             {request.status === "delivered" && (
               <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">

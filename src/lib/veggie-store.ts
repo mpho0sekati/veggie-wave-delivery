@@ -9,7 +9,8 @@ import {
   type StockLine,
 } from "./veggie-data";
 
-export type WaveStatus = "waving" | "accepted" | "delivered" | "paid";
+export type WaveStatus =
+  "waving" | "accepted" | "delivered" | "paid" | "cancelled" | "failed" | "refunded";
 export type PaidWith = "wave-pay" | "cash";
 
 export type WaveRequest = {
@@ -202,12 +203,77 @@ export function payCash() {
   updateState((prev) => settle(prev, "cash"));
 }
 
+/** Cancel an active or waving request. */
+export function cancelRequest(reason = "Cancelled by user") {
+  updateState((prev) => {
+    if (!prev.request) return prev;
+    const cancelledReq: WaveRequest = {
+      ...prev.request,
+      status: "cancelled",
+      note: reason,
+    };
+    return {
+      ...prev,
+      request: null,
+      orders: [cancelledReq, ...prev.orders].slice(0, 15),
+    };
+  });
+}
+
+/** Mark request as failed (e.g., trader unavailable / unreachable). */
+export function failRequest(reason = "Delivery failed") {
+  updateState((prev) => {
+    if (!prev.request) return prev;
+    const failedReq: WaveRequest = {
+      ...prev.request,
+      status: "failed",
+      note: reason,
+    };
+    return {
+      ...prev,
+      request: null,
+      orders: [failedReq, ...prev.orders].slice(0, 15),
+    };
+  });
+}
+
+/** Refund a completed/paid order back to buyer's Wave Pay balance if paid with Wave Pay. */
+export function refundOrder(orderId: string) {
+  updateState((prev) => {
+    // Check if active request or in past orders
+    const targetOrder =
+      prev.request?.id === orderId ? prev.request : prev.orders.find((o) => o.id === orderId);
+    if (!targetOrder || targetOrder.status === "refunded") return prev;
+
+    const wasWavePay = targetOrder.paidWith === "wave-pay";
+    const refundAmount = wasWavePay ? targetOrder.total : 0;
+
+    const refundedReq: WaveRequest = {
+      ...targetOrder,
+      status: "refunded",
+    };
+
+    const nextOrders = prev.orders.map((o) => (o.id === orderId ? refundedReq : o));
+
+    return {
+      ...prev,
+      request: prev.request?.id === orderId ? null : prev.request,
+      orders:
+        prev.request?.id === orderId ? [refundedReq, ...prev.orders].slice(0, 15) : nextOrders,
+      wallet: {
+        ...prev.wallet,
+        balance: prev.wallet.balance + refundAmount,
+      },
+    };
+  });
+}
+
 /** Close the current order and keep it in history. */
 export function archiveRequest() {
   updateState((prev) => ({
     ...prev,
     request: null,
-    orders: prev.request ? [prev.request, ...prev.orders].slice(0, 10) : prev.orders,
+    orders: prev.request ? [prev.request, ...prev.orders].slice(0, 15) : prev.orders,
   }));
 }
 
