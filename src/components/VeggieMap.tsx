@@ -108,11 +108,16 @@ export default function VeggieMap({
       .filter((r) => r.online)
       .forEach((r) => {
         const active = r.id === activeRunnerId;
-        L.marker([r.lat, r.lng], {
+        const marker = L.marker([r.lat, r.lng], {
           icon: runnerIcon(active, r.name.charAt(0), r.avatar),
         })
           .addTo(layer)
           .bindPopup(`<strong>${r.name}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`);
+
+        if (active) {
+          map.setView([r.lat, r.lng], map.getZoom(), { animate: true });
+          marker.openPopup();
+        }
         if (active) {
           L.polyline(
             [

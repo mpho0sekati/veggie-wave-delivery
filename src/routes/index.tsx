@@ -123,6 +123,7 @@ function BuyerPage() {
 
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
+  const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsCollapsed(hasRequest);
@@ -209,7 +210,7 @@ function BuyerPage() {
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
               runners={state.runners}
-              activeRunnerId={request?.runnerId ?? null}
+              activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
               onPickPosition={onPosition}
@@ -268,11 +269,20 @@ function BuyerPage() {
               {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
                 const partial = picked.length > 0 && have < picked.length;
                 const bestMatch = index === 0 && picked.length > 0 && !partial;
+                const isSelected = selectedRunnerId === runner.id;
                 return (
                   <li
                     key={runner.id}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
-                      index === 0 ? "border-primary bg-secondary shadow-glow" : "bg-card"
+                    onClick={() => {
+                      setSelectedRunnerId((prev) => (prev === runner.id ? null : runner.id));
+                      if (isCollapsed) setIsCollapsed(false);
+                    }}
+                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/10 shadow-glow ring-2 ring-primary/30"
+                        : index === 0
+                          ? "border-primary bg-secondary shadow-glow"
+                          : "bg-card hover:bg-secondary/50"
                     }`}
                   >
                     <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
