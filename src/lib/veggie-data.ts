@@ -212,6 +212,27 @@ export function walkMinutes(km: number) {
   return Math.max(2, Math.round(km * 9));
 }
 
+/** Distance-based delivery fee (Base R10 + R5/km, minimum R10). */
+export function calculateDeliveryFee(km: number): number {
+  return Math.max(10, Math.round(10 + km * 5));
+}
+
+/** Estimated delivery time in minutes including prep (prep 5m + walk time). */
+export function estimateDeliveryMinutes(km: number): number {
+  return 5 + walkMinutes(km);
+}
+
+/** Format distance into meters if under 1km, otherwise km. */
+export function formatDistance(km: number): string {
+  if (km < 1) {
+    return `${Math.round(km * 1000)} m`;
+  }
+  return `${km.toFixed(1)} km`;
+}
+
+/** Maximum distance (5 km) for a runner to be considered suitable. */
+export const MAX_SUITABLE_DISTANCE_KM = 5;
+
 export function formatRand(amount: number) {
   return `R${amount.toFixed(2)}`;
 }
