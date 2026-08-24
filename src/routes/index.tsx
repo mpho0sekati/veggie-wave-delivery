@@ -283,7 +283,7 @@ function BuyerPage() {
             </Card>
           ) : (
             <ul className="mx-4 mt-2 space-y-2">
-              {ranked.map(({ runner, km, have, total: runnerTotal }, index) => {
+              {ranked.map(({ runner, km, have, total: runnerTotal, etaMin }, index) => {
                 const partial = picked.length > 0 && have < picked.length;
                 const bestMatch = index === 0 && picked.length > 0 && !partial;
                 const isSelected = selectedRunnerId === runner.id;
