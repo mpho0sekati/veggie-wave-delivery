@@ -50,11 +50,11 @@ The app is deliberately designed as a lightweight local-market UX prototype, wit
 
 ### Buyer view
 
-![Buyer view](docs/screenshots/buyer-view.svg)
+![Buyer view](docs/screenshots/buyer-view.png)
 
 ### Trader view
 
-![Trader view](docs/screenshots/trader-view.svg)
+![Trader view](docs/screenshots/trader-view.png)
 
 ---
 
