@@ -1,100 +1,186 @@
 # Mdeko · Veggie Wave
 
-**Mdeko Veggie Wave** is a real-time township produce delivery platform. It connects local fruit and vegetable buyers directly with nearby mobile traders ("runners") using live geolocation, interactive Leaflet maps, stock management, and seamless payments via **Mdeko Pay**.
+Mdeko Veggie Wave is a local produce ordering prototype that connects buyers with nearby veggie traders through a map-based, mobile-first flow.
+
+This version is a working demo app built in React with TanStack Router, Leaflet, and local state persistence. It shows the core experience we built:
+
+- buyers browse produce and raise a wave for help,
+- nearby traders appear on a live map,
+- a trader can accept a request, deliver, and request payment,
+- the buyer can pay using a demo Wave Pay balance or cash,
+- the app remembers the state in browser local storage for the prototype experience.
 
 ---
 
-## Key Features
+## What we built
 
-### Buyer View (`/`)
-* **Interactive Live Map:** Real-time visual representation of nearby veggie traders, your pinned/detected location, and active order delivery routes.
-* **Dynamic Map Layout:** Automatically shrinks when an active wave or order/checkout card is active to keep the checkout experience smooth, with a quick collapse/expand toggle button.
-* **Geolocation & Manual Pinning:** Detect your GPS location or long-press on the map to manually set your delivery pin.
-* **Item Selection & Custom Wishes:** Browse local produce items with dynamic pricing based on nearby trader stock, or submit custom produce requests.
-* **"Raise My Hand" Wave Flow:** Signal nearby traders when you need produce. Nearest stocked traders are prioritized.
-* **Order Tracking & Payment:** Track order status in real time (Waving → Accepted → Delivered → Paid) and settle payment via Mdeko Pay balance or cash.
+### Buyer experience
+The buyer journey is centered around a map and a produce catalogue.
 
-### Trader Stall (`/runner`)
-* **Stall & Stock Management:** Toggle online availability, upload stall profile pictures, and adjust stock availability and item prices.
-* **Live Nearby Waves:** View active incoming customer waves, estimated distance, walk times, and item availability matches.
-* **Order Fulfillment:** Accept waves, navigate to buyers, and request/confirm payments directly from the trader dashboard.
-* **Demand Insights:** Analyze items requested by local buyers that are currently out of stock to expand inventory.
+Users can:
+- browse produce by category and quantity,
+- see nearby traders ranked by stock match and distance,
+- use their location or manually pin a delivery point,
+- raise a wave when they need fresh produce,
+- track the order from “waving” to “accepted” to “delivered” to “paid”,
+- pay via Wave Pay balance or cash.
+
+### Trader experience
+The trader view is a stall dashboard.
+
+Traders can:
+- toggle availability online/offline,
+- update their name and profile picture,
+- adjust stock and item prices,
+- see incoming customer waves near their stall,
+- accept a wave, confirm delivery, and request payment,
+- review earnings and delivery progression.
+
+### Core product feel
+The app is deliberately designed as a lightweight local-market UX prototype, with:
+- a leafy, warm visual style,
+- mobile-first layout,
+- map-based proximity logic,
+- local demo pricing and stock simulation,
+- a transaction flow that feels like a working MVP rather than a static mock.
 
 ---
 
-## Tech Stack & Architecture
+## Screenshots
 
-* **Framework:** [TanStack Start](https://tanstack.com/router/latest) + [TanStack Router](https://tanstack.com/router)
-* **Frontend Library:** React 19
-* **Mapping:** Leaflet & React-Leaflet with OpenStreetMap tiles
-* **Styling:** Tailwind CSS v4, Lucide React icons, and Radix UI primitives
-* **Build Tool & Server:** Vite + Nitro SSR engine
-* **Runtime & Package Manager:** [Bun](https://bun.sh/)
-* **Database / Backend Integration:** Supabase (optional client integration)
+### Buyer view
+
+![Buyer view](docs/screenshots/buyer-view.svg)
+
+### Trader view
+
+![Trader view](docs/screenshots/trader-view.svg)
 
 ---
 
-## Project Structure
+## Tech stack
 
-```
+- React 19
+- TanStack Router + TanStack Start
+- Vite
+- Tailwind CSS v4
+- Leaflet + OpenStreetMap tiles
+- Radix UI primitives
+- Lucide React icons
+- localStorage-based state persistence for prototype/demo behavior
+
+---
+
+## Project structure
+
+```text
 .
 ├── src/
 │   ├── components/
-│   │   ├── ui/               # Radix UI and Tailwind component primitives
-│   │   ├── VeggieMap.tsx      # Interactive Leaflet map component
-│   │   ├── StockEditor.tsx    # Trader inventory editor
-│   │   ├── WavePayDialog.tsx  # Payment modal
-│   │   ├── OrderStepper.tsx   # Order progress stepper
-│   │   └── BrandMark.tsx      # App header and branding component
+│   │   ├── ui/
+│   │   ├── BrandMark.tsx
+│   │   ├── DemandInsights.tsx
+│   │   ├── OrderStepper.tsx
+│   │   ├── StockEditor.tsx
+│   │   ├── VeggieMap.tsx
+│   │   └── WavePayDialog.tsx
+│   ├── hooks/
+│   ├── integrations/
 │   ├── lib/
-│   │   ├── veggie-data.ts     # Types, mock data, catalog definitions, distance formulas
-│   │   ├── veggie-store.ts    # React state management & persistence
-│   │   └── use-geolocation.ts # Custom hook for browser geolocation
+│   │   ├── use-geolocation.ts
+│   │   ├── utils.ts
+│   │   ├── veggie-data.ts
+│   │   └── veggie-store.ts
 │   ├── routes/
-│   │   ├── __root.tsx         # TanStack Root route & layout
-│   │   ├── index.tsx          # Buyer page route
-│   │   └── runner.tsx         # Trader stall route
-│   ├── styles.css             # Global CSS and Tailwind directives
-│   └── start.ts               # TanStack Start entrypoint
-├── public/                    # Static assets & map marker icons
-├── vite.config.ts             # Vite configuration
-├── package.json               # Dependencies and script definitions
-└── README.md                  # Project documentation
+│   │   ├── __root.tsx
+│   │   ├── index.tsx
+│   │   └── runner.tsx
+│   ├── router.tsx
+│   ├── routeTree.gen.ts
+│   ├── server.ts
+│   ├── start.ts
+│   └── styles.css
+├── public/
+├── supabase/
+├── docs/
+│   └── screenshots/
+├── AGENTS.md
+├── components.json
+├── eslint.config.js
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── bunfig.toml
+└── README.md
 ```
 
 ---
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
-Make sure you have [Bun](https://bun.sh/) installed on your machine.
 
-### Installation
+- Node.js
+- npm
+
+This repo was originally intended to use Bun, but in this environment the project has been verified using npm as the working equivalent.
+
+### Install dependencies
+
 ```bash
-bun install
+npm install
 ```
 
-### Development Server
-Start the development server with live reload:
-```bash
-bun run dev
-```
-Open [http://localhost:8080](http://localhost:8080) (or the port indicated in terminal) in your browser.
+### Run the app locally
 
-### Building for Production
-Compile client and server bundles for production:
 ```bash
-bun run build
+npm run dev -- --host 0.0.0.0
 ```
 
-### Running Quality Checks & Linter
-To run code formatting and ESLint checks:
-```bash
-bun run lint
+Then open the local URL shown in the terminal, normally:
+
+```text
+http://localhost:8081/
 ```
+
+### Lint the project
+
+```bash
+npm run lint
+```
+
+### Production build
+
+```bash
+npm run build
+```
+
+---
+
+## Demo flow
+
+1. Open the buyer page.
+2. Pick vegetables and quantities.
+3. Click “Raise my hand”.
+4. See nearby traders ranked by stock match and distance.
+5. Switch to the trader view.
+6. Accept a wave and complete the delivery flow.
+7. Confirm payment through the demo payment flow.
+
+---
+
+## Notes
+
+This is a front-end prototype and not yet a production backend integration. The current version intentionally simulates the marketplace logic with in-browser state and seeded demo data.
+
+It is best understood as a proof of concept for:
+- local produce discovery,
+- community supply matching,
+- delivery coordination,
+- and lightweight wallet-based payment UX.
 
 ---
 
 ## License
 
-MIT License.
+This project is provided as-is for demo and prototype use.
