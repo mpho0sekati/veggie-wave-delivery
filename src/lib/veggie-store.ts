@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BUYER_POSITION,
   SEED_RUNNERS,
@@ -47,6 +47,7 @@ export type AppState = {
 
 const KEY = "veggieguy-state-v2";
 const EVENT = "veggieguy-state";
+const MAX_DEMAND = 50;
 
 function initialState(): AppState {
   return {
@@ -133,7 +134,8 @@ export function logDemand(entries: { itemId: string | null; label: string }[]) {
           lastAt: bump.lastAt,
         };
     }
-    return { ...prev, demand };
+    const trimmed = demand.sort((a, b) => b.lastAt - a.lastAt).slice(0, MAX_DEMAND);
+    return { ...prev, demand: trimmed };
   });
 }
 
@@ -277,11 +279,32 @@ export function archiveRequest() {
   }));
 }
 
-export function useAppState(): AppState {
-  const [state, setState] = useState<AppState>(initialState);
+export function useAppState(): AppState;
+export function useAppState<T>(selector: (s: AppState) => T): T;
+export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | AppState {
+  const [state, setState] = useState<T | AppState>(() =>
+    selector ? selector(read()) : initialState(),
+  );
+
+  // Track the last selected value to avoid unnecessary re-renders when a
+  // selector is provided.
+  const lastRef = useRef<T | AppState>(state);
 
   useEffect(() => {
-    const sync = () => setState(read());
+    const sync = () => {
+      if (selector) {
+        const next = selector(read());
+        if (!Object.is(next, lastRef.current)) {
+          lastRef.current = next;
+          setState(next);
+        }
+      } else {
+        const next = read();
+        lastRef.current = next;
+        setState(next);
+      }
+    };
+    // Ensure we pick up any state written between the initial render and now.
     sync();
     window.addEventListener(EVENT, sync);
     window.addEventListener("storage", sync);
@@ -289,6 +312,11 @@ export function useAppState(): AppState {
       window.removeEventListener(EVENT, sync);
       window.removeEventListener("storage", sync);
     };
+    // selector is intentionally omitted from deps — it is treated as stable
+    // (callers should memoize or pass an inline arrow that is referentially
+    // stable, e.g. module-level or useCallback).  This matches the common
+    // zustand / useSyncExternalStore pattern.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return state;

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand,
   Minus,
@@ -78,27 +78,33 @@ function MapSkeleton() {
   return <div className="h-full w-full animate-pulse bg-muted" />;
 }
 
-function useTicker(active: boolean) {
+const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) {
   const [, setTick] = useState(0);
   useEffect(() => {
-    if (!active) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, [active]);
-}
-
-function clock(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-}
+  }, []);
+  const waitedMs = Date.now() - createdAt;
+  const total = Math.max(0, Math.floor(waitedMs / 1000));
+  const clockDisplay = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Clock className="size-4" /> waiting… {clockDisplay}
+    </p>
+  );
+});
 
 function BuyerPage() {
-  const state = useAppState();
+  const wallet = useAppState((s) => s.wallet);
+  const runners = useAppState((s) => s.runners);
+  const request = useAppState((s) => s.request);
+  const orders = useAppState((s) => s.orders);
+  const customItems = useAppState((s) => s.customItems);
+  const buyer = useAppState((s) => s.buyer);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
-  const buyer = state.buyer;
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
     setRecenterTrigger((prev) => prev + 1);
@@ -106,12 +112,9 @@ function BuyerPage() {
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
-  const catalog = useMemo(() => catalogWith(state.customItems), [state.customItems]);
-  const online = state.runners.filter((r) => r.online);
-  const picked = catalog.filter((c) => (qty[c.id] ?? 0) > 0);
-
-  const request = state.request;
-  useTicker(request?.status === "waving");
+  const catalog = useMemo(() => catalogWith(customItems), [customItems]);
+  const online = runners.filter((r) => r.online);
+  const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
 
   /** Traders ranked by how much of the basket they can fill, then by distance. */
   const ranked = useMemo(() => {
@@ -143,12 +146,15 @@ function BuyerPage() {
 
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
-  const assigned: Runner | null = state.runners.find((r) => r.id === request?.runnerId) ?? null;
+  const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
 
-  const bump = (id: string, delta: number) =>
-    setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) }));
+  const bump = useCallback(
+    (id: string, delta: number) =>
+      setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) })),
+    [],
+  );
 
-  const wave = () => {
+  const wave = useCallback(() => {
     if (!picked.length && !wish.trim()) {
       toast.error("Pick what you need first");
       return;
@@ -171,29 +177,31 @@ function BuyerPage() {
       ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
     ]);
     toast.success("Hand raised — traders nearby can see you waving");
-  };
+  }, [picked, wish, total, qty]);
 
-  const waveAgain = () =>
-    updateState((prev) => ({
-      ...prev,
-      request: prev.request ? { ...prev.request, createdAt: Date.now() } : null,
-    }));
+  const waveAgain = useCallback(
+    () =>
+      updateState((prev) => ({
+        ...prev,
+        request: prev.request ? { ...prev.request, createdAt: Date.now() } : null,
+      })),
+    [],
+  );
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     cancelRequest();
     setQty({});
     setWish("");
     toast.info("Request cancelled");
-  };
+  }, []);
 
-  const finish = () => {
+  const finish = useCallback(() => {
     archiveRequest();
     setQty({});
     setWish("");
-  };
+  }, []);
 
-  const waitedMs = request ? Date.now() - request.createdAt : 0;
-  const timedOut = request?.status === "waving" && waitedMs > WAVE_TIMEOUT_MS;
+  const timedOut = request?.status === "waving" && (Date.now() - (request?.createdAt ?? 0)) > WAVE_TIMEOUT_MS;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col pb-4">
@@ -222,7 +230,7 @@ function BuyerPage() {
         <ClientOnly fallback={<MapSkeleton />}>
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
-              runners={state.runners}
+              runners={runners}
               activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
@@ -269,7 +277,7 @@ function BuyerPage() {
             <span className="flex items-center gap-2 text-sm font-medium">
               <Wallet className="size-4 text-primary" /> Mdeko Pay balance
             </span>
-            <span className="font-display font-semibold">{formatRand(state.wallet.balance)}</span>
+            <span className="font-display font-semibold">{formatRand(wallet.balance)}</span>
           </div>
 
           <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
@@ -454,11 +462,7 @@ function BuyerPage() {
             )}
           </div>
 
-          {request.status === "waving" && (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="size-4" /> waiting… {clock(waitedMs)}
-            </p>
-          )}
+          {request.status === "waving" && <WaveClock createdAt={request.createdAt} />}
 
           <ul className="space-y-1 text-sm text-muted-foreground">
             {request.items.map((line) => {
@@ -526,14 +530,14 @@ function BuyerPage() {
         </div>
       )}
 
-      {!request && state.orders.length > 0 && (
+      {!request && orders.length > 0 && (
         <section className="px-4 pb-8">
           <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
             <History className="size-5 text-primary" /> Past waves
           </h2>
           <ul className="space-y-2">
-            {state.orders.map((order) => {
-              const trader = state.runners.find((r) => r.id === order.runnerId);
+            {orders.map((order) => {
+              const trader = runners.find((r) => r.id === order.runnerId);
               return (
                 <li key={order.id} className="rounded-2xl border px-4 py-3 text-sm space-y-2">
                   <div className="flex items-center justify-between">
@@ -590,7 +594,7 @@ function BuyerPage() {
         open={payOpen}
         onOpenChange={setPayOpen}
         amount={request?.total ?? 0}
-        balance={state.wallet.balance}
+        balance={wallet.balance}
         traderName={assigned?.name ?? "your trader"}
         onPaid={() => undefined}
       />

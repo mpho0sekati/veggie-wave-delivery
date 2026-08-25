@@ -32,12 +32,6 @@ export function useGeolocation(onPosition: (pos: { lat: number; lng: number }) =
     const fail = (err: GeolocationPositionError) =>
       setStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
 
-    navigator.geolocation.getCurrentPosition(handle, fail, {
-      enableHighAccuracy: true,
-      timeout: 20000,
-      maximumAge: 0,
-    });
-
     if (watchRef.current !== null) {
       navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;

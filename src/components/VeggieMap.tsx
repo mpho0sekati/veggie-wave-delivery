@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { BUYER_POSITION, type Runner } from "@/lib/veggie-data";
@@ -39,6 +39,7 @@ export default function VeggieMap({
   activeRunnerId,
   waving,
   buyerPosition,
+  recenterTrigger,
   onPickPosition,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +89,15 @@ export default function VeggieMap({
     if (map) map.setView([buyer.lat, buyer.lng], map.getZoom(), { animate: true });
   }, [buyer.lat, buyer.lng, recenterTrigger]);
 
+  const runnersKey = useMemo(
+    () =>
+      runners
+        .filter((r) => r.online)
+        .map((r) => `${r.id}:${r.lat.toFixed(5)}:${r.lng.toFixed(5)}:${r.name.charAt(0)}:${r.avatar ?? ""}`)
+        .join("|"),
+    [runners],
+  );
+
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
@@ -108,6 +118,7 @@ export default function VeggieMap({
     runners
       .filter((r) => r.online)
       .forEach((r) => {
+        const map = mapRef.current;
         const active = r.id === activeRunnerId;
         const marker = L.marker([r.lat, r.lng], {
           icon: runnerIcon(active, r.name.charAt(0), r.avatar),
@@ -115,7 +126,7 @@ export default function VeggieMap({
           .addTo(layer)
           .bindPopup(`<strong>${r.name}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`);
 
-        if (active) {
+        if (active && map) {
           map.setView([r.lat, r.lng], map.getZoom(), { animate: true });
           marker.openPopup();
         }
@@ -129,7 +140,8 @@ export default function VeggieMap({
           ).addTo(layer);
         }
       });
-  }, [runners, activeRunnerId, waving, buyer.lat, buyer.lng]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runners is intentionally omitted; runnersKey is its stable proxy
+  }, [runnersKey, activeRunnerId, waving, buyer.lat, buyer.lng]);
 
   return (
     <div ref={containerRef} className="h-full w-full" aria-label="Map of nearby veggie runners" />
