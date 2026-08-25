@@ -242,7 +242,7 @@ function BuyerPage() {
         <Button
           size="sm"
           variant="secondary"
-          className="absolute top-3 left-3 z-[400] shadow-lift"
+          className="absolute top-3 left-3 z-400 shadow-lift"
           onClick={() => {
             locate();
             setRecenterTrigger((prev) => prev + 1);
@@ -258,7 +258,7 @@ function BuyerPage() {
         <Button
           size="sm"
           variant="secondary"
-          className="absolute top-3 right-3 z-[400] shadow-lift"
+          className="absolute top-3 right-3 z-400 shadow-lift"
           onClick={() => setIsCollapsed((prev) => !prev)}
           aria-label={isCollapsed ? "Expand map" : "Collapse map"}
         >
@@ -517,7 +517,7 @@ function BuyerPage() {
       )}
 
       {!request && (
-        <div className="sticky bottom-0 z-[500] mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
+        <div className="sticky bottom-0 z-500 mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
           <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
             <Hand className="animate-wave" /> Raise my hand
             {total > 0 ? ` · ${formatRand(total)}` : ""}
