@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { catalogWith, formatRand, iconFor, iconKeyFromName } from "@/lib/veggie-data";
-import { promoteToCatalog, setStock, suggestedPrice, type AppState } from "@/lib/veggie-store";
+import { suggestedPrice, promoteToCatalog } from "@/lib/veggie-store";
+import { setStock, type AppState } from "@/lib/veggie-store-supabase";
 
 type Props = { state: AppState; runnerId: string; onAdded?: (itemId: string) => void };
 

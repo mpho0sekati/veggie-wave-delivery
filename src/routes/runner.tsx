@@ -54,15 +54,24 @@ function MapSkeleton() {
   return <div className="h-full w-full animate-pulse bg-muted" />;
 }
 
-const MY_ID = "r1";
-
 function RunnerPage() {
   const state = useAppState();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
 
-  const me = state.runners.find((r) => r.id === MY_ID)!;
+  const myId = state.me.id;
+  const me = state.runners.find((r) => r.id === myId);
+
+  // Still loading from Supabase — me not available yet
+  if (!me) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Loading your stall…</p>
+      </main>
+    );
+  }
   const request = state.request;
   const km = distanceKm(state.buyer, me);
   const catalog = catalogWith(state.customItems);
@@ -309,13 +318,13 @@ function RunnerPage() {
       </div>
 
       <StockEditor
-        runnerId={MY_ID}
+        runnerId={myId}
         stock={me.stock}
         customItems={state.customItems}
         highlightItemId={highlight}
       />
 
-      <DemandInsights state={state} runnerId={MY_ID} onAdded={setHighlight} />
+      <DemandInsights state={state} runnerId={myId} onAdded={setHighlight} />
 
       <div className="h-8" />
     </main>
