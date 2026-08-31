@@ -34,15 +34,15 @@ import {
   type Runner,
 } from "@/lib/veggie-data";
 import {
-  archiveRequest,
   cancelRequest,
   logDemand,
   payCash,
   refundOrder,
   setBuyerLocation,
-  updateState,
+  waveRequest,
+  reraiseWave,
   useAppState,
-} from "@/lib/veggie-store";
+} from "@/lib/veggie-store-supabase";
 import { useGeolocation } from "@/lib/use-geolocation";
 import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
@@ -154,39 +154,35 @@ function BuyerPage() {
     [],
   );
 
-  const wave = useCallback(() => {
+  const wave = useCallback(async () => {
     if (!picked.length && !wish.trim()) {
       toast.error("Pick what you need first");
       return;
     }
-    updateState((prev) => ({
-      ...prev,
-      request: {
-        id: crypto.randomUUID(),
-        items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
-        wish: wish.trim(),
-        total,
-        note: `${picked.length} items`,
-        status: "waving",
-        runnerId: null,
-        createdAt: Date.now(),
-      },
-    }));
-    logDemand([
-      ...picked.map((p) => ({ itemId: p.id, label: p.name })),
-      ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
-    ]);
-    toast.success("Hand raised — traders nearby can see you waving");
+    try {
+      await waveRequest(
+        picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
+        wish.trim(),
+        total
+      );
+      await logDemand([
+        ...picked.map((p) => ({ itemId: p.id, label: p.name })),
+        ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
+      ]);
+      toast.success("Hand raised — traders nearby can see you waving");
+    } catch (error) {
+      toast.error("Failed to raise hand");
+    }
   }, [picked, wish, total, qty]);
 
-  const waveAgain = useCallback(
-    () =>
-      updateState((prev) => ({
-        ...prev,
-        request: prev.request ? { ...prev.request, createdAt: Date.now() } : null,
-      })),
-    [],
-  );
+  const waveAgain = useCallback(async () => {
+    try {
+      await reraiseWave();
+      toast.success("Hand raised again — traders nearby can see you waving");
+    } catch (error) {
+      toast.error("Failed to raise hand again");
+    }
+  }, []);
 
   const cancel = useCallback(() => {
     cancelRequest();
@@ -196,10 +192,19 @@ function BuyerPage() {
   }, []);
 
   const finish = useCallback(() => {
-    archiveRequest();
     setQty({});
     setWish("");
   }, []);
+
+  const onPayCash = useCallback(async () => {
+    if (!request) return;
+    try {
+      await payCash(request.id);
+      toast.success("Payment received — thanks!");
+    } catch (error) {
+      toast.error("Failed to record cash payment");
+    }
+  }, [request]);
 
   const timedOut = request?.status === "waving" && (Date.now() - (request?.createdAt ?? 0)) > WAVE_TIMEOUT_MS;
 
@@ -499,7 +504,7 @@ function BuyerPage() {
               <Button variant="wave" size="lg" onClick={() => setPayOpen(true)}>
                 <Wallet /> Pay {formatRand(request.total)} with Mdeko Pay
               </Button>
-              <Button variant="outline" onClick={payCash}>
+              <Button variant="outline" onClick={onPayCash}>
                 I paid cash
               </Button>
             </>

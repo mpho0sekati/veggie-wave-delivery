@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useRef, useState } from "react";
 import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet } from "lucide-react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,7 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/lib/veggie-data";
-import { cancelRequest, failRequest, updateState, useAppState } from "@/lib/veggie-store";
+import {
+  cancelRequest,
+  failRequest,
+  acceptWave,
+  markDelivered,
+  setOnline,
+  updateName,
+  updateAvatar,
+  useAppState,
+} from "@/lib/veggie-store-supabase";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import BrandMark from "@/components/BrandMark";
@@ -67,45 +77,55 @@ function RunnerPage() {
   const onPickAvatar = (file?: File | null) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const dataUrl = String(reader.result);
-      updateState((prev) => ({
-        ...prev,
-        runners: prev.runners.map((r) => (r.id === MY_ID ? { ...r, avatar: dataUrl } : r)),
-      }));
-      toast.success("Profile picture saved");
+      try {
+        await updateAvatar(dataUrl);
+        toast.success("Profile picture saved");
+      } catch (error) {
+        toast.error("Failed to save picture");
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  const setOnline = (online: boolean) =>
-    updateState((prev) => ({
-      ...prev,
-      runners: prev.runners.map((r) => (r.id === MY_ID ? { ...r, online } : r)),
-    }));
+  const onOnlineChange = useCallback(async (online: boolean) => {
+    try {
+      await setOnline(online);
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  }, []);
 
-  const saveName = () => {
+  const saveName = useCallback(async () => {
     if (!name.trim()) return;
-    updateState((prev) => ({
-      ...prev,
-      runners: prev.runners.map((r) => (r.id === MY_ID ? { ...r, name: name.trim() } : r)),
-    }));
-    toast.success("Name updated");
-  };
+    try {
+      await updateName(name.trim());
+      toast.success("Name updated");
+    } catch (error) {
+      toast.error("Failed to update name");
+    }
+  }, [name]);
 
-  const accept = () =>
-    updateState((prev) => ({
-      ...prev,
-      request: prev.request
-        ? { ...prev.request, status: "accepted", runnerId: MY_ID, total: myTotal }
-        : null,
-    }));
+  const accept = useCallback(async () => {
+    if (!request) return;
+    try {
+      await acceptWave(request.id, myTotal);
+      toast.success("Wave accepted!");
+    } catch (error) {
+      toast.error("Failed to accept wave");
+    }
+  }, [request, myTotal]);
 
-  const deliver = () =>
-    updateState((prev) => ({
-      ...prev,
-      request: prev.request ? { ...prev.request, status: "delivered" } : null,
-    }));
+  const deliver = useCallback(async () => {
+    if (!request) return;
+    try {
+      await markDelivered(request.id);
+      toast.success("Marked as delivered — awaiting payment");
+    } catch (error) {
+      toast.error("Failed to mark delivered");
+    }
+  }, [request]);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
@@ -160,7 +180,7 @@ function RunnerPage() {
         </div>
         <div className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
           <Label htmlFor="online">Available for deliveries</Label>
-          <Switch id="online" checked={me.online} onCheckedChange={setOnline} />
+          <Switch id="online" checked={me.online} onCheckedChange={onOnlineChange} />
         </div>
         <div className="flex items-center justify-between rounded-xl border px-4 py-3">
           <span className="flex items-center gap-2 text-sm font-medium">

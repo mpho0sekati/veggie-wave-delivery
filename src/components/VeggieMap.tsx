@@ -14,15 +14,26 @@ type Props = {
 };
 
 function runnerIcon(active: boolean, initial: string, avatar?: string | null) {
-  const inner = avatar
-    ? `<img src="${avatar}" alt="" class="h-full w-full rounded-full object-cover" />`
-    : `<span class="text-sm font-semibold">${initial}</span>`;
+  const safeAvatar = avatar?.startsWith("data:image/") ? escapeHtml(avatar) : null;
+  const inner = safeAvatar
+    ? `<img src="${safeAvatar}" alt="" class="h-full w-full rounded-full object-cover" />`
+    : `<span class="text-sm font-semibold">${escapeHtml(initial)}</span>`;
   return L.divIcon({
     className: "",
     html: `<div class="marker-runner ${active ? "marker-runner-active" : ""}">${inner}</div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 20],
   });
+}
+
+function escapeHtml(value: string) {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        character
+      ] ?? character,
+  );
 }
 
 function buyerIcon(waving: boolean) {
@@ -124,7 +135,9 @@ export default function VeggieMap({
           icon: runnerIcon(active, r.name.charAt(0), r.avatar),
         })
           .addTo(layer)
-          .bindPopup(`<strong>${r.name}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`);
+          .bindPopup(
+            `<strong>${escapeHtml(r.name)}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`,
+          );
 
         if (active && map) {
           map.setView([r.lat, r.lng], map.getZoom(), { animate: true });

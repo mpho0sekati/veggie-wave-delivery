@@ -173,7 +173,7 @@ export function suggestedPrice(state: AppState, itemId: string): number {
 }
 
 function settle(prev: AppState, paidWith: PaidWith): AppState {
-  if (!prev.request) return prev;
+  if (!prev.request || prev.request.status !== "delivered") return prev;
   const paid: WaveRequest = { ...prev.request, status: "paid", paidWith };
   return {
     ...prev,
@@ -242,10 +242,11 @@ export function failRequest(reason = "Delivery failed") {
 /** Refund a completed/paid order back to buyer's Wave Pay balance if paid with Wave Pay. */
 export function refundOrder(orderId: string) {
   updateState((prev) => {
-    // Check if active request or in past orders
     const targetOrder =
       prev.request?.id === orderId ? prev.request : prev.orders.find((o) => o.id === orderId);
-    if (!targetOrder || targetOrder.status === "refunded") return prev;
+    if (!targetOrder || targetOrder.status !== "paid" || targetOrder.paidWith === undefined) {
+      return prev;
+    }
 
     const wasWavePay = targetOrder.paidWith === "wave-pay";
     const refundAmount = wasWavePay ? targetOrder.total : 0;
@@ -266,6 +267,11 @@ export function refundOrder(orderId: string) {
         ...prev.wallet,
         balance: prev.wallet.balance + refundAmount,
       },
+      runners: prev.runners.map((r) =>
+        r.id === targetOrder.runnerId
+          ? { ...r, earnings: Math.max(0, r.earnings - targetOrder.total) }
+          : r,
+      ),
     };
   });
 }
