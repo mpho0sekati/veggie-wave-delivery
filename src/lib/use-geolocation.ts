@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type GeoStatus = "idle" | "locating" | "ready" | "denied" | "unavailable" | "unsupported";
 
+const MAX_ACCEPTABLE_ACCURACY_METERS = 100;
+
 const MESSAGES: Record<GeoStatus, string> = {
   idle: "",
   locating: "Finding your location…",
   ready: "",
   denied: "Location permission was blocked. Allow it in your browser settings, then tap again.",
-  unavailable: "Your device couldn't get a GPS fix. Move outside or tap to try again.",
+  unavailable: "We couldn't get a precise location. Turn on GPS or tap the map to set it manually.",
   unsupported: "This browser can't share location.",
 };
 
@@ -26,6 +28,10 @@ export function useGeolocation(onPosition: (pos: { lat: number; lng: number }) =
     setStatus("locating");
 
     const handle = (pos: GeolocationPosition) => {
+      if (pos.coords.accuracy > MAX_ACCEPTABLE_ACCURACY_METERS) {
+        setStatus("unavailable");
+        return;
+      }
       setStatus("ready");
       cb.current({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     };
@@ -44,6 +50,13 @@ export function useGeolocation(onPosition: (pos: { lat: number; lng: number }) =
     });
   }, []);
 
+  const stop = useCallback(() => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     locate();
     return () => {
@@ -55,5 +68,5 @@ export function useGeolocation(onPosition: (pos: { lat: number; lng: number }) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { status, locate, message: MESSAGES[status] };
+  return { status, locate, stop, message: MESSAGES[status] };
 }

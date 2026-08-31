@@ -243,18 +243,23 @@ function dbOrderToWaveRequest(dbOrder: any): WaveRequest {
 }
 
 // Update buyer location
-export async function setBuyerLocation(pos: { lat: number; lng: number }): Promise<void> {
+export async function setBuyerLocation(pos: { lat: number; lng: number }): Promise<boolean> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return false;
 
   const { error } = await supabase
     .from("profiles")
     .update({ lat: pos.lat, lng: pos.lng })
     .eq("id", user.id);
 
-  if (error) console.error("Error setting location:", error);
+  if (error) {
+    console.error("Error setting location:", error);
+    return false;
+  }
+
+  return true;
 }
 
 // Update trader stock

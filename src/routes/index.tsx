@@ -105,12 +105,24 @@ function BuyerPage() {
   const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
-  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
-    setBuyerLocation(pos);
-    setRecenterTrigger((prev) => prev + 1);
-    toast.success("Location pin updated on map");
+  const onPosition = useCallback(async (pos: { lat: number; lng: number }) => {
+    if (await setBuyerLocation(pos)) {
+      setRecenterTrigger((prev) => prev + 1);
+    }
   }, []);
-  const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
+  const { status: geoStatus, locate, stop, message: geoMessage } = useGeolocation(onPosition);
+  const onMapPick = useCallback(
+    async (pos: { lat: number; lng: number }) => {
+      stop();
+      if (await setBuyerLocation(pos)) {
+        setRecenterTrigger((prev) => prev + 1);
+        toast.success("Location pin updated on map");
+      } else {
+        toast.error("Failed to save your chosen location");
+      }
+    },
+    [stop],
+  );
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = runners.filter((r) => r.online);
@@ -240,7 +252,7 @@ function BuyerPage() {
               waving={request?.status === "waving"}
               buyerPosition={buyer}
               recenterTrigger={recenterTrigger}
-              onPickPosition={onPosition}
+              onPickPosition={onMapPick}
             />
           </Suspense>
         </ClientOnly>
