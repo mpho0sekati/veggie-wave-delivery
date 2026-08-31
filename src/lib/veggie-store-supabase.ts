@@ -54,6 +54,7 @@ export type AppState = {
 };
 
 const MAX_DEMAND = 50;
+const LOCATION_UPDATED_EVENT = "veggie-wave:location-updated";
 
 // Fetch all runners from profiles table where role = 'trader'
 async function fetchRunners(): Promise<Runner[]> {
@@ -259,6 +260,7 @@ export async function setBuyerLocation(pos: { lat: number; lng: number }): Promi
     return false;
   }
 
+  window.dispatchEvent(new CustomEvent(LOCATION_UPDATED_EVENT));
   return true;
 }
 
@@ -571,6 +573,11 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
 
     initState();
 
+    // A location update originates outside this hook. Refresh immediately rather
+    // than waiting for a Supabase Realtime event, which may not be enabled for
+    // the profiles table in every deployment.
+    window.addEventListener(LOCATION_UPDATED_EVENT, initState);
+
     // Subscribe to runners (stock changes)
     const runnerSub = supabase
       .channel("public:profiles")
@@ -602,6 +609,7 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
     ];
 
     return () => {
+      window.removeEventListener(LOCATION_UPDATED_EVENT, initState);
       subscriptionsRef.current.forEach((unsub) => unsub());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
