@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useRef, useState } from "react";
-import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet } from "lucide-react";
-import { useCallback } from "react";
+import { lazy, Suspense, useRef, useState, useCallback, useEffect } from "react";
+import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,15 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/lib/veggie-data";
 import {
-  cancelRequest,
-  failRequest,
-  acceptWave,
-  markDelivered,
   setOnline,
   updateName,
   updateAvatar,
-  useAppState,
 } from "@/lib/veggie-store-supabase";
+import {
+  listOpenWaves,
+  acceptWave,
+  advanceOrder,
+  declineWave,
+} from "@/lib/mdeko.functions";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import BrandMark from "@/components/BrandMark";
@@ -34,14 +34,13 @@ export const Route = createFileRoute("/runner")({
       {
         name: "description",
         content:
-          "Go online as a township veggie trader on Mdeko, set your own stock and prices, see who is waving nearby and get paid with Mdeko Pay.",
+          "Go online as a township veggie trader on Mdeko, set your own stock and prices, see who is waving nearby and get paid with MTN MoMo.",
       },
       { property: "og:title", content: "Trader stall — Mdeko · Veggie Wave" },
-
       {
         property: "og:description",
         content:
-          "Set your stock and prices, see waves nearby and what people are asking for, deliver and get paid instantly.",
+          "Set your stock and prices, see waves nearby and what people are asking for, deliver and get paid with MTN MoMo.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -55,15 +54,53 @@ function MapSkeleton() {
 }
 
 function RunnerPage() {
-  const state = useAppState();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [order, setOrder] = useState<any>(null);
+  const [waves, setWaves] = useState<any[]>([]);
+  const [me, setMe] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [online, setOnlineState] = useState(false);
 
-  const myId = state.me.id;
-  const me = state.runners.find((r) => r.id === myId);
+  // Load trader data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // In real app, fetch from API
+        setMe({
+          id: "trader-1",
+          name: "Your Name",
+          avatar: null,
+          online: false,
+          earnings: 0,
+          rating: 4.8,
+          stock: [],
+        });
+      } catch (err) {
+        console.error("Failed to load trader data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
-  // Still loading from Supabase — me not available yet
+  // Poll for open waves
+  useEffect(() => {
+    if (!online || !me) return;
+    const interval = setInterval(async () => {
+      try {
+        const openWaves = await listOpenWaves();
+        setWaves(openWaves);
+      } catch (err) {
+        console.error("Failed to fetch waves", err);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [online, me]);
+
   if (!me) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
@@ -72,15 +109,16 @@ function RunnerPage() {
       </main>
     );
   }
-  const request = state.request;
-  const km = distanceKm(state.buyer, me);
-  const catalog = catalogWith(state.customItems);
 
-  const canFill = request
-    ? request.items.filter((line) => priceFor(me, line.id) !== null).length
+  const catalog = catalogWith([]);
+  const buyer = { lat: -33.9249, lng: 18.4241 };
+  const km = distanceKm(buyer, { lat: order?.buyer_lat ?? -33.9249, lng: order?.buyer_lng ?? 18.4241 });
+
+  const canFill = order
+    ? order.items?.filter((line: any) => priceFor(me, line.id) !== null).length ?? 0
     : 0;
-  const myTotal = request
-    ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0)
+  const myTotal = order
+    ? order.items?.reduce((sum: number, line: any) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0) ?? 0
     : 0;
 
   const onPickAvatar = (file?: File | null) => {
@@ -98,18 +136,24 @@ function RunnerPage() {
     reader.readAsDataURL(file);
   };
 
-  const onOnlineChange = useCallback(async (online: boolean) => {
-    try {
-      await setOnline(online);
-    } catch (error) {
-      toast.error("Failed to update status");
-    }
-  }, []);
+  const onOnlineChange = useCallback(
+    async (isOnline: boolean) => {
+      try {
+        await setOnline(isOnline);
+        setOnlineState(isOnline);
+        toast.success(isOnline ? "You're now online" : "You're now offline");
+      } catch (error) {
+        toast.error("Failed to update status");
+      }
+    },
+    []
+  );
 
   const saveName = useCallback(async () => {
     if (!name.trim()) return;
     try {
       await updateName(name.trim());
+      setMe((prev: any) => ({ ...prev, name: name.trim() }));
       toast.success("Name updated");
     } catch (error) {
       toast.error("Failed to update name");
@@ -117,24 +161,48 @@ function RunnerPage() {
   }, [name]);
 
   const accept = useCallback(async () => {
-    if (!request) return;
+    if (!order) return;
     try {
-      await acceptWave(request.id, myTotal);
+      const accepted = await acceptWave({ waveId: order.wave_id });
+      setOrder(accepted);
       toast.success("Wave accepted!");
     } catch (error) {
       toast.error("Failed to accept wave");
     }
-  }, [request, myTotal]);
+  }, [order]);
 
-  const deliver = useCallback(async () => {
-    if (!request) return;
+  const decline = useCallback(async () => {
+    if (!order) return;
     try {
-      await markDelivered(request.id);
+      await declineWave({ waveId: order.wave_id });
+      setOrder(null);
+      toast.info("Wave declined");
+    } catch (error) {
+      toast.error("Failed to decline wave");
+    }
+  }, [order]);
+
+  const markDelivering = useCallback(async () => {
+    if (!order) return;
+    try {
+      const updated = await advanceOrder({ orderId: order.id, status: "delivering" });
+      setOrder(updated);
+      toast.success("On the way!");
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  }, [order]);
+
+  const markDelivered = useCallback(async () => {
+    if (!order) return;
+    try {
+      const updated = await advanceOrder({ orderId: order.id, status: "delivered" });
+      setOrder(updated);
       toast.success("Marked as delivered — awaiting payment");
     } catch (error) {
       toast.error("Failed to mark delivered");
     }
-  }, [request]);
+  }, [order]);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
@@ -145,7 +213,7 @@ function RunnerPage() {
           </Link>
         </Button>
         <BrandMark
-          subtitle={`Trader stall · ${me.online ? "you're online" : "you're offline"}`}
+          subtitle={`Trader stall · ${online ? "you're online" : "you're offline"}`}
           className="min-w-0"
         />
       </header>
@@ -189,13 +257,13 @@ function RunnerPage() {
         </div>
         <div className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
           <Label htmlFor="online">Available for deliveries</Label>
-          <Switch id="online" checked={me.online} onCheckedChange={onOnlineChange} />
+          <Switch id="online" checked={online} onCheckedChange={onOnlineChange} />
         </div>
         <div className="flex items-center justify-between rounded-xl border px-4 py-3">
           <span className="flex items-center gap-2 text-sm font-medium">
             <Wallet className="size-4 text-primary" /> Earnings today
           </span>
-          <span className="font-display font-semibold">{formatRand(me.earnings)}</span>
+          <span className="font-display font-semibold">{formatRand(me.earnings ?? 0)}</span>
         </div>
       </Card>
 
@@ -203,10 +271,10 @@ function RunnerPage() {
         <ClientOnly fallback={<MapSkeleton />}>
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
-              runners={state.runners}
-              activeRunnerId={request?.runnerId ?? null}
-              waving={request?.status === "waving"}
-              buyerPosition={state.buyer}
+              runners={[me]}
+              activeRunnerId={order?.trader_id ?? null}
+              waving={order?.status === "creating"}
+              buyerPosition={buyer}
             />
           </Suspense>
         </ClientOnly>
@@ -214,39 +282,48 @@ function RunnerPage() {
 
       <h2 className="mt-6 px-5 text-lg font-semibold">Waves near you</h2>
       <div className="px-4 pt-3">
-        {!request && (
+        {!order && waves.length === 0 && (
           <Card className="items-center gap-2 p-8 text-center">
             <Hand className="size-8 text-muted-foreground" />
             <p className="font-semibold">No hands up right now</p>
             <p className="text-sm text-muted-foreground">
-              {me.online
+              {online
                 ? "Keep your stall online — the next wave nearby lands here."
-                : "Switch on “Available for deliveries” so nearby waves reach you."}
+                : "Switch on 'Available for deliveries' so nearby waves reach you."}
             </p>
           </Card>
         )}
 
-        {request && (
+        {order && (
           <Card className="animate-rise gap-4 p-5">
-            <OrderStepper status={request.status} />
+            <OrderStepper
+              status={
+                order.status as
+                  | "waving"
+                  | "accepted"
+                  | "delivered"
+                  | "paid"
+                  | "cancelled"
+                  | "failed"
+                  | "refunded"
+              }
+            />
             <div className="flex items-center gap-2">
-              <Hand
-                className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`}
-              />
+              <Hand className={`size-5 text-accent ${order.status === "creating" ? "animate-wave" : ""}`} />
               <p className="font-semibold">
-                {request.status === "waving" && "Someone is waving"}
-                {request.status === "accepted" && "You accepted — deliver now"}
-                {request.status === "delivered" && "Waiting for payment"}
-                {request.status === "paid" &&
-                  (request.paidWith === "cash" ? "Paid in cash" : "Paid with Mdeko Pay")}
+                {order.status === "creating" && "Someone is waving"}
+                {order.status === "accepted" && "You accepted — prepare for delivery"}
+                {order.status === "delivering" && "On the way to customer"}
+                {order.status === "delivered" && "Waiting for payment"}
+                {order.status === "completed" && "Order complete"}
               </p>
             </div>
             <p className="text-sm text-muted-foreground">
               {km.toFixed(1)} km away · about {walkMinutes(km)} min walk · you can fill {canFill}/
-              {request.items.length}
+              {order.items?.length ?? 0}
             </p>
             <ul className="space-y-1 text-sm">
-              {request.items.map((line) => {
+              {order.items?.map((line: any) => {
                 const item = catalog.find((c) => c.id === line.id);
                 if (!item) return null;
                 const Icon = item.icon;
@@ -263,54 +340,55 @@ function RunnerPage() {
                   </li>
                 );
               })}
-              {request.wish && (
-                <li className="text-muted-foreground italic">also asked for: {request.wish}</li>
+              {order.wish && (
+                <li className="text-muted-foreground italic">also asked for: {order.wish}</li>
               )}
             </ul>
             <p className="font-display text-xl font-bold">
-              {formatRand(request.status === "waving" ? myTotal : request.total)}
+              {formatRand(order.status === "creating" ? myTotal : order.amount)}
             </p>
 
-            {request.status === "waving" && (
-              <Button size="lg" onClick={accept} disabled={canFill === 0}>
+            {order.status === "creating" && (
+              <Button
+                size="lg"
+                onClick={accept}
+                disabled={canFill === 0 || loading}
+              >
                 {canFill === 0 ? "Nothing you stock" : "Accept this wave"}
               </Button>
             )}
-            {request.status === "accepted" && (
+            {order.status === "accepted" && (
               <div className="space-y-2">
-                <Button size="lg" variant="wave" className="w-full" onClick={deliver}>
-                  <CheckCircle2 /> I&apos;ve arrived — request payment
+                <Button
+                  size="lg"
+                  variant="wave"
+                  className="w-full"
+                  onClick={markDelivering}
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+                  I&apos;m on my way
                 </Button>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      failRequest("Trader marked delivery as unreachable/failed");
-                      toast.error("Delivery marked as failed");
-                    }}
-                  >
-                    Mark Failed
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="flex-1"
-                    onClick={() => {
-                      cancelRequest("Trader cancelled wave acceptance");
-                      toast.info("Wave cancelled");
-                    }}
-                  >
-                    Decline Wave
-                  </Button>
-                </div>
+                <Button size="sm" variant="outline" onClick={decline} disabled={loading}>
+                  Can&apos;t deliver
+                </Button>
               </div>
             )}
-            {request.status === "delivered" && (
+            {order.status === "delivering" && (
+              <Button
+                size="lg"
+                variant="wave"
+                className="w-full"
+                onClick={markDelivered}
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+                I&apos;ve arrived — request payment
+              </Button>
+            )}
+            {order.status === "delivered" && (
               <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">
-                <Wallet className="size-4 text-primary" /> Ask the customer to pay with Mdeko Pay,
-                or take cash.
+                <Wallet className="size-4 text-primary" /> Waiting for customer payment via MTN MoMo...
               </p>
             )}
           </Card>
@@ -318,13 +396,13 @@ function RunnerPage() {
       </div>
 
       <StockEditor
-        runnerId={myId}
-        stock={me.stock}
-        customItems={state.customItems}
+        runnerId={me.id}
+        stock={me.stock ?? []}
+        customItems={[]}
         highlightItemId={highlight}
       />
 
-      <DemandInsights state={state} runnerId={myId} onAdded={setHighlight} />
+      <DemandInsights state={{ runners: [me], request: order, orders: [], demand: [], customItems: [], wallet: { balance: 0, pin: "" }, buyer, me, userId: me.id }} runnerId={me.id} onAdded={setHighlight} />
 
       <div className="h-8" />
     </main>
