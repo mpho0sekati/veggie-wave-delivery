@@ -1,6 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+import { attachSupabaseAuth } from "./integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -24,6 +25,13 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
+// Attach Supabase auth to all server function requests so they have access
+// to context.userId and context.supabase in server functions.
+const authMiddleware = createMiddleware()
+  .server(async ({ next }) => {
+    return attachSupabaseAuth(next);
+  });
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, authMiddleware, csrfMiddleware],
 }));
