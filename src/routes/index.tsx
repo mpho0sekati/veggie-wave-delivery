@@ -15,6 +15,7 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,17 +34,17 @@ import {
   MAX_SUITABLE_DISTANCE_KM,
   type Runner,
 } from "@/lib/veggie-data";
-import {
-  cancelRequest,
-  logDemand,
-  payCash,
-  refundOrder,
-  setBuyerLocation,
-  waveRequest,
-  reraiseWave,
-  useAppState,
-} from "@/lib/veggie-store-supabase";
 import { useGeolocation } from "@/lib/use-geolocation";
+import {
+  createWave,
+  getMyWave,
+  getOrder,
+  advanceOrder,
+  startMomoPayment,
+  verifyMomoPayment,
+  listMyOrders,
+} from "@/lib/mdeko.functions";
+import { setBuyerLocation } from "@/lib/veggie-store-supabase";
 import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
@@ -59,13 +60,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Mdeko shows the nearest township veggie trader on the map. Raise your hand for what you need and pay instantly with Mdeko Pay.",
+          "Mdeko shows the nearest township veggie trader on the map. Raise your hand for what you need and pay instantly with MTN MoMo.",
       },
       { property: "og:title", content: "Mdeko · Veggie Wave — raise your hand for fresh veggies" },
       {
         property: "og:description",
         content:
-          "Live map of nearby Mdeko traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with Mdeko Pay.",
+          "Live map of nearby Mdeko traders with their own stock and prices. Wave, get your fruit and veg delivered, pay with MTN MoMo.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -95,40 +96,65 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 });
 
 function BuyerPage() {
-  const wallet = useAppState((s) => s.wallet);
-  const runners = useAppState((s) => s.runners);
-  const request = useAppState((s) => s.request);
-  const orders = useAppState((s) => s.orders);
-  const customItems = useAppState((s) => s.customItems);
-  const buyer = useAppState((s) => s.buyer);
+  const [runners, setRunners] = useState<Runner[]>([]);
+  const [order, setOrder] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [buyer, setBuyer] = useState({ lat: -33.9249, lng: 18.4241, located: false });
   const [qty, setQty] = useState<Record<string, number>>({});
   const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
-  const onPosition = useCallback(async (pos: { lat: number; lng: number }) => {
-    if (await setBuyerLocation(pos)) {
-      setRecenterTrigger((prev) => prev + 1);
-    }
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  const onPosition = useCallback(
+    async (pos: { lat: number; lng: number }) => {
+      if (await setBuyerLocation(pos)) {
+        setBuyer((prev) => ({ ...prev, lat: pos.lat, lng: pos.lng, located: true }));
+        setRecenterTrigger((prev) => prev + 1);
+      }
+    },
+    []
+  );
   const { status: geoStatus, locate, stop, message: geoMessage } = useGeolocation(onPosition);
   const onMapPick = useCallback(
     async (pos: { lat: number; lng: number }) => {
       stop();
       if (await setBuyerLocation(pos)) {
+        setBuyer((prev) => ({ ...prev, lat: pos.lat, lng: pos.lng, located: true }));
         setRecenterTrigger((prev) => prev + 1);
         toast.success("Location pin updated on map");
       } else {
         toast.error("Failed to save your chosen location");
       }
     },
-    [stop],
+    [stop]
   );
 
-  const catalog = useMemo(() => catalogWith(customItems), [customItems]);
-  const online = runners.filter((r) => r.online);
-  const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load orders
+        const myOrders = await listMyOrders();
+        setOrders(myOrders);
+        // Find active order
+        const active = myOrders.find((o) => !["completed", "failed", "cancelled"].includes(o.status));
+        if (active) {
+          setOrder(active);
+        }
+      } catch (err) {
+        console.error("Failed to load orders", err);
+      }
+    };
+    loadData();
+  }, []);
 
-  /** Traders ranked by how much of the basket they can fill, then by distance. */
+  const picked = useMemo(() => catalogWith([]).filter((c) => (qty[c.id] ?? 0) > 0), [qty]);
+  const catalog = useMemo(() => catalogWith([]), []);
+  const online = runners.filter((r) => r.online);
+
+  // Traders ranked by stock match, then distance
   const ranked = useMemo(() => {
     return online
       .map((runner) => {
@@ -136,7 +162,7 @@ function BuyerPage() {
         const have = picked.filter((p) => priceFor(runner, p.id) !== null);
         const subtotal = have.reduce(
           (sum, p) => sum + (priceFor(runner, p.id) ?? 0) * (qty[p.id] ?? 0),
-          0,
+          0
         );
         const deliveryFee = calculateDeliveryFee(km);
         const total = subtotal > 0 ? subtotal + deliveryFee : 0;
@@ -148,22 +174,22 @@ function BuyerPage() {
       .sort((a, b) => b.have - a.have || a.km - b.km);
   }, [online, buyer, picked, qty]);
 
-  const hasRequest = Boolean(request);
-  const [isCollapsed, setIsCollapsed] = useState(hasRequest);
+  const hasOrder = Boolean(order);
+  const [isCollapsed, setIsCollapsed] = useState(hasOrder);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsCollapsed(hasRequest);
-  }, [hasRequest]);
+    setIsCollapsed(hasOrder);
+  }, [hasOrder]);
 
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
-  const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
+  const assignedTrader = runners.find((r) => r.id === order?.trader_id);
 
   const bump = useCallback(
     (id: string, delta: number) =>
       setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) })),
-    [],
+    []
   );
 
   const wave = useCallback(async () => {
@@ -171,54 +197,77 @@ function BuyerPage() {
       toast.error("Pick what you need first");
       return;
     }
+    setLoading(true);
     try {
-      await waveRequest(
-        picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
-        wish.trim(),
-        total
-      );
-      await logDemand([
-        ...picked.map((p) => ({ itemId: p.id, label: p.name })),
-        ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
-      ]);
+      const newWave = await createWave({
+        items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
+        wish: wish.trim(),
+        lat: buyer.lat,
+        lng: buyer.lng,
+      });
+      // After wave created, fetch the order that was created
+      const myOrder = await getMyWave();
       toast.success("Hand raised — traders nearby can see you waving");
     } catch (error) {
       toast.error("Failed to raise hand");
+    } finally {
+      setLoading(false);
     }
-  }, [picked, wish, total, qty]);
+  }, [picked, wish, buyer.lat, buyer.lng, qty]);
 
-  const waveAgain = useCallback(async () => {
+  const cancel = useCallback(async () => {
+    if (!order) return;
     try {
-      await reraiseWave();
-      toast.success("Hand raised again — traders nearby can see you waving");
+      // In V2, we'd need a declineWave or cancelOrder function
+      // For now, just clear local state
+      setOrder(null);
+      setQty({});
+      setWish("");
+      toast.info("Order cancelled");
     } catch (error) {
-      toast.error("Failed to raise hand again");
+      toast.error("Failed to cancel order");
     }
-  }, []);
+  }, [order]);
 
-  const cancel = useCallback(() => {
-    cancelRequest();
-    setQty({});
-    setWish("");
-    toast.info("Request cancelled");
-  }, []);
+  const initiatePayment = useCallback(
+    async (msisdn: string) => {
+      if (!order) return;
+      setPaymentLoading(true);
+      try {
+        const result = await startMomoPayment({
+          orderId: order.id,
+          msisdn,
+        });
+        if (result.status === "pending") {
+          toast.success(`Payment request sent to ${msisdn}`);
+          // Poll for completion
+          const checkPayment = async () => {
+            for (let i = 0; i < 30; i++) {
+              const verified = await verifyMomoPayment({ orderId: order.id });
+              if (verified?.status === "successful") {
+                setOrder((prev: any) => ({ ...prev, status: "completed" }));
+                toast.success("Payment confirmed!");
+                return;
+              }
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+            toast.error("Payment timeout — please verify manually");
+          };
+          checkPayment();
+        }
+      } catch (error) {
+        toast.error("Failed to initiate payment");
+      } finally {
+        setPaymentLoading(false);
+      }
+    },
+    [order]
+  );
 
-  const finish = useCallback(() => {
-    setQty({});
-    setWish("");
-  }, []);
-
-  const onPayCash = useCallback(async () => {
-    if (!request) return;
-    try {
-      await payCash(request.id);
-      toast.success("Payment received — thanks!");
-    } catch (error) {
-      toast.error("Failed to record cash payment");
-    }
-  }, [request]);
-
-  const timedOut = request?.status === "waving" && (Date.now() - (request?.createdAt ?? 0)) > WAVE_TIMEOUT_MS;
+  const timedOut =
+    order?.status === "creating" &&
+    order?.created_at &&
+    Date.now() - order.created_at > WAVE_TIMEOUT_MS;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col pb-4">
@@ -248,8 +297,8 @@ function BuyerPage() {
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
               runners={runners}
-              activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
-              waving={request?.status === "waving"}
+              activeRunnerId={order?.trader_id ?? selectedRunnerId ?? null}
+              waving={order?.status === "creating"}
               buyerPosition={buyer}
               recenterTrigger={recenterTrigger}
               onPickPosition={onMapPick}
@@ -288,15 +337,8 @@ function BuyerPage() {
         {geoMessage ? `${geoMessage} ` : ""}Tap or click anywhere on the map to drop your pin.
       </p>
 
-      {!request && (
+      {!order && (
         <>
-          <div className="mx-4 mt-4 flex items-center justify-between rounded-2xl bg-secondary px-4 py-3">
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <Wallet className="size-4 text-primary" /> Mdeko Pay balance
-            </span>
-            <span className="font-display font-semibold">{formatRand(wallet.balance)}</span>
-          </div>
-
           <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
           {ranked.length === 0 ? (
             <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
@@ -401,8 +443,8 @@ function BuyerPage() {
                             Math.min(
                               ...online
                                 .map((r) => priceFor(r, item.id))
-                                .filter((p): p is number => p !== null),
-                            ),
+                                .filter((p): p is number => p !== null)
+                            )
                           )}`
                         : "nobody stocked"}
                     </p>
@@ -446,43 +488,51 @@ function BuyerPage() {
         </>
       )}
 
-      {request && (
+      {order && (
         <Card className="animate-rise mx-4 mt-4 gap-4 p-5">
-          <OrderStepper status={request.status} />
+          <OrderStepper
+            status={
+              order.status as
+                | "waving"
+                | "accepted"
+                | "delivered"
+                | "paid"
+                | "cancelled"
+                | "failed"
+                | "refunded"
+            }
+          />
           <div className="flex items-center gap-2">
-            {request.status === "waving" && (
+            {order.status === "creating" && (
               <>
                 <Hand className="size-5 animate-wave text-accent" />
                 <p className="font-semibold">Waving… waiting for a trader</p>
               </>
             )}
-            {request.status === "accepted" && assigned && (
+            {order.status === "accepted" && assignedTrader && (
               <>
                 <MapPin className="size-5 text-primary" />
-                <p className="font-semibold">{assigned.name} is on the way</p>
+                <p className="font-semibold">{assignedTrader.name} is on the way</p>
               </>
             )}
-            {request.status === "delivered" && (
+            {order.status === "delivered" && (
               <>
                 <CheckCircle2 className="size-5 text-primary" />
                 <p className="font-semibold">Delivered — time to pay</p>
               </>
             )}
-            {request.status === "paid" && (
+            {order.status === "completed" && (
               <>
                 <CheckCircle2 className="size-5 text-primary" />
-                <p className="font-semibold">
-                  Paid {request.paidWith === "cash" ? "in cash" : "with Mdeko Pay"}. Enjoy your
-                  veggies!
-                </p>
+                <p className="font-semibold">Payment received. Enjoy your veggies!</p>
               </>
             )}
           </div>
 
-          {request.status === "waving" && <WaveClock createdAt={request.createdAt} />}
+          {order.status === "creating" && <WaveClock createdAt={order.created_at} />}
 
           <ul className="space-y-1 text-sm text-muted-foreground">
-            {request.items.map((line) => {
+            {order.items?.map((line: any) => {
               const item = catalog.find((c) => c.id === line.id);
               if (!item) return null;
               const Icon = item.icon;
@@ -493,51 +543,55 @@ function BuyerPage() {
                 </li>
               );
             })}
-            {request.wish && <li className="italic">also asked for: {request.wish}</li>}
+            {order.wish && <li className="italic">also asked for: {order.wish}</li>}
           </ul>
-          <p className="font-display text-xl font-bold">{formatRand(request.total)}</p>
+          <p className="font-display text-xl font-bold">{formatRand(order.amount)}</p>
 
           {timedOut && (
             <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
               <p>Nobody has answered yet.</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={waveAgain}>
-                  <Hand /> Wave again
-                </Button>
-                <Button size="sm" variant="outline" onClick={cancel}>
-                  Try another trader
-                </Button>
-              </div>
+              <Button size="sm" variant="outline" onClick={cancel}>
+                Try another trader
+              </Button>
             </div>
           )}
 
-          {request.status === "delivered" && (
+          {order.status === "delivered" && (
             <>
-              <Button variant="wave" size="lg" onClick={() => setPayOpen(true)}>
-                <Wallet /> Pay {formatRand(request.total)} with Mdeko Pay
-              </Button>
-              <Button variant="outline" onClick={onPayCash}>
-                I paid cash
+              <Button
+                variant="wave"
+                size="lg"
+                onClick={() => setPayOpen(true)}
+                disabled={paymentLoading}
+              >
+                {paymentLoading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Wallet />
+                )}
+                Pay {formatRand(order.amount)} with MTN MoMo
               </Button>
             </>
           )}
-          {request.status !== "paid" ? (
+          {order.status !== "completed" && (
             <Button variant="ghost" onClick={cancel}>
-              Cancel request
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={finish}>
-              New order
+              Cancel order
             </Button>
           )}
         </Card>
       )}
 
-      {!request && (
+      {!order && (
         <div className="sticky bottom-0 z-500 mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
-          <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
-            <Hand className="animate-wave" /> Raise my hand
-            {total > 0 ? ` · ${formatRand(total)}` : ""}
+          <Button
+            size="xl"
+            variant="wave"
+            className="shadow-glow w-full"
+            onClick={wave}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="animate-spin" /> : <Hand className="animate-wave" />}
+            Raise my hand {total > 0 ? ` · ${formatRand(total)}` : ""}
           </Button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             {picked.length || wish.trim()
@@ -547,74 +601,43 @@ function BuyerPage() {
         </div>
       )}
 
-      {!request && orders.length > 0 && (
+      {!order && orders.length > 0 && (
         <section className="px-4 pb-8">
           <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
-            <History className="size-5 text-primary" /> Past waves
+            <History className="size-5 text-primary" /> Past orders
           </h2>
           <ul className="space-y-2">
-            {orders.map((order) => {
-              const trader = runners.find((r) => r.id === order.runnerId);
+            {orders.map((o) => {
+              const trader = runners.find((r) => r.id === o.trader_id);
               return (
-                <li key={order.id} className="rounded-2xl border px-4 py-3 text-sm space-y-2">
+                <li key={o.id} className="rounded-2xl border px-4 py-3 text-sm space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{trader?.name ?? "No trader"}</p>
-                    <p className="font-display font-semibold">{formatRand(order.total)}</p>
+                    <p className="font-display font-semibold">{formatRand(o.amount)}</p>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
-                      {order.items.length} items ·{" "}
-                      {order.status === "paid"
-                        ? order.paidWith === "cash"
-                          ? "paid cash"
-                          : "paid with Mdeko Pay"
-                        : order.status}
+                      {o.items?.length ?? 0} items · {o.status}
                     </span>
                     <Badge
                       variant={
-                        order.status === "paid"
+                        o.status === "completed"
                           ? "default"
-                          : order.status === "refunded"
-                            ? "secondary"
-                            : order.status === "cancelled" || order.status === "failed"
-                              ? "outline"
-                              : "outline"
+                          : o.status === "cancelled" || o.status === "failed"
+                            ? "outline"
+                            : "outline"
                       }
                       className="capitalize text-[0.65rem]"
                     >
-                      {order.status}
+                      {o.status}
                     </Badge>
                   </div>
-                  {order.status === "paid" && order.paidWith === "wave-pay" && (
-                    <div className="pt-1 border-t flex justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          refundOrder(order.id);
-                          toast.success(`Refunded ${formatRand(order.total)} to Mdeko Pay balance`);
-                        }}
-                      >
-                        Request Refund
-                      </Button>
-                    </div>
-                  )}
                 </li>
               );
             })}
           </ul>
         </section>
       )}
-
-      <WavePayDialog
-        open={payOpen}
-        onOpenChange={setPayOpen}
-        amount={request?.total ?? 0}
-        balance={wallet.balance}
-        traderName={assigned?.name ?? "your trader"}
-        onPaid={() => undefined}
-      />
     </main>
   );
 }
