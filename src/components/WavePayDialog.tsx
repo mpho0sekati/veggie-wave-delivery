@@ -1,84 +1,117 @@
 import { useState } from "react";
-import { Wallet } from "lucide-react";
-import { toast } from "sonner";
+import { Smartphone, Wallet, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRand } from "@/lib/veggie-data";
-import { payWithWavePay } from "@/lib/veggie-store";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   amount: number;
-  balance: number;
   traderName: string;
-  onPaid: () => void;
+  /** Called with the normalised MSISDN when the buyer confirms. Parent owns loading + polling. */
+  onPay: (msisdn: string) => Promise<void>;
 };
 
-export default function WavePayDialog({
-  open,
-  onOpenChange,
-  amount,
-  balance,
-  traderName,
-  onPaid,
-}: Props) {
-  const [pin, setPin] = useState("");
+/** Strip non-digits, normalise to 27XXXXXXXXX, return null if invalid. */
+function normaliseMsisdn(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (/^0\d{9}$/.test(digits)) return `27${digits.slice(1)}`;
+  if (/^27\d{9}$/.test(digits)) return digits;
+  if (/^\d{9}$/.test(digits)) return `27${digits}`;
+  return null;
+}
 
-  const confirm = () => {
-    const result = payWithWavePay(pin);
-    setPin("");
-    if (result === "wrong-pin") {
-      toast.error("Wrong PIN — try 1234 in this demo");
+export default function WavePayDialog({ open, onOpenChange, amount, traderName, onPay }: Props) {
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const msisdn = normaliseMsisdn(phone);
+  const valid = msisdn !== null;
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(e.target.value);
+    setError("");
+  };
+
+  const confirm = async () => {
+    if (!msisdn) {
+      setError("Enter a valid South African mobile number, e.g. 0788 033 288");
       return;
     }
-    if (result === "insufficient") {
-      toast.error("Not enough in your Mdeko Pay balance");
-      return;
+    setBusy(true);
+    setError("");
+    try {
+      await onPay(msisdn);
+      setPhone("");
+      onOpenChange(false);
+    } catch {
+      setError("Payment request failed — please try again");
+    } finally {
+      setBusy(false);
     }
-    if (result !== "ok") {
-      toast.error("No order to pay for");
-      return;
-    }
-    onOpenChange(false);
-    onPaid();
-    toast.success(`${formatRand(amount)} sent to ${traderName}`);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!busy) { setPhone(""); setError(""); onOpenChange(v); } }}>
       <DialogContent className="max-w-xs">
         <DialogHeader>
-          <DialogTitle>Mdeko Pay</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Wallet className="size-4 text-primary" /> MTN MoMo Payment
+          </DialogTitle>
         </DialogHeader>
+
         <div className="flex flex-col gap-4">
+          {/* Amount summary */}
           <div className="rounded-2xl bg-secondary p-4 text-center">
-            <Wallet className="mx-auto size-6 text-primary" />
-            <p className="font-display mt-2 text-2xl font-bold">{formatRand(amount)}</p>
-            <p className="text-sm text-muted-foreground">
-              to {traderName} · balance {formatRand(balance)}
-            </p>
+            <p className="font-display text-2xl font-bold">{formatRand(amount)}</p>
+            <p className="text-sm text-muted-foreground">to {traderName}</p>
           </div>
+
+          {/* Phone number input */}
           <div className="space-y-2">
-            <Label htmlFor="wave-pin">Enter your 4-digit PIN</Label>
+            <Label htmlFor="momo-phone" className="flex items-center gap-2">
+              <Smartphone className="size-4" /> Your MTN mobile number
+            </Label>
             <Input
-              id="wave-pin"
-              inputMode="numeric"
-              maxLength={4}
-              autoComplete="off"
-              placeholder="••••"
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              id="momo-phone"
+              type="tel"
+              inputMode="tel"
+              placeholder="e.g. 0788 033 288"
+              autoComplete="tel"
+              value={phone}
+              onChange={handlePhoneChange}
+              disabled={busy}
+              className={error ? "border-destructive" : ""}
             />
+            {error ? (
+              <p className="text-xs text-destructive">{error}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                You'll get a MoMo push notification to approve on your phone.
+              </p>
+            )}
           </div>
-          <Button variant="wave" className="w-full" disabled={pin.length !== 4} onClick={confirm}>
-            Pay {formatRand(amount)}
+
+          <Button
+            variant="wave"
+            className="w-full"
+            disabled={!valid || busy}
+            onClick={confirm}
+          >
+            {busy ? (
+              <>
+                <Loader2 className="animate-spin" /> Sending request…
+              </>
+            ) : (
+              <>
+                <Wallet /> Pay {formatRand(amount)} with MoMo
+              </>
+            )}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            Demo balance only — no real money moves.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

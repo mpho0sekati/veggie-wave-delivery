@@ -551,17 +551,15 @@ function BuyerPage() {
           )}
 
           {order.status === "delivered" && (
-            <>
-              <Button
-                variant="wave"
-                size="lg"
-                onClick={() => setPayOpen(true)}
-                disabled={paymentLoading}
-              >
-                {paymentLoading ? <Loader2 className="animate-spin" /> : <Wallet />}
-                Pay {formatRand(order.amount)} with MTN MoMo
-              </Button>
-            </>
+            <Button
+              variant="wave"
+              size="lg"
+              onClick={() => setPayOpen(true)}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? <Loader2 className="animate-spin" /> : <Wallet />}
+              Pay {formatRand(order.amount)} with MTN MoMo
+            </Button>
           )}
           {order.status !== "completed" && (
             <Button variant="ghost" onClick={cancel}>
@@ -628,6 +626,14 @@ function BuyerPage() {
           </ul>
         </section>
       )}
+
+      <WavePayDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        amount={order?.amount ?? 0}
+        traderName={assignedTrader?.name ?? "your trader"}
+        onPay={initiatePayment}
+      />
     </main>
   );
 }
