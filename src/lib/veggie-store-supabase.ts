@@ -129,7 +129,7 @@ async function fetchOrders(userId: string): Promise<WaveRequest[]> {
 async function fetchWallet(userId: string): Promise<{ balance: number; pin: string }> {
   const { data, error } = await supabase
     .from("wallets")
-    .select("balance, pin")
+    .select("balance")
     .eq("user_id", userId)
     .single();
 
@@ -138,7 +138,7 @@ async function fetchWallet(userId: string): Promise<{ balance: number; pin: stri
     return { balance: 0, pin: "" };
   }
 
-  return { balance: data?.balance ?? 0, pin: data?.pin ?? "1234" };
+  return { balance: data?.balance ?? 0, pin: "" };
 }
 
 // Fetch user's profile
@@ -430,14 +430,14 @@ export async function payWithWavePay(orderId: string, pin: string): Promise<stri
     return "error";
   }
 
-  return data || "error";
+  return String(data ?? "error");
 }
 
 // Pay with cash (calls server function)
 export async function payCash(orderId: string): Promise<string> {
   const { data, error } = await supabase.rpc("pay_order", {
     _order_id: orderId,
-    _pin: null,
+    _pin: "",
     _method: "cash",
   });
 
@@ -446,21 +446,13 @@ export async function payCash(orderId: string): Promise<string> {
     return "error";
   }
 
-  return data || "error";
+  return String(data ?? "error");
 }
 
 // Refund order (calls server function)
-export async function refundOrder(orderId: string): Promise<string> {
-  const { data, error } = await supabase.rpc("refund_order", {
-    _order_id: orderId,
-  });
-
-  if (error) {
-    console.error("Error refunding:", error);
-    return "error";
-  }
-
-  return data || "error";
+export async function refundOrder(_orderId: string): Promise<string> {
+  // Refunds are handled off-app for now.
+  return "unsupported";
 }
 
 // Update trader online status

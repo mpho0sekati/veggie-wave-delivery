@@ -200,10 +200,12 @@ function BuyerPage() {
     setLoading(true);
     try {
       const newWave = await createWave({
+        data: {
         items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
         wish: wish.trim(),
         lat: buyer.lat,
         lng: buyer.lng,
+        },
       });
       // After wave created, fetch the order that was created
       const myOrder = await getMyWave();
@@ -235,15 +237,14 @@ function BuyerPage() {
       setPaymentLoading(true);
       try {
         const result = await startMomoPayment({
-          orderId: order.id,
-          msisdn,
+          data: { orderId: order.id, msisdn },
         });
         if (result.status === "pending") {
           toast.success(`Payment request sent to ${msisdn}`);
           // Poll for completion
           const checkPayment = async () => {
             for (let i = 0; i < 30; i++) {
-              const verified = await verifyMomoPayment({ orderId: order.id });
+              const verified = await verifyMomoPayment({ data: { orderId: order.id } });
               if (verified?.status === "successful") {
                 setOrder((prev: any) => ({ ...prev, status: "completed" }));
                 toast.success("Payment confirmed!");

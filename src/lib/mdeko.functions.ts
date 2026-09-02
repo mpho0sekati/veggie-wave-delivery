@@ -56,8 +56,8 @@ export const createWave = createServerFn({ method: "POST" })
       _items: data.items,
       _wish: data.wish,
       _note: data.note,
-      _lat: data.lat,
-      _lng: data.lng,
+      _lat: data.lat as number,
+      _lng: data.lng as number,
     });
     if (error) throw new Error(error.message);
     return wave as unknown as Wave;
@@ -324,7 +324,7 @@ export const verifyMomoPayment = createServerFn({ method: "POST" })
       _status:
         result.status === "SUCCESSFUL" ? "successful" : result.status === "FAILED" ? "failed" : "pending",
       _provider_status: result.providerStatus,
-      _failure: result.reason,
+      _failure: result.reason as string,
     });
     if (finalizeError) throw new Error(finalizeError.message);
     const row = updated as unknown as Payment;

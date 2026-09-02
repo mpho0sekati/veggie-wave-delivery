@@ -163,7 +163,7 @@ function RunnerPage() {
   const accept = useCallback(async () => {
     if (!order) return;
     try {
-      const accepted = await acceptWave({ waveId: order.wave_id });
+      const accepted = await acceptWave({ data: { waveId: order.wave_id } });
       setOrder(accepted);
       toast.success("Wave accepted!");
     } catch (error) {
@@ -174,7 +174,7 @@ function RunnerPage() {
   const decline = useCallback(async () => {
     if (!order) return;
     try {
-      await declineWave({ waveId: order.wave_id });
+      await declineWave({ data: { waveId: order.wave_id } });
       setOrder(null);
       toast.info("Wave declined");
     } catch (error) {
@@ -185,7 +185,7 @@ function RunnerPage() {
   const markDelivering = useCallback(async () => {
     if (!order) return;
     try {
-      const updated = await advanceOrder({ orderId: order.id, status: "delivering" });
+      const updated = await advanceOrder({ data: { orderId: order.id, status: "delivering" } });
       setOrder(updated);
       toast.success("On the way!");
     } catch (error) {
@@ -196,7 +196,7 @@ function RunnerPage() {
   const markDelivered = useCallback(async () => {
     if (!order) return;
     try {
-      const updated = await advanceOrder({ orderId: order.id, status: "delivered" });
+      const updated = await advanceOrder({ data: { orderId: order.id, status: "delivered" } });
       setOrder(updated);
       toast.success("Marked as delivered — awaiting payment");
     } catch (error) {
@@ -402,7 +402,7 @@ function RunnerPage() {
         highlightItemId={highlight}
       />
 
-      <DemandInsights state={{ runners: [me], request: order, orders: [], demand: [], customItems: [], wallet: { balance: 0, pin: "" }, buyer, me, userId: me.id }} runnerId={me.id} onAdded={setHighlight} />
+      <DemandInsights state={{ runners: [me], request: order, orders: [], demand: [], customItems: [], wallet: { balance: 0, pin: "" }, buyer: { ...buyer, located: true }, me, userId: me.id }} runnerId={me.id} onAdded={setHighlight} />
 
       <div className="h-8" />
     </main>
