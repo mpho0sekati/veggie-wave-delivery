@@ -396,39 +396,52 @@ function BuyerPage() {
         amount={request?.total ?? 0}
         traderName={assigned?.name ?? "your trader"}
         onPay={async (msisdn) => {
-          // Fire real MoMo requestToPay via server function
           try {
-            const { startMomoPayment, verifyMomoPayment } = await import("@/lib/mdeko.functions");
-            // For the demo we need an orderId — use the request id as a stand-in
-            const requestId = request?.id ?? crypto.randomUUID();
-            const result = await startMomoPayment({ data: { orderId: requestId, msisdn } });
+            const { momoRequestToPay, momoCheckStatus } = await import("@/lib/momo.functions");
+            const reference = crypto.randomUUID();
+            const externalId = `mdeko-${Date.now()}`;
+
+            const result = await momoRequestToPay({
+              data: { msisdn, amount: request?.total ?? 5, reference, externalId },
+            });
+
+            if (!result.accepted) {
+              toast.error("MoMo rejected the request — try again");
+              return;
+            }
+
             toast.success(`MoMo request sent to ${msisdn} — approve on your phone`);
             setPayOpen(false);
-            // Poll for confirmation
+
+            // Poll every 2s for up to 60s
             for (let i = 0; i < 30; i++) {
               await new Promise((r) => setTimeout(r, 2000));
-              const verified = await verifyMomoPayment({ data: { orderId: requestId } });
-              if (verified?.status === "successful") {
-                // Settle locally
+              const { status } = await momoCheckStatus({ data: { reference } });
+              if (status === "SUCCESSFUL") {
                 updateState((prev) => {
                   if (!prev.request) return prev;
                   const paid = { ...prev.request, status: "paid" as const, paidWith: "wave-pay" as const };
                   return {
                     ...prev,
                     request: paid,
-                    runners: prev.runners.map((r) => r.id === paid.runnerId ? { ...r, earnings: r.earnings + paid.total } : r),
+                    runners: prev.runners.map((r) =>
+                      r.id === paid.runnerId ? { ...r, earnings: r.earnings + paid.total } : r
+                    ),
                     wallet: { ...prev.wallet, balance: prev.wallet.balance - paid.total },
                   };
                 });
                 toast.success("Payment confirmed! Enjoy your veggies 🥦");
                 return;
               }
+              if (status === "FAILED") {
+                toast.error("Payment was declined on your phone");
+                return;
+              }
             }
-            toast.error("Payment timeout — check your MoMo app");
-          } catch {
-            // Fallback: just mark paid locally so demo doesn't break
-            payCash();
-            toast.success("Payment recorded");
+            toast.error("Payment timeout — check your MoMo app and try again");
+          } catch (err) {
+            console.error("[momo] payment error", err);
+            toast.error("Payment failed — please try again");
           }
         }}
       />
