@@ -194,8 +194,8 @@ function RunnerPage() {
               <p className="font-semibold">No waves yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {me.online
-                  ? "You're live — buyers nearby will see you on the map."
-                  : "Toggle 'Available for deliveries' above to go live."}
+                  ? "You are live — buyers nearby will see you on the map."
+                  : "Toggle Available for deliveries above to go live."}
               </p>
             </div>
             {!me.online && (
