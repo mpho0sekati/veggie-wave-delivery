@@ -129,6 +129,9 @@ function BuyerPage() {
         createdAt: Date.now(),
       },
     }));
+    console.log("\n🙋 BUYER RAISED HAND");
+    console.log(`   Items: ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
+    console.log(`   Best price: R${total.toFixed(2)}`);
     logDemand([
       ...picked.map((p) => ({ itemId: p.id, label: p.name })),
       ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),

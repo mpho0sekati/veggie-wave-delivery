@@ -93,19 +93,27 @@ function RunnerPage() {
     toast.success("Name updated");
   };
 
-  const accept = () =>
+  const accept = () => {
+    console.log("\n🤝 TRADER ACCEPTED WAVE");
+    console.log(`   Trader: ${me.name} (${me.id})`);
+    console.log(`   Can fill: ${canFill}/${request?.items.length} items`);
+    console.log(`   Total: R${myTotal.toFixed(2)}`);
     updateState((prev) => ({
       ...prev,
       request: prev.request
         ? { ...prev.request, status: "accepted", runnerId: me.id, total: myTotal }
         : null,
     }));
+  };
 
-  const deliver = () =>
+  const deliver = () => {
+    console.log("\n📦 TRADER MARKED AS DELIVERED");
+    console.log(`   Trader: ${me.name} — waiting for buyer payment`);
     updateState((prev) => ({
       ...prev,
       request: prev.request ? { ...prev.request, status: "delivered" } : null,
     }));
+  };
 
   if (!me) {
     return (
