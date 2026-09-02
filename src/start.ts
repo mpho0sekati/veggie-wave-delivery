@@ -25,13 +25,9 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
-// Attach Supabase auth to all server function requests so they have access
-// to context.userId and context.supabase in server functions.
-const authMiddleware = createMiddleware()
-  .server(async ({ next }) => {
-    return attachSupabaseAuth(next);
-  });
-
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, authMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  // Attaches the Supabase bearer token to every server function call so
+  // protected handlers get context.userId / context.supabase.
+  functionMiddleware: [attachSupabaseAuth],
 }));
