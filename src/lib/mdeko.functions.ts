@@ -221,9 +221,10 @@ export const startMomoPayment = createServerFn({ method: "POST" })
     z
       .object({
         orderId: z.string().uuid(),
+        // South African MSISDN, no leading plus: 27788033288 (or 0788033288)
         msisdn: z
           .string()
-          .regex(/^\d{9,15}$/, "msisdn must be digits only, in international format"),
+          .regex(/^(?:27\d{9}|0\d{9}|\d{9})$/, "Use a South African number, e.g. 0788033288"),
       })
       .parse(input),
   )
