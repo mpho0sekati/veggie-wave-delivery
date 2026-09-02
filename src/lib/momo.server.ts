@@ -21,11 +21,11 @@ export type MomoConfig = {
 export type MomoStatus = "PENDING" | "SUCCESSFUL" | "FAILED";
 
 export function readMomoConfig(): MomoConfig {
-  const baseUrl = process.env["MOMO_BASE_URL"] ?? "https://sandbox.momodeveloper.mtn.com";
+  const baseUrl = process.env["MOMO_BASE_URL"] ?? "https://proxy.momoapi.mtn.com";
   const subscriptionKey = process.env["MOMO_SUBSCRIPTION_KEY"];
   const apiUser = process.env["MOMO_API_USER"];
   const apiKey = process.env["MOMO_API_KEY"];
-  const targetEnvironment = process.env["MOMO_TARGET_ENVIRONMENT"] ?? "sandbox";
+  const targetEnvironment = process.env["MOMO_TARGET_ENVIRONMENT"] ?? "mtnsouthafrica";
   const currency =
     process.env["MOMO_CURRENCY"] ?? (targetEnvironment === "sandbox" ? "EUR" : "ZAR");
 
@@ -49,22 +49,44 @@ export function readMomoConfig(): MomoConfig {
   };
 }
 
+/** South African MSISDN, no plus sign: 27 + 9 digits. */
+export function normalizeMsisdn(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  if (/^0\d{9}$/.test(digits)) return `27${digits.slice(1)}`;
+  if (/^27\d{9}$/.test(digits)) return digits;
+  if (/^\d{9}$/.test(digits)) return `27${digits}`;
+  throw new Error("invalid-msisdn: use South African format e.g. 27788033288");
+}
+
+// Tokens live for ~3600s; cache per isolate and refresh a minute early.
+let tokenCache: { token: string; expiresAt: number } | null = null;
+
 async function accessToken(cfg: MomoConfig): Promise<string> {
+  if (tokenCache && tokenCache.expiresAt > Date.now()) return tokenCache.token;
+
   const basic = btoa(`${cfg.apiUser}:${cfg.apiKey}`);
   const res = await fetch(`${cfg.baseUrl}/collection/token/`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basic}`,
       "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
+      "X-Target-Environment": cfg.targetEnvironment,
     },
   });
   if (!res.ok) {
+    const detail = await res.text();
+    console.error(`[momo] token failed ${res.status}: ${detail.slice(0, 200)}`);
     throw new Error(`momo-token-failed: ${res.status}`);
   }
-  const body = (await res.json()) as { access_token?: string };
+  const body = (await res.json()) as { access_token?: string; expires_in?: number };
   if (!body.access_token) throw new Error("momo-token-failed: no access_token");
+  tokenCache = {
+    token: body.access_token,
+    expiresAt: Date.now() + Math.max(60, (body.expires_in ?? 3600) - 60) * 1000,
+  };
   return body.access_token;
 }
+
 
 /**
  * Ask the payer to approve a collection. `reference` is our unique transaction
@@ -79,27 +101,34 @@ export async function requestToPay(args: {
   message: string;
 }): Promise<{ accepted: boolean; providerStatus: string }> {
   const cfg = readMomoConfig();
-  const token = await accessToken(cfg);
+  const partyId = normalizeMsisdn(args.msisdn);
 
-  const res = await fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "X-Reference-Id": args.reference,
-      "X-Target-Environment": cfg.targetEnvironment,
-      "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
-      "Content-Type": "application/json",
-      ...(cfg.callbackUrl ? { "X-Callback-Url": cfg.callbackUrl } : {}),
-    },
-    body: JSON.stringify({
-      amount: args.amount.toFixed(2),
-      currency: cfg.currency,
-      externalId: args.externalId,
-      payer: { partyIdType: "MSISDN", partyId: args.msisdn },
-      payerMessage: args.message.slice(0, 60),
-      payeeNote: "Mdeko order",
-    }),
-  });
+  const send = async (token: string) =>
+    fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Reference-Id": args.reference,
+        "X-Target-Environment": cfg.targetEnvironment,
+        "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
+        "Content-Type": "application/json",
+        ...(cfg.callbackUrl ? { "X-Callback-Url": cfg.callbackUrl } : {}),
+      },
+      body: JSON.stringify({
+        amount: args.amount.toFixed(2),
+        currency: cfg.currency,
+        externalId: args.externalId,
+        payer: { partyIdType: "MSISDN", partyId },
+        payerMessage: args.message.slice(0, 60),
+        payeeNote: "Mdeko order",
+      }),
+    });
+
+  let res = await send(await accessToken(cfg));
+  if (res.status === 401) {
+    tokenCache = null; // expired token: mint a fresh one and retry once
+    res = await send(await accessToken(cfg));
+  }
 
   // 202 Accepted is the happy path; 409 means this reference is already in flight.
   if (res.status === 202 || res.status === 409) {
@@ -115,21 +144,28 @@ export async function fetchPaymentStatus(
   reference: string,
 ): Promise<{ status: MomoStatus; providerStatus: string; reason: string | null }> {
   const cfg = readMomoConfig();
-  const token = await accessToken(cfg);
 
-  const res = await fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay/${reference}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "X-Target-Environment": cfg.targetEnvironment,
-      "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
-    },
-  });
+  const lookup = async (token: string) =>
+    fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay/${reference}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Target-Environment": cfg.targetEnvironment,
+        "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
+      },
+    });
+
+  let res = await lookup(await accessToken(cfg));
+  if (res.status === 401) {
+    tokenCache = null;
+    res = await lookup(await accessToken(cfg));
+  }
 
   if (!res.ok) {
     const detail = await res.text();
     console.error(`[momo] status lookup failed ${res.status}: ${detail.slice(0, 300)}`);
     return { status: "PENDING", providerStatus: `lookup-error:${res.status}`, reason: null };
   }
+
 
   const body = (await res.json()) as {
     status?: string;
