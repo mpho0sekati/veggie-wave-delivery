@@ -206,3 +206,70 @@
     outline-offset: 2px;
   }
 }
+
+/* ---- UX Polish additions ---- */
+
+/* Smooth card entrance */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-slide-up {
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Pulse for the pay button while waiting */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.55 0.15 146 / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.55 0.15 146 / 0);
+  }
+}
+
+@utility animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Better focus ring for inputs */
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Smoother switch transitions */
+[data-state] {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Toast improvements */
+[data-sonner-toast] {
+  border-radius: var(--radius-xl) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Map container rounded corners clip */
+.leaflet-container {
+  border-radius: inherit;
+}
+
+/* Trader marker pulse when a wave is incoming */
+@keyframes wave-incoming {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.marker-runner-wave {
+  animation: wave-incoming 0.8s ease-in-out infinite;
+  background: var(--accent) !important;
+}

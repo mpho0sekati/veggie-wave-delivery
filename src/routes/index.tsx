@@ -3,7 +3,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand, Minus, Plus, Star, Store, MapPin, CheckCircle2,
-  Crosshair, Wallet, History, Clock, ChevronDown, ChevronUp,
+  Crosshair, Wallet, History, Clock, ChevronDown, ChevronUp, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,7 @@ function BuyerPage() {
   const [wish, setWish] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+  const [payLoading, setPayLoading] = useState(false);
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
@@ -293,7 +294,7 @@ function BuyerPage() {
       )}
 
       {request && (
-        <Card className="animate-rise mx-4 mt-4 gap-4 p-5">
+        <Card className="animate-rise animate-slide-up mx-4 mt-4 gap-4 p-5">
           <OrderStepper status={request.status} />
           <div className="flex items-center gap-2">
             {request.status === "waving" && <><Hand className="size-5 animate-wave text-accent" /><p className="font-semibold">Waving… waiting for a trader</p></>}
@@ -332,8 +333,14 @@ function BuyerPage() {
 
           {request.status === "delivered" && (
             <>
-              <Button variant="wave" size="lg" onClick={() => setPayOpen(true)}>
-                <Wallet /> Pay {formatRand(request.total)} with MTN MoMo
+              <Button
+                variant="wave"
+                size="lg"
+                onClick={() => setPayOpen(true)}
+                disabled={payLoading}
+                className={payLoading ? "animate-pulse-glow" : ""}
+              >
+                {payLoading ? <><Loader2 className="animate-spin" /> Processing…</> : <><Wallet /> Pay {formatRand(request.total)} with MTN MoMo</>}
               </Button>
               <Button variant="outline" onClick={() => { payCash(); toast.success("Cash payment recorded"); }}>
                 I paid cash
@@ -399,6 +406,7 @@ function BuyerPage() {
         amount={request?.total ?? 0}
         traderName={assigned?.name ?? "your trader"}
         onPay={async (msisdn) => {
+          setPayLoading(true);
           try {
             const { momoRequestToPay, momoCheckStatus } = await import("@/lib/momo.functions");
             const reference = crypto.randomUUID();
@@ -446,6 +454,7 @@ function BuyerPage() {
             console.error("[momo] payment error", err);
             toast.error("Payment failed — please try again");
           }
+          setPayLoading(false);
         }}
       />
     </main>

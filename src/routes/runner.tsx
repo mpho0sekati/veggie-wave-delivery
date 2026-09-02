@@ -186,17 +186,28 @@ function RunnerPage() {
       <h2 className="mt-6 px-5 text-lg font-semibold">Waves near you</h2>
       <div className="px-4 pt-3">
         {!request && (
-          <Card className="items-center gap-2 p-8 text-center">
-            <Hand className="size-8 text-muted-foreground" />
-            <p className="font-semibold">No hands up right now</p>
-            <p className="text-sm text-muted-foreground">
-              {me.online ? "Keep your stall online — the next wave nearby lands here." : "Switch on 'Available for deliveries' so nearby waves reach you."}
-            </p>
+          <Card className="items-center gap-3 p-8 text-center border-dashed">
+            <div className="flex size-14 items-center justify-center rounded-full bg-secondary">
+              <Hand className="size-7 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold">No waves yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {me.online
+                  ? "You're live — buyers nearby will see you on the map."
+                  : "Toggle 'Available for deliveries' above to go live."}
+              </p>
+            </div>
+            {!me.online && (
+              <p className="text-xs text-muted-foreground bg-secondary rounded-xl px-3 py-2">
+                💡 Switch on availability so nearby waves reach you
+              </p>
+            )}
           </Card>
         )}
 
         {request && (
-          <Card className="animate-rise gap-4 p-5">
+          <Card className="animate-rise animate-slide-up gap-4 p-5">
             <OrderStepper status={request.status} />
             <div className="flex items-center gap-2">
               <Hand className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`} />

@@ -1,5 +1,5 @@
 import { Check, XCircle, AlertCircle, RefreshCw } from "lucide-react";
-import type { WaveStatus } from "@/lib/veggie-store-supabase";
+import type { WaveStatus } from "@/lib/veggie-store";
 import { Badge } from "@/components/ui/badge";
 
 const STEPS = [
