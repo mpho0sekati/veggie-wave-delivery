@@ -101,27 +101,34 @@ export async function requestToPay(args: {
   message: string;
 }): Promise<{ accepted: boolean; providerStatus: string }> {
   const cfg = readMomoConfig();
-  const token = await accessToken(cfg);
+  const partyId = normalizeMsisdn(args.msisdn);
 
-  const res = await fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "X-Reference-Id": args.reference,
-      "X-Target-Environment": cfg.targetEnvironment,
-      "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
-      "Content-Type": "application/json",
-      ...(cfg.callbackUrl ? { "X-Callback-Url": cfg.callbackUrl } : {}),
-    },
-    body: JSON.stringify({
-      amount: args.amount.toFixed(2),
-      currency: cfg.currency,
-      externalId: args.externalId,
-      payer: { partyIdType: "MSISDN", partyId: args.msisdn },
-      payerMessage: args.message.slice(0, 60),
-      payeeNote: "Mdeko order",
-    }),
-  });
+  const send = async (token: string) =>
+    fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Reference-Id": args.reference,
+        "X-Target-Environment": cfg.targetEnvironment,
+        "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
+        "Content-Type": "application/json",
+        ...(cfg.callbackUrl ? { "X-Callback-Url": cfg.callbackUrl } : {}),
+      },
+      body: JSON.stringify({
+        amount: args.amount.toFixed(2),
+        currency: cfg.currency,
+        externalId: args.externalId,
+        payer: { partyIdType: "MSISDN", partyId },
+        payerMessage: args.message.slice(0, 60),
+        payeeNote: "Mdeko order",
+      }),
+    });
+
+  let res = await send(await accessToken(cfg));
+  if (res.status === 401) {
+    tokenCache = null; // expired token: mint a fresh one and retry once
+    res = await send(await accessToken(cfg));
+  }
 
   // 202 Accepted is the happy path; 409 means this reference is already in flight.
   if (res.status === 202 || res.status === 409) {
