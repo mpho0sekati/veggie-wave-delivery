@@ -144,21 +144,28 @@ export async function fetchPaymentStatus(
   reference: string,
 ): Promise<{ status: MomoStatus; providerStatus: string; reason: string | null }> {
   const cfg = readMomoConfig();
-  const token = await accessToken(cfg);
 
-  const res = await fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay/${reference}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "X-Target-Environment": cfg.targetEnvironment,
-      "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
-    },
-  });
+  const lookup = async (token: string) =>
+    fetch(`${cfg.baseUrl}/collection/v1_0/requesttopay/${reference}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Target-Environment": cfg.targetEnvironment,
+        "Ocp-Apim-Subscription-Key": cfg.subscriptionKey,
+      },
+    });
+
+  let res = await lookup(await accessToken(cfg));
+  if (res.status === 401) {
+    tokenCache = null;
+    res = await lookup(await accessToken(cfg));
+  }
 
   if (!res.ok) {
     const detail = await res.text();
     console.error(`[momo] status lookup failed ${res.status}: ${detail.slice(0, 300)}`);
     return { status: "PENDING", providerStatus: `lookup-error:${res.status}`, reason: null };
   }
+
 
   const body = (await res.json()) as {
     status?: string;
