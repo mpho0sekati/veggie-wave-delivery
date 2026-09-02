@@ -92,22 +92,30 @@ function RunnerPage() {
   }, []);
 
   // Poll for open waves and active order — runs when trader is online
+  const orderRef = useRef<any>(null);
+  orderRef.current = order;
+
   useEffect(() => {
     if (!online || !me) return;
     const interval = setInterval(async () => {
       try {
         const openWaves = await listOpenWaves();
         setWaves(openWaves);
-        // If no active order yet, show the first open wave as the pending order
-        if (!order && openWaves.length > 0) {
+        // Only surface the first wave if trader has no active order
+        if (!orderRef.current && openWaves.length > 0) {
           setOrder({ ...openWaves[0], status: "creating", wave_id: openWaves[0].id });
+        }
+        // Clear the wave from view if it was accepted/expired and is no longer open
+        if (orderRef.current?.status === "creating") {
+          const stillOpen = openWaves.some((w: any) => w.id === orderRef.current?.wave_id);
+          if (!stillOpen) setOrder(null);
         }
       } catch (err) {
         console.error("Failed to fetch waves", err);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [online, me, order]);
+  }, [online, me]); // intentionally excludes `order` — use orderRef instead
 
   const catalog = catalogWith([]);
   const buyer = { lat: -33.9249, lng: 18.4241 };
