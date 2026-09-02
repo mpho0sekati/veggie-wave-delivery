@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useRef, useState, useCallback, useEffect } from "react";
 import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet, Loader2 } from "lucide-react";
@@ -45,6 +45,7 @@ function MapSkeleton() {
 }
 
 function RunnerPage() {
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -54,43 +55,59 @@ function RunnerPage() {
   const [loading, setLoading] = useState(false);
   const [online, setOnlineState] = useState(false);
 
-  // Load trader data
+  // Load trader profile from Supabase
   useEffect(() => {
-    const loadData = async () => {
+    const loadProfile = async () => {
       try {
         setLoading(true);
-        // In real app, fetch from API
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { navigate({ to: "/auth" }); return; }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        const { data: stockRows } = await supabase
+          .from("stock")
+          .select("item_id, price")
+          .eq("trader_id", user.id);
         setMe({
-          id: "trader-1",
-          name: "Your Name",
-          avatar: null,
-          online: false,
+          id: user.id,
+          name: profile?.name ?? user.email ?? "Trader",
+          avatar: profile?.avatar ?? null,
+          online: profile?.online ?? false,
           earnings: 0,
-          rating: 4.8,
-          stock: [],
+          rating: Number(profile?.rating) ?? 5.0,
+          stock: (stockRows ?? []).map((s: any) => ({ itemId: s.item_id, price: s.price })),
         });
+        setOnlineState(profile?.online ?? false);
       } catch (err) {
-        console.error("Failed to load trader data", err);
+        console.error("Failed to load trader profile", err);
       } finally {
         setLoading(false);
       }
     };
-    loadData();
+    loadProfile();
   }, []);
 
-  // Poll for open waves
+  // Poll for open waves and active order — runs when trader is online
   useEffect(() => {
     if (!online || !me) return;
     const interval = setInterval(async () => {
       try {
         const openWaves = await listOpenWaves();
         setWaves(openWaves);
+        // If no active order yet, show the first open wave as the pending order
+        if (!order && openWaves.length > 0) {
+          setOrder({ ...openWaves[0], status: "creating", wave_id: openWaves[0].id });
+        }
       } catch (err) {
         console.error("Failed to fetch waves", err);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [online, me]);
+  }, [online, me, order]);
 
   const catalog = catalogWith([]);
   const buyer = { lat: -33.9249, lng: 18.4241 };

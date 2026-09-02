@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as RunnerRouteImport } from './routes/runner'
 import { Route as ApiPublicMomoCallbackRouteImport } from './routes/api/public/momo-callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunnerRoute = RunnerRouteImport.update({
@@ -31,30 +37,34 @@ const ApiPublicMomoCallbackRoute = ApiPublicMomoCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/runner': typeof RunnerRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/runner': typeof RunnerRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/runner': typeof RunnerRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/runner' | '/api/public/momo-callback'
+  fullPaths: '/' | '/auth' | '/runner' | '/api/public/momo-callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/runner' | '/api/public/momo-callback'
-  id: '__root__' | '/' | '/runner' | '/api/public/momo-callback'
+  to: '/' | '/auth' | '/runner' | '/api/public/momo-callback'
+  id: '__root__' | '/' | '/auth' | '/runner' | '/api/public/momo-callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   RunnerRoute: typeof RunnerRoute
   ApiPublicMomoCallbackRoute: typeof ApiPublicMomoCallbackRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/runner': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   RunnerRoute: RunnerRoute,
   ApiPublicMomoCallbackRoute: ApiPublicMomoCallbackRoute,
 }

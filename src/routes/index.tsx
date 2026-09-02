@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -37,7 +37,6 @@ import {
 import { useGeolocation } from "@/lib/use-geolocation";
 import {
   createWave,
-  getMyWave,
   getOrder,
   advanceOrder,
   startMomoPayment,
@@ -96,6 +95,7 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 });
 
 function BuyerPage() {
+  const navigate = useNavigate();
   const [runners, setRunners] = useState<Runner[]>([]);
   const [order, setOrder] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -128,25 +128,64 @@ function BuyerPage() {
     [stop],
   );
 
-  // Load initial data
+  // Auth guard — redirect to /auth if not signed in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) navigate({ to: "/auth" });
+    };
+    checkAuth();
+  }, [navigate]);
+
+  // Load initial data + poll for order status updates
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load orders
         const myOrders = await listMyOrders();
-        setOrders(myOrders);
-        // Find active order
+        setOrders(myOrders.filter((o) => ["completed", "failed", "cancelled"].includes(o.status)));
         const active = myOrders.find(
           (o) => !["completed", "failed", "cancelled"].includes(o.status),
         );
-        if (active) {
-          setOrder(active);
-        }
+        setOrder(active ?? null);
       } catch (err) {
         console.error("Failed to load orders", err);
       }
     };
     loadData();
+    // Poll every 4 seconds so buyer sees trader status updates in real time
+    const interval = setInterval(loadData, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load online traders for the map and ranked list, poll every 10s
+  useEffect(() => {
+    const loadRunners = async () => {
+      try {
+        // Use Supabase directly to read trader_directory (online traders)
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data } = await supabase.from("trader_directory").select("*");
+        if (data) {
+          const mapped: Runner[] = data.map((t: any) => ({
+            id: t.id,
+            name: t.name ?? "Trader",
+            lat: t.lat ?? -33.9249,
+            lng: t.lng ?? 18.4241,
+            online: true,
+            rating: Number(t.rating) ?? 5.0,
+            avatar: t.avatar ?? null,
+            earnings: 0,
+            stock: [],
+          }));
+          setRunners(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to load traders", err);
+      }
+    };
+    loadRunners();
+    const interval = setInterval(loadRunners, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const picked = useMemo(() => catalogWith([]).filter((c) => (qty[c.id] ?? 0) > 0), [qty]);
@@ -198,7 +237,7 @@ function BuyerPage() {
     }
     setLoading(true);
     try {
-      const newWave = await createWave({
+      await createWave({
         data: {
           items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
           wish: wish.trim(),
@@ -206,8 +245,12 @@ function BuyerPage() {
           lng: buyer.lng,
         },
       });
-      // After wave created, fetch the order that was created
-      const myOrder = await getMyWave();
+      // Fetch the newly created order and show it immediately
+      const myOrders = await listMyOrders();
+      const active = myOrders.find(
+        (o) => !["completed", "failed", "cancelled"].includes(o.status),
+      );
+      setOrder(active ?? null);
       toast.success("Hand raised — traders nearby can see you waving");
     } catch (error) {
       toast.error("Failed to raise hand");
