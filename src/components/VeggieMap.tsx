@@ -30,9 +30,8 @@ function escapeHtml(value: string) {
   return value.replace(
     /[&<>"']/g,
     (character) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        character
-      ] ?? character,
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ??
+      character,
   );
 }
 
@@ -104,7 +103,10 @@ export default function VeggieMap({
     () =>
       runners
         .filter((r) => r.online)
-        .map((r) => `${r.id}:${r.lat.toFixed(5)}:${r.lng.toFixed(5)}:${r.name.charAt(0)}:${r.avatar ?? ""}`)
+        .map(
+          (r) =>
+            `${r.id}:${r.lat.toFixed(5)}:${r.lng.toFixed(5)}:${r.name.charAt(0)}:${r.avatar ?? ""}`,
+        )
         .join("|"),
     [runners],
   );

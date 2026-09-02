@@ -107,15 +107,12 @@ function BuyerPage() {
   const [loading, setLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
-  const onPosition = useCallback(
-    async (pos: { lat: number; lng: number }) => {
-      if (await setBuyerLocation(pos)) {
-        setBuyer((prev) => ({ ...prev, lat: pos.lat, lng: pos.lng, located: true }));
-        setRecenterTrigger((prev) => prev + 1);
-      }
-    },
-    []
-  );
+  const onPosition = useCallback(async (pos: { lat: number; lng: number }) => {
+    if (await setBuyerLocation(pos)) {
+      setBuyer((prev) => ({ ...prev, lat: pos.lat, lng: pos.lng, located: true }));
+      setRecenterTrigger((prev) => prev + 1);
+    }
+  }, []);
   const { status: geoStatus, locate, stop, message: geoMessage } = useGeolocation(onPosition);
   const onMapPick = useCallback(
     async (pos: { lat: number; lng: number }) => {
@@ -128,7 +125,7 @@ function BuyerPage() {
         toast.error("Failed to save your chosen location");
       }
     },
-    [stop]
+    [stop],
   );
 
   // Load initial data
@@ -139,7 +136,9 @@ function BuyerPage() {
         const myOrders = await listMyOrders();
         setOrders(myOrders);
         // Find active order
-        const active = myOrders.find((o) => !["completed", "failed", "cancelled"].includes(o.status));
+        const active = myOrders.find(
+          (o) => !["completed", "failed", "cancelled"].includes(o.status),
+        );
         if (active) {
           setOrder(active);
         }
@@ -162,7 +161,7 @@ function BuyerPage() {
         const have = picked.filter((p) => priceFor(runner, p.id) !== null);
         const subtotal = have.reduce(
           (sum, p) => sum + (priceFor(runner, p.id) ?? 0) * (qty[p.id] ?? 0),
-          0
+          0,
         );
         const deliveryFee = calculateDeliveryFee(km);
         const total = subtotal > 0 ? subtotal + deliveryFee : 0;
@@ -189,7 +188,7 @@ function BuyerPage() {
   const bump = useCallback(
     (id: string, delta: number) =>
       setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) })),
-    []
+    [],
   );
 
   const wave = useCallback(async () => {
@@ -201,10 +200,10 @@ function BuyerPage() {
     try {
       const newWave = await createWave({
         data: {
-        items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
-        wish: wish.trim(),
-        lat: buyer.lat,
-        lng: buyer.lng,
+          items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
+          wish: wish.trim(),
+          lat: buyer.lat,
+          lng: buyer.lng,
         },
       });
       // After wave created, fetch the order that was created
@@ -262,7 +261,7 @@ function BuyerPage() {
         setPaymentLoading(false);
       }
     },
-    [order]
+    [order],
   );
 
   const timedOut =
@@ -444,8 +443,8 @@ function BuyerPage() {
                             Math.min(
                               ...online
                                 .map((r) => priceFor(r, item.id))
-                                .filter((p): p is number => p !== null)
-                            )
+                                .filter((p): p is number => p !== null),
+                            ),
                           )}`
                         : "nobody stocked"}
                     </p>
@@ -494,13 +493,7 @@ function BuyerPage() {
           <OrderStepper
             status={
               order.status as
-                | "waving"
-                | "accepted"
-                | "delivered"
-                | "paid"
-                | "cancelled"
-                | "failed"
-                | "refunded"
+                "waving" | "accepted" | "delivered" | "paid" | "cancelled" | "failed" | "refunded"
             }
           />
           <div className="flex items-center gap-2">
@@ -565,11 +558,7 @@ function BuyerPage() {
                 onClick={() => setPayOpen(true)}
                 disabled={paymentLoading}
               >
-                {paymentLoading ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Wallet />
-                )}
+                {paymentLoading ? <Loader2 className="animate-spin" /> : <Wallet />}
                 Pay {formatRand(order.amount)} with MTN MoMo
               </Button>
             </>

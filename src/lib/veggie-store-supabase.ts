@@ -10,14 +10,7 @@ import {
 } from "@/lib/veggie-data";
 
 export type WaveStatus =
-  | "waving"
-  | "accepted"
-  | "on-the-way"
-  | "delivered"
-  | "paid"
-  | "cancelled"
-  | "failed"
-  | "refunded";
+  "waving" | "accepted" | "on-the-way" | "delivered" | "paid" | "cancelled" | "failed" | "refunded";
 export type PaidWith = "wave-pay" | "cash";
 
 export type WaveRequest = {
@@ -62,7 +55,7 @@ async function fetchRunners(): Promise<Runner[]> {
     .from("profiles")
     .select(
       `id, name, lat, lng, online, rating, avatar, earnings,
-      stock(id, item_id, price)`
+      stock(id, item_id, price)`,
     )
     .eq("role", "trader");
 
@@ -206,10 +199,7 @@ async function fetchDemand(): Promise<DemandEntry[]> {
 
 // Fetch custom catalog items
 async function fetchCustomItems(): Promise<CustomItem[]> {
-  const { data, error } = await supabase
-    .from("catalog_items")
-    .select("*")
-    .like("id", "custom-%");
+  const { data, error } = await supabase.from("catalog_items").select("*").like("id", "custom-%");
 
   if (error) {
     console.error("Error fetching custom items:", error);
@@ -280,14 +270,16 @@ export async function setStock(runnerId: string, stock: StockLine[]): Promise<vo
       trader_id: runnerId,
       item_id: s.itemId,
       price: s.price,
-    }))
+    })),
   );
 
   if (insertErr) console.error("Error inserting stock:", insertErr);
 }
 
 // Log demand
-export async function logDemand(entries: { itemId: string | null; label: string }[]): Promise<void> {
+export async function logDemand(
+  entries: { itemId: string | null; label: string }[],
+): Promise<void> {
   if (!entries.length) return;
 
   const {
@@ -305,18 +297,18 @@ export async function logDemand(entries: { itemId: string | null; label: string 
         requests: 1,
         last_at: new Date().toISOString(),
       },
-      { onConflict: "key" }
+      { onConflict: "key" },
     );
 
     if (error) console.error("Error logging demand:", error);
   }
-};
+}
 
 // Create a wave request
 export async function waveRequest(
   items: { id: string; qty: number }[],
   wish: string,
-  total: number
+  total: number,
 ): Promise<void> {
   const {
     data: { user },
@@ -391,10 +383,7 @@ export async function acceptWave(orderId: string, total: number): Promise<void> 
 
 // Mark as delivered
 export async function markDelivered(orderId: string): Promise<void> {
-  const { error } = await supabase
-    .from("orders")
-    .update({ status: "delivered" })
-    .eq("id", orderId);
+  const { error } = await supabase.from("orders").update({ status: "delivered" }).eq("id", orderId);
 
   if (error) console.error("Error marking delivered:", error);
 }
@@ -462,10 +451,7 @@ export async function setOnline(online: boolean): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ online })
-    .eq("id", user.id);
+  const { error } = await supabase.from("profiles").update({ online }).eq("id", user.id);
 
   if (error) console.error("Error setting online:", error);
 }
@@ -477,10 +463,7 @@ export async function updateName(name: string): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ name })
-    .eq("id", user.id);
+  const { error } = await supabase.from("profiles").update({ name }).eq("id", user.id);
 
   if (error) console.error("Error updating name:", error);
 }
@@ -492,10 +475,7 @@ export async function updateAvatar(avatar: string | null): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ avatar })
-    .eq("id", user.id);
+  const { error } = await supabase.from("profiles").update({ avatar }).eq("id", user.id);
 
   if (error) console.error("Error updating avatar:", error);
 }
@@ -532,17 +512,15 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
     if (!userId) return;
 
     const initState = async () => {
-      const [runners, request, orders, demand, customItems, wallet, profile] = await Promise.all(
-        [
-          fetchRunners(),
-          fetchCurrentRequest(userId),
-          fetchOrders(userId),
-          fetchDemand(),
-          fetchCustomItems(),
-          fetchWallet(userId),
-          fetchProfile(userId),
-        ]
-      );
+      const [runners, request, orders, demand, customItems, wallet, profile] = await Promise.all([
+        fetchRunners(),
+        fetchCurrentRequest(userId),
+        fetchOrders(userId),
+        fetchDemand(),
+        fetchCustomItems(),
+        fetchWallet(userId),
+        fetchProfile(userId),
+      ]);
 
       const initialState: AppState = {
         runners,
@@ -589,9 +567,13 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
     // Subscribe to current user's wallet
     const walletSub = supabase
       .channel("public:wallets")
-      .on("postgres_changes", { event: "UPDATE" as any, schema: "public", table: "wallets" }, () => {
-        initState();
-      })
+      .on(
+        "postgres_changes",
+        { event: "UPDATE" as any, schema: "public", table: "wallets" },
+        () => {
+          initState();
+        },
+      )
       .subscribe();
 
     subscriptionsRef.current = [

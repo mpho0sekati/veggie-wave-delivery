@@ -9,17 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/lib/veggie-data";
-import {
-  setOnline,
-  updateName,
-  updateAvatar,
-} from "@/lib/veggie-store-supabase";
-import {
-  listOpenWaves,
-  acceptWave,
-  advanceOrder,
-  declineWave,
-} from "@/lib/mdeko.functions";
+import { setOnline, updateName, updateAvatar } from "@/lib/veggie-store-supabase";
+import { listOpenWaves, acceptWave, advanceOrder, declineWave } from "@/lib/mdeko.functions";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import BrandMark from "@/components/BrandMark";
@@ -101,25 +92,24 @@ function RunnerPage() {
     return () => clearInterval(interval);
   }, [online, me]);
 
-  if (!me) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
-        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground">Loading your stall…</p>
-      </main>
-    );
-  }
-
   const catalog = catalogWith([]);
   const buyer = { lat: -33.9249, lng: 18.4241 };
-  const km = distanceKm(buyer, { lat: order?.buyer_lat ?? -33.9249, lng: order?.buyer_lng ?? 18.4241 });
+  const km = distanceKm(buyer, {
+    lat: order?.buyer_lat ?? -33.9249,
+    lng: order?.buyer_lng ?? 18.4241,
+  });
 
-  const canFill = order
-    ? order.items?.filter((line: any) => priceFor(me, line.id) !== null).length ?? 0
-    : 0;
-  const myTotal = order
-    ? order.items?.reduce((sum: number, line: any) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0) ?? 0
-    : 0;
+  const canFill =
+    order && me
+      ? (order.items?.filter((line: any) => priceFor(me, line.id) !== null).length ?? 0)
+      : 0;
+  const myTotal =
+    order && me
+      ? (order.items?.reduce(
+          (sum: number, line: any) => sum + (priceFor(me, line.id) ?? 0) * line.qty,
+          0,
+        ) ?? 0)
+      : 0;
 
   const onPickAvatar = (file?: File | null) => {
     if (!file) return;
@@ -136,18 +126,15 @@ function RunnerPage() {
     reader.readAsDataURL(file);
   };
 
-  const onOnlineChange = useCallback(
-    async (isOnline: boolean) => {
-      try {
-        await setOnline(isOnline);
-        setOnlineState(isOnline);
-        toast.success(isOnline ? "You're now online" : "You're now offline");
-      } catch (error) {
-        toast.error("Failed to update status");
-      }
-    },
-    []
-  );
+  const onOnlineChange = useCallback(async (isOnline: boolean) => {
+    try {
+      await setOnline(isOnline);
+      setOnlineState(isOnline);
+      toast.success(isOnline ? "You're now online" : "You're now offline");
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  }, []);
 
   const saveName = useCallback(async () => {
     if (!name.trim()) return;
@@ -203,6 +190,15 @@ function RunnerPage() {
       toast.error("Failed to mark delivered");
     }
   }, [order]);
+
+  if (!me) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Loading your stall…</p>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
@@ -299,17 +295,13 @@ function RunnerPage() {
             <OrderStepper
               status={
                 order.status as
-                  | "waving"
-                  | "accepted"
-                  | "delivered"
-                  | "paid"
-                  | "cancelled"
-                  | "failed"
-                  | "refunded"
+                  "waving" | "accepted" | "delivered" | "paid" | "cancelled" | "failed" | "refunded"
               }
             />
             <div className="flex items-center gap-2">
-              <Hand className={`size-5 text-accent ${order.status === "creating" ? "animate-wave" : ""}`} />
+              <Hand
+                className={`size-5 text-accent ${order.status === "creating" ? "animate-wave" : ""}`}
+              />
               <p className="font-semibold">
                 {order.status === "creating" && "Someone is waving"}
                 {order.status === "accepted" && "You accepted — prepare for delivery"}
@@ -349,11 +341,7 @@ function RunnerPage() {
             </p>
 
             {order.status === "creating" && (
-              <Button
-                size="lg"
-                onClick={accept}
-                disabled={canFill === 0 || loading}
-              >
+              <Button size="lg" onClick={accept} disabled={canFill === 0 || loading}>
                 {canFill === 0 ? "Nothing you stock" : "Accept this wave"}
               </Button>
             )}
@@ -388,7 +376,8 @@ function RunnerPage() {
             )}
             {order.status === "delivered" && (
               <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">
-                <Wallet className="size-4 text-primary" /> Waiting for customer payment via MTN MoMo...
+                <Wallet className="size-4 text-primary" /> Waiting for customer payment via MTN
+                MoMo...
               </p>
             )}
           </Card>
@@ -402,7 +391,21 @@ function RunnerPage() {
         highlightItemId={highlight}
       />
 
-      <DemandInsights state={{ runners: [me], request: order, orders: [], demand: [], customItems: [], wallet: { balance: 0, pin: "" }, buyer: { ...buyer, located: true }, me, userId: me.id }} runnerId={me.id} onAdded={setHighlight} />
+      <DemandInsights
+        state={{
+          runners: [me],
+          request: order,
+          orders: [],
+          demand: [],
+          customItems: [],
+          wallet: { balance: 0, pin: "" },
+          buyer: { ...buyer, located: true },
+          me,
+          userId: me.id,
+        }}
+        runnerId={me.id}
+        onAdded={setHighlight}
+      />
 
       <div className="h-8" />
     </main>
