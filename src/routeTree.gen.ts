@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RunnerRouteImport } from './routes/runner'
+import { Route as ApiPublicMomoCallbackRouteImport } from './routes/api/public/momo-callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const RunnerRoute = RunnerRouteImport.update({
   path: '/runner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMomoCallbackRoute = ApiPublicMomoCallbackRouteImport.update({
+  id: '/api/public/momo-callback',
+  path: '/api/public/momo-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/runner': typeof RunnerRoute
+  '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/runner': typeof RunnerRoute
+  '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/runner': typeof RunnerRoute
+  '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/runner'
+  fullPaths: '/' | '/runner' | '/api/public/momo-callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/runner'
-  id: '__root__' | '/' | '/runner'
+  to: '/' | '/runner' | '/api/public/momo-callback'
+  id: '__root__' | '/' | '/runner' | '/api/public/momo-callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RunnerRoute: typeof RunnerRoute
+  ApiPublicMomoCallbackRoute: typeof ApiPublicMomoCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RunnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/momo-callback': {
+      id: '/api/public/momo-callback'
+      path: '/api/public/momo-callback'
+      fullPath: '/api/public/momo-callback'
+      preLoaderRoute: typeof ApiPublicMomoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RunnerRoute: RunnerRoute,
+  ApiPublicMomoCallbackRoute: ApiPublicMomoCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

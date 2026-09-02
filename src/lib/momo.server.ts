@@ -26,7 +26,8 @@ export function readMomoConfig(): MomoConfig {
   const apiUser = process.env["MOMO_API_USER"];
   const apiKey = process.env["MOMO_API_KEY"];
   const targetEnvironment = process.env["MOMO_TARGET_ENVIRONMENT"] ?? "sandbox";
-  const currency = process.env["MOMO_CURRENCY"] ?? (targetEnvironment === "sandbox" ? "EUR" : "ZAR");
+  const currency =
+    process.env["MOMO_CURRENCY"] ?? (targetEnvironment === "sandbox" ? "EUR" : "ZAR");
 
   const missing = [
     ...(subscriptionKey ? [] : ["MOMO_SUBSCRIPTION_KEY"]),

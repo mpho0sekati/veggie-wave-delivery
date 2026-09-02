@@ -4,7 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { catalogWith, formatRand, iconFor, iconKeyFromName } from "@/lib/veggie-data";
-import { suggestedPrice, promoteToCatalog } from "@/lib/veggie-store";
+import {
+  suggestedPrice,
+  promoteToCatalog,
+  type AppState as LegacyAppState,
+} from "@/lib/veggie-store";
 import { setStock, type AppState } from "@/lib/veggie-store-supabase";
 
 type Props = { state: AppState; runnerId: string; onAdded?: (itemId: string) => void };
@@ -28,7 +32,7 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
 
   const add = (itemId: string) => {
     if (!me) return;
-    const price = suggestedPrice(state, itemId);
+    const price = suggestedPrice(state as unknown as LegacyAppState, itemId);
     setStock(runnerId, [...me.stock, { itemId, price }]);
     onAdded?.(itemId);
     toast.success(`Added at ${formatRand(price)} — change the price if you want`);
