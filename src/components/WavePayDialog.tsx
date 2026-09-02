@@ -1,21 +1,20 @@
 import { useState } from "react";
-import { Smartphone, Wallet, Loader2 } from "lucide-react";
+import { Smartphone, Wallet, Loader2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRand } from "@/lib/veggie-data";
+import { STOKVEL_CREDIT_PER_ORDER, PLATFORM_FEE, MTN_FEE } from "@/lib/veggie-store";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   amount: number;
   traderName: string;
-  /** Called with the normalised MSISDN when the buyer confirms. Parent owns loading + polling. */
   onPay: (msisdn: string) => Promise<void>;
 };
 
-/** Strip non-digits, normalise to 27XXXXXXXXX, return null if invalid. */
 function normaliseMsisdn(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
   if (/^0\d{9}$/.test(digits)) return `27${digits.slice(1)}`;
@@ -32,16 +31,8 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
   const msisdn = normaliseMsisdn(phone);
   const valid = msisdn !== null;
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(e.target.value);
-    setError("");
-  };
-
   const confirm = async () => {
-    if (!msisdn) {
-      setError("Enter a valid South African mobile number, e.g. 0788 033 288");
-      return;
-    }
+    if (!msisdn) { setError("Enter a valid SA mobile number, e.g. 0788 033 288"); return; }
     setBusy(true);
     setError("");
     try {
@@ -71,7 +62,28 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
             <p className="text-sm text-muted-foreground">to {traderName}</p>
           </div>
 
-          {/* Phone number input */}
+          {/* Fee breakdown — business model */}
+          <div className="rounded-xl border bg-card px-4 py-3 space-y-1.5 text-xs">
+            <p className="font-semibold text-sm mb-2">How your payment is split</p>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Trader receives</span>
+              <span className="font-medium text-foreground">{formatRand(amount - PLATFORM_FEE - MTN_FEE)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Veggie Wave fee</span>
+              <span>{formatRand(PLATFORM_FEE)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>MTN MoMo fee</span>
+              <span>{formatRand(MTN_FEE)}</span>
+            </div>
+            <div className="border-t pt-1.5 flex justify-between items-center text-primary font-semibold">
+              <span className="flex items-center gap-1"><Gift className="size-3.5" /> You earn stokvel credit</span>
+              <span>+{formatRand(STOKVEL_CREDIT_PER_ORDER)}</span>
+            </div>
+          </div>
+
+          {/* Phone number */}
           <div className="space-y-2">
             <Label htmlFor="momo-phone" className="flex items-center gap-2">
               <Smartphone className="size-4" /> Your MTN mobile number
@@ -83,34 +95,21 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
               placeholder="e.g. 0788 033 288"
               autoComplete="tel"
               value={phone}
-              onChange={handlePhoneChange}
+              onChange={(e) => { setPhone(e.target.value); setError(""); }}
               disabled={busy}
               className={error ? "border-destructive" : ""}
             />
-            {error ? (
-              <p className="text-xs text-destructive">{error}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                You'll get a MoMo push notification to approve on your phone.
-              </p>
-            )}
+            {error
+              ? <p className="text-xs text-destructive">{error}</p>
+              : <p className="text-xs text-muted-foreground">You will get a MoMo push notification to approve.</p>
+            }
           </div>
 
-          <Button
-            variant="wave"
-            className="w-full"
-            disabled={!valid || busy}
-            onClick={confirm}
-          >
-            {busy ? (
-              <>
-                <Loader2 className="animate-spin" /> Sending request…
-              </>
-            ) : (
-              <>
-                <Wallet /> Pay {formatRand(amount)} with MoMo
-              </>
-            )}
+          <Button variant="wave" className="w-full" disabled={!valid || busy} onClick={confirm}>
+            {busy
+              ? <><Loader2 className="animate-spin" /> Sending request…</>
+              : <><Wallet /> Pay {formatRand(amount)} with MoMo</>
+            }
           </Button>
         </div>
       </DialogContent>

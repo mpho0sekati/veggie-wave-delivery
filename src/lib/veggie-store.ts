@@ -40,7 +40,7 @@ export type AppState = {
   orders: WaveRequest[];
   demand: DemandEntry[];
   customItems: CustomItem[];
-  wallet: { balance: number; pin: string };
+  wallet: { balance: number; pin: string; stokvel_credit: number };
   buyer: { lat: number; lng: number; located: boolean };
   me: { id: string; name: string; avatar: string | null; online: boolean };
 };
@@ -56,7 +56,7 @@ function initialState(): AppState {
     orders: [],
     demand: [],
     customItems: [],
-    wallet: { balance: 500, pin: "1234" },
+    wallet: { balance: 500, pin: "1234", stokvel_credit: 0 },
     buyer: { ...BUYER_POSITION, located: false },
     me: { id: "me", name: "", avatar: null, online: false },
   };
@@ -172,6 +172,12 @@ export function suggestedPrice(state: AppState, itemId: string): number {
   return catalogWith(state.customItems).find((c) => c.id === itemId)?.price ?? 20;
 }
 
+// Business model constants
+export const STOKVEL_CREDIT_PER_ORDER = 0.50;  // Gogo gets back R0.50 stokvel credit
+export const PLATFORM_FEE = 0.30;               // Veggie Wave keeps R0.30
+export const MTN_FEE = 0.20;                    // MTN takes R0.20
+export const TOTAL_FEE = PLATFORM_FEE + MTN_FEE; // R0.50 total fee
+
 function settle(prev: AppState, paidWith: PaidWith): AppState {
   if (!prev.request || prev.request.status !== "delivered") return prev;
   const paid: WaveRequest = { ...prev.request, status: "paid", paidWith };
@@ -183,7 +189,12 @@ function settle(prev: AppState, paidWith: PaidWith): AppState {
     ),
     wallet:
       paidWith === "wave-pay"
-        ? { ...prev.wallet, balance: prev.wallet.balance - paid.total }
+        ? {
+            ...prev.wallet,
+            balance: prev.wallet.balance - paid.total,
+            // R0.50 stokvel credit for every MoMo payment — loyalty reward
+            stokvel_credit: Math.round((prev.wallet.stokvel_credit + STOKVEL_CREDIT_PER_ORDER) * 100) / 100,
+          }
         : prev.wallet,
   };
 }
@@ -266,6 +277,9 @@ export function refundOrder(orderId: string) {
       wallet: {
         ...prev.wallet,
         balance: prev.wallet.balance + refundAmount,
+        stokvel_credit: wasWavePay
+          ? Math.max(0, Math.round((prev.wallet.stokvel_credit - STOKVEL_CREDIT_PER_ORDER) * 100) / 100)
+          : prev.wallet.stokvel_credit,
       },
       runners: prev.runners.map((r) =>
         r.id === targetOrder.runnerId

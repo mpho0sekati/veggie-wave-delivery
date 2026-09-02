@@ -65,6 +65,7 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 
 function BuyerPage() {
   const wallet = useAppState((s) => s.wallet);
+  // wallet.stokvel_credit is available via the same selector
   const runners = useAppState((s) => s.runners);
   const request = useAppState((s) => s.request);
   const orders = useAppState((s) => s.orders);
@@ -203,11 +204,28 @@ function BuyerPage() {
 
       {!request && (
         <>
-          <div className="mx-4 mt-4 flex items-center justify-between rounded-2xl bg-secondary px-4 py-3">
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <Wallet className="size-4 text-primary" /> Mdeko Pay balance
-            </span>
-            <span className="font-display font-semibold">{formatRand(wallet.balance)}</span>
+          <div className="mx-4 mt-4 rounded-2xl bg-secondary px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <Wallet className="size-4 text-primary" /> Mdeko Pay balance
+              </span>
+              <span className="font-display font-semibold">{formatRand(wallet.balance)}</span>
+            </div>
+            {wallet.stokvel_credit > 0 && (
+              <div className="flex items-center justify-between border-t pt-2">
+                <span className="flex items-center gap-2 text-xs text-primary font-medium">
+                  🎁 Stokvel credit
+                </span>
+                <span className="font-display text-sm font-semibold text-primary">
+                  {formatRand(wallet.stokvel_credit)}
+                </span>
+              </div>
+            )}
+            {wallet.stokvel_credit === 0 && (
+              <p className="text-xs text-muted-foreground border-t pt-2">
+                🎁 Earn <strong>R0.50 stokvel credit</strong> every time you pay with MoMo
+              </p>
+            )}
           </div>
 
           <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
@@ -438,10 +456,15 @@ function BuyerPage() {
                     runners: prev.runners.map((r) =>
                       r.id === paid.runnerId ? { ...r, earnings: r.earnings + paid.total } : r
                     ),
-                    wallet: { ...prev.wallet, balance: prev.wallet.balance - paid.total },
+                    wallet: {
+                      ...prev.wallet,
+                      balance: Math.round((prev.wallet.balance - paid.total) * 100) / 100,
+                      stokvel_credit: Math.round((prev.wallet.stokvel_credit + 0.50) * 100) / 100,
+                    },
                   };
                 });
                 toast.success("Payment confirmed! Enjoy your veggies 🥦");
+                toast.success(`+${formatRand(0.50)} stokvel credit added to your account 🎁`);
                 return;
               }
               if (status === "FAILED") {

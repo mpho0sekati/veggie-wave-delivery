@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, formatRand, type CustomItem, type StockLine } from "@/lib/veggie-data";
-import { setStock } from "@/lib/veggie-store-supabase";
+import { setStock } from "@/lib/veggie-store";
 
 type Props = {
   runnerId: string;
