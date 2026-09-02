@@ -275,6 +275,12 @@ function RunnerPage() {
       </div>
 
       <StockEditor runnerId={me.id} stock={me.stock} customItems={state.customItems} highlightItemId={highlight} />
+
+      <div className="mx-4 mt-4 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
+        <p className="text-xs font-semibold text-primary uppercase tracking-wide">📊 Demand Intelligence</p>
+        <p className="text-xs text-muted-foreground mt-0.5">See what buyers near you are asking for — restock before they wave.</p>
+      </div>
+
       <DemandInsights state={state} runnerId={me.id} onAdded={setHighlight} />
       <div className="h-8" />
     </main>

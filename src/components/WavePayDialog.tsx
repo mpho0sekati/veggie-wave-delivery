@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRand } from "@/lib/veggie-data";
-import { STOKVEL_CREDIT_PER_ORDER, PLATFORM_FEE, MTN_FEE } from "@/lib/veggie-store";
+import { COMMUNITY_CREDIT_PER_ORDER, PLATFORM_FEE, MTN_FEE } from "@/lib/veggie-store";
 
 type Props = {
   open: boolean;
@@ -78,8 +78,8 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
               <span>{formatRand(MTN_FEE)}</span>
             </div>
             <div className="border-t pt-1.5 flex justify-between items-center text-primary font-semibold">
-              <span className="flex items-center gap-1"><Gift className="size-3.5" /> You earn stokvel credit</span>
-              <span>+{formatRand(STOKVEL_CREDIT_PER_ORDER)}</span>
+              <span className="flex items-center gap-1"><Gift className="size-3.5" /> You earn Community Credit</span>
+              <span>+{formatRand(COMMUNITY_CREDIT_PER_ORDER)}</span>
             </div>
           </div>
 

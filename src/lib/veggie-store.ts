@@ -173,7 +173,7 @@ export function suggestedPrice(state: AppState, itemId: string): number {
 }
 
 // Business model constants
-export const STOKVEL_CREDIT_PER_ORDER = 0.50;  // Gogo gets back R0.50 stokvel credit
+export const COMMUNITY_CREDIT_PER_ORDER = 0.50; // Buyer earns R0.50 Mdeko Community Credit per MoMo pay
 export const PLATFORM_FEE = 0.30;               // Veggie Wave keeps R0.30
 export const MTN_FEE = 0.20;                    // MTN takes R0.20
 export const TOTAL_FEE = PLATFORM_FEE + MTN_FEE; // R0.50 total fee
@@ -192,8 +192,8 @@ function settle(prev: AppState, paidWith: PaidWith): AppState {
         ? {
             ...prev.wallet,
             balance: prev.wallet.balance - paid.total,
-            // R0.50 stokvel credit for every MoMo payment — loyalty reward
-            stokvel_credit: Math.round((prev.wallet.stokvel_credit + STOKVEL_CREDIT_PER_ORDER) * 100) / 100,
+            // R0.50 Mdeko Community Credit for every MoMo payment — loyalty reward
+            stokvel_credit: Math.round((prev.wallet.stokvel_credit + COMMUNITY_CREDIT_PER_ORDER) * 100) / 100,
           }
         : prev.wallet,
   };
@@ -278,7 +278,7 @@ export function refundOrder(orderId: string) {
         ...prev.wallet,
         balance: prev.wallet.balance + refundAmount,
         stokvel_credit: wasWavePay
-          ? Math.max(0, Math.round((prev.wallet.stokvel_credit - STOKVEL_CREDIT_PER_ORDER) * 100) / 100)
+          ? Math.max(0, Math.round((prev.wallet.stokvel_credit - COMMUNITY_CREDIT_PER_ORDER) * 100) / 100)
           : prev.wallet.stokvel_credit,
       },
       runners: prev.runners.map((r) =>

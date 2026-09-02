@@ -65,7 +65,7 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 
 function BuyerPage() {
   const wallet = useAppState((s) => s.wallet);
-  // wallet.stokvel_credit is available via the same selector
+  // wallet.stokvel_credit holds Mdeko Community Credit
   const runners = useAppState((s) => s.runners);
   const request = useAppState((s) => s.request);
   const orders = useAppState((s) => s.orders);
@@ -214,7 +214,7 @@ function BuyerPage() {
             {wallet.stokvel_credit > 0 && (
               <div className="flex items-center justify-between border-t pt-2">
                 <span className="flex items-center gap-2 text-xs text-primary font-medium">
-                  🎁 Stokvel credit
+                  🎁 Community Credit
                 </span>
                 <span className="font-display text-sm font-semibold text-primary">
                   {formatRand(wallet.stokvel_credit)}
@@ -223,7 +223,7 @@ function BuyerPage() {
             )}
             {wallet.stokvel_credit === 0 && (
               <p className="text-xs text-muted-foreground border-t pt-2">
-                🎁 Earn <strong>R0.50 stokvel credit</strong> every time you pay with MoMo
+                🎁 Earn <strong>R0.50 Mdeko Community Credit</strong> every time you pay with MoMo
               </p>
             )}
           </div>
@@ -369,7 +369,21 @@ function BuyerPage() {
           {request.status !== "paid" ? (
             <Button variant="ghost" onClick={cancel}>Cancel request</Button>
           ) : (
-            <Button variant="outline" onClick={finish}>New order</Button>
+            <div className="space-y-3">
+              {request.paidWith === "wave-pay" && (
+                <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-center space-y-0.5">
+                  <p className="font-semibold text-primary">🎁 Community Credit earned</p>
+                  <p className="text-xs text-muted-foreground">
+                    +R0.50 added · Total: {formatRand(wallet.stokvel_credit)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Use toward future purchases</p>
+                </div>
+              )}
+              <Button size="lg" variant="wave" className="w-full shadow-glow" onClick={finish}>
+                <Hand className="animate-wave" /> Wave Again
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">Need something else? The market is waiting.</p>
+            </div>
           )}
         </Card>
       )}
@@ -464,7 +478,7 @@ function BuyerPage() {
                   };
                 });
                 toast.success("Payment confirmed! Enjoy your veggies 🥦");
-                toast.success(`+${formatRand(0.50)} stokvel credit added to your account 🎁`);
+                toast.success(`+R0.50 Mdeko Community Credit earned 🎁`);
                 return;
               }
               if (status === "FAILED") {
