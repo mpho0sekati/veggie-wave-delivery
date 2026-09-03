@@ -45,7 +45,7 @@ export type AppState = {
   me: { id: string; name: string; avatar: string | null; online: boolean };
 };
 
-const KEY = "veggieguy-state-v2";
+const KEY = "veggieguy-state-v3";
 const EVENT = "veggieguy-state";
 const MAX_DEMAND = 50;
 
