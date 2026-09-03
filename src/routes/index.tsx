@@ -134,9 +134,13 @@ function BuyerPage() {
         createdAt: Date.now(),
       },
     }));
-    console.log("\n🙋 BUYER RAISED HAND");
-    console.log(`   Items: ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
-    console.log(`   Best price: R${total.toFixed(2)}`);
+    console.log("\n╔══════════════════════════════════════════╗");
+    console.log("║          BUYER RAISED HAND — WAVING      ║");
+    console.log("╚══════════════════════════════════════════╝");
+    console.log(`  🛒 Items : ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
+    console.log(`  💰 Total : R${total.toFixed(2)}`);
+    console.log(`  ⏰ Time  : ${new Date().toLocaleTimeString()}`);
+    console.log("  📡 Broadcasting wave to nearby traders...");
     logDemand([
       ...picked.map((p) => ({ itemId: p.id, label: p.name })),
       ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
@@ -151,6 +155,7 @@ function BuyerPage() {
     })), []);
 
   const cancel = useCallback(() => {
+    console.log(`\n↩️  ORDER CANCELLED by buyer at ${new Date().toLocaleTimeString()}`);
     cancelRequest(); setQty({}); setWish(""); toast.info("Request cancelled");
   }, []);
 

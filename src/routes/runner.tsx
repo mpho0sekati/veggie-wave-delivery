@@ -43,13 +43,18 @@ const MY_ID = "r1";
 
 function RunnerPage() {
   const state = useAppState();
+  // Use targeted selectors so stock/runner changes trigger re-renders
+  const runners = useAppState((s) => s.runners);
+  const stateCustomItems = useAppState((s) => s.customItems);
+  const stateRequest = useAppState((s) => s.request);
+  const stateBuyer = useAppState((s) => s.buyer);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
 
   const myId = state.me.id !== "" ? state.me.id : MY_ID;
-  const me = state.runners.find((r) => r.id === myId) ?? state.runners.find((r) => r.id === MY_ID)!;
+  const me = runners.find((r) => r.id === myId) ?? runners.find((r) => r.id === MY_ID)!;
 
   if (!me) {
     return (
@@ -60,9 +65,9 @@ function RunnerPage() {
     );
   }
 
-  const request = state.request;
-  const km = distanceKm(state.buyer, me);
-  const catalog = catalogWith(state.customItems);
+  const request = stateRequest;
+  const km = distanceKm(stateBuyer, me);
+  const catalog = catalogWith(stateCustomItems);
   const canFill = request ? request.items.filter((line) => priceFor(me, line.id) !== null).length : 0;
   const myTotal = request ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0) : 0;
 
@@ -87,11 +92,15 @@ function RunnerPage() {
     reader.readAsDataURL(file);
   };
 
-  const setOnline = (online: boolean) =>
+  const setOnline = (online: boolean) => {
+    console.log(`\n🟢 TRADER STATUS → ${online ? "ONLINE" : "OFFLINE"}`);
+    console.log(`   Trader: ${me.name} (${me.id})`);
+    console.log(`   Time: ${new Date().toLocaleTimeString()}`);
     updateState((prev) => ({
       ...prev,
       runners: prev.runners.map((r) => (r.id === me.id ? { ...r, online } : r)),
     }));
+  };
 
   const saveName = () => {
     if (!name.trim()) return;
@@ -103,10 +112,13 @@ function RunnerPage() {
   };
 
   const accept = () => {
-    console.log("\n🤝 TRADER ACCEPTED WAVE");
-    console.log(`   Trader: ${me.name} (${me.id})`);
-    console.log(`   Can fill: ${canFill}/${request?.items.length} items`);
-    console.log(`   Total: R${myTotal.toFixed(2)}`);
+    console.log("\n╔══════════════════════════════════════════╗");
+    console.log("║         WAVE ACCEPTED BY TRADER          ║");
+    console.log("╚══════════════════════════════════════════╝");
+    console.log(`  🧑 Trader  : ${me.name} (${me.id})`);
+    console.log(`  📦 Can fill: ${canFill}/${request?.items.length} items`);
+    console.log(`  💰 Total   : R${myTotal.toFixed(2)}`);
+    console.log(`  ⏰ Time    : ${new Date().toLocaleTimeString()}`);
     updateState((prev) => ({
       ...prev,
       request: prev.request
@@ -116,8 +128,14 @@ function RunnerPage() {
   };
 
   const deliver = () => {
-    console.log("\n📦 TRADER MARKED AS DELIVERED");
-    console.log(`   Trader: ${me.name} — waiting for buyer payment`);
+    console.log("\n╔══════════════════════════════════════════╗");
+    console.log("║       TRADER ARRIVED — DELIVERY DONE     ║");
+    console.log("╚══════════════════════════════════════════╝");
+    console.log(`  🚶 Trader : ${me.name}`);
+    console.log(`  📍 Distance: ${km.toFixed(2)} km`);
+    console.log(`  💵 Amount : R${(request?.total ?? 0).toFixed(2)}`);
+    console.log(`  ⏰ Time   : ${new Date().toLocaleTimeString()}`);
+    console.log("  ⏳ Waiting for buyer to pay via MTN MoMo...");
     updateState((prev) => ({
       ...prev,
       request: prev.request ? { ...prev.request, status: "delivered" } : null,
@@ -177,10 +195,10 @@ function RunnerPage() {
         <ClientOnly fallback={<MapSkeleton />}>
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
-              runners={state.runners}
+              runners={runners}
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
-              buyerPosition={state.buyer}
+              buyerPosition={stateBuyer}
               recenterTrigger={recenterTrigger}
             />
           </Suspense>
@@ -264,11 +282,17 @@ function RunnerPage() {
                 </Button>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10"
-                    onClick={() => { failRequest("Trader marked delivery as failed"); toast.error("Delivery marked as failed"); }}>
+                    onClick={() => {
+                      console.log(`\n❌ DELIVERY FAILED — ${me.name} at ${new Date().toLocaleTimeString()}`);
+                      failRequest("Trader marked delivery as failed"); toast.error("Delivery marked as failed");
+                    }}>
                     Mark Failed
                   </Button>
                   <Button size="sm" variant="ghost" className="flex-1"
-                    onClick={() => { cancelRequest("Trader cancelled"); toast.info("Wave cancelled"); }}>
+                    onClick={() => {
+                      console.log(`\n↩️  WAVE DECLINED — ${me.name} at ${new Date().toLocaleTimeString()}`);
+                      cancelRequest("Trader cancelled"); toast.info("Wave cancelled");
+                    }}>
                     Decline
                   </Button>
                 </div>
@@ -283,14 +307,14 @@ function RunnerPage() {
         )}
       </div>
 
-      <StockEditor runnerId={me.id} stock={me.stock} customItems={state.customItems} highlightItemId={highlight} />
+      <StockEditor runnerId={me.id} stock={me.stock} customItems={stateCustomItems} highlightItemId={highlight} />
 
       <div className="mx-4 mt-4 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
         <p className="text-xs font-semibold text-primary uppercase tracking-wide">📊 Demand Intelligence</p>
         <p className="text-xs text-muted-foreground mt-0.5">See what buyers near you are asking for — restock before they wave.</p>
       </div>
 
-      <DemandInsights state={state} runnerId={me.id} onAdded={setHighlight} />
+      <DemandInsights state={{ ...state, runners, customItems: stateCustomItems }} runnerId={me.id} onAdded={setHighlight} />
       <div className="h-8" />
     </main>
   );
