@@ -56,7 +56,7 @@ function initialState(): AppState {
     orders: [],
     demand: [],
     customItems: [],
-    wallet: { balance: 500, pin: "1234", stokvel_credit: 0 },
+    wallet: { balance: 5, pin: "1234", stokvel_credit: 0 },
     buyer: { ...BUYER_POSITION, located: false },
     me: { id: "me", name: "", avatar: null, online: false },
   };
