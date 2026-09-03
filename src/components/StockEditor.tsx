@@ -29,16 +29,20 @@ export default function StockEditor({ runnerId, stock, customItems, highlightIte
   };
 
   const commitPrice = (id: string, raw: string) => {
-    const value = Number(raw);
+    const trimmed = raw.trim();
+    if (!trimmed) return; // empty — ignore, keep current price
+    const value = Number(trimmed);
     if (!Number.isFinite(value) || value <= 0) {
-      toast.error("Enter a price in Rands");
+      toast.error("Enter a valid price in Rands");
       return;
     }
     setStock(
       runnerId,
       stock.map((s) => (s.itemId === id ? { ...s, price: Math.round(value * 100) / 100 } : s)),
     );
-    setDraft((prev) => ({ ...prev, [id]: "" }));
+    // Keep draft in sync with saved value so field doesn't flicker
+    setDraft((prev) => ({ ...prev, [id]: String(Math.round(value * 100) / 100) }));
+    toast.success(`Price updated to R${value.toFixed(2)}`);
   };
 
   return (
@@ -81,6 +85,12 @@ export default function StockEditor({ runnerId, stock, customItems, highlightIte
                     value={value}
                     onChange={(e) => setDraft((prev) => ({ ...prev, [item.id]: e.target.value }))}
                     onBlur={(e) => commitPrice(item.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur();
+                        commitPrice(item.id, e.currentTarget.value);
+                      }
+                    }}
                   />
                 </div>
               )}
