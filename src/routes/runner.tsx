@@ -50,10 +50,19 @@ function RunnerPage() {
 
   const myId = state.me.id !== "" ? state.me.id : MY_ID;
   const me = state.runners.find((r) => r.id === myId) ?? state.runners.find((r) => r.id === MY_ID)!;
+
+  if (!me) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Loading your stall…</p>
+      </main>
+    );
+  }
+
   const request = state.request;
   const km = distanceKm(state.buyer, me);
   const catalog = catalogWith(state.customItems);
-
   const canFill = request ? request.items.filter((line) => priceFor(me, line.id) !== null).length : 0;
   const myTotal = request ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0) : 0;
 
