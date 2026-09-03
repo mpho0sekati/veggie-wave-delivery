@@ -64,9 +64,6 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 });
 
 function BuyerPage() {
-  const wallet = useAppState((s) => s.wallet);
-  // wallet.stokvel_credit holds Mdeko Community Credit
-  // Using object selector — relies on useAppState's Object.is check which works for nested reads
   const walletBalance = useAppState((s) => s.wallet.balance);
   const communityCredit = useAppState((s) => s.wallet.stokvel_credit);
   const runners = useAppState((s) => s.runners);
@@ -137,10 +134,10 @@ function BuyerPage() {
     console.log("\n╔══════════════════════════════════════════╗");
     console.log("║          BUYER RAISED HAND — WAVING      ║");
     console.log("╚══════════════════════════════════════════╝");
-    console.log(`  🛒 Items : ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
-    console.log(`  💰 Total : R${total.toFixed(2)}`);
-    console.log(`  ⏰ Time  : ${new Date().toLocaleTimeString()}`);
-    console.log("  📡 Broadcasting wave to nearby traders...");
+    console.log(`  Items : ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
+    console.log(`  Total : R${total.toFixed(2)}`);
+    console.log(`  Time  : ${new Date().toLocaleTimeString()}`);
+    console.log("  Broadcasting wave to nearby traders...");
     logDemand([
       ...picked.map((p) => ({ itemId: p.id, label: p.name })),
       ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
@@ -155,7 +152,7 @@ function BuyerPage() {
     })), []);
 
   const cancel = useCallback(() => {
-    console.log(`\n↩️  ORDER CANCELLED by buyer at ${new Date().toLocaleTimeString()}`);
+    console.log(`\n  ORDER CANCELLED by buyer at ${new Date().toLocaleTimeString()}`);
     cancelRequest(); setQty({}); setWish(""); toast.info("Request cancelled");
   }, []);
 
@@ -222,7 +219,7 @@ function BuyerPage() {
             {communityCredit > 0 && (
               <div className="flex items-center justify-between border-t pt-2">
                 <span className="flex items-center gap-2 text-xs text-primary font-medium">
-                  🎁 Community Credit
+                  Community Credit
                 </span>
                 <span className="font-display text-sm font-semibold text-primary">
                   {formatRand(communityCredit)}
@@ -231,7 +228,7 @@ function BuyerPage() {
             )}
             {communityCredit === 0 && (
               <p className="text-xs text-muted-foreground border-t pt-2">
-                🎁 Earn <strong>R0.50 Mdeko Community Credit</strong> every time you pay with MoMo
+                Earn <strong>R0.50 Mdeko Community Credit</strong> every time you pay with MoMo
               </p>
             )}
           </div>
@@ -380,7 +377,7 @@ function BuyerPage() {
             <div className="space-y-3">
               {request.paidWith === "wave-pay" && (
                 <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-center space-y-0.5">
-                  <p className="font-semibold text-primary">🎁 Community Credit earned</p>
+                  <p className="font-semibold text-primary">Community Credit earned</p>
                   <p className="text-xs text-muted-foreground">
                     +R0.50 added · Total: {formatRand(communityCredit)}
                   </p>
@@ -485,8 +482,8 @@ function BuyerPage() {
                     },
                   };
                 });
-                toast.success("Payment confirmed! Enjoy your veggies 🥦");
-                toast.success(`+R0.50 Mdeko Community Credit earned 🎁`);
+                toast.success("Payment confirmed! Enjoy your veggies");
+                toast.success(`+R0.50 Mdeko Community Credit earned`);
                 setPayLoading(false);
                 return;
               }

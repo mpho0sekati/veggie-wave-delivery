@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Smartphone, Wallet, Loader2, Gift } from "lucide-react";
+import { Smartphone, Wallet, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -78,7 +78,7 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
               <span>{formatRand(MTN_FEE)}</span>
             </div>
             <div className="border-t pt-1.5 flex justify-between items-center text-primary font-semibold">
-              <span className="flex items-center gap-1"><Gift className="size-3.5" /> You earn Community Credit</span>
+              <span className="flex items-center gap-1">You earn Community Credit</span>
               <span>+{formatRand(COMMUNITY_CREDIT_PER_ORDER)}</span>
             </div>
           </div>

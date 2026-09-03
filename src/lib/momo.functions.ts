@@ -16,11 +16,11 @@ export const momoRequestToPay = createServerFn({ method: "POST" })
     console.log("\n╔══════════════════════════════════════════╗");
     console.log("║        MTN MoMo — REQUEST TO PAY         ║");
     console.log("╚══════════════════════════════════════════╝");
-    console.log(`  📱 Payer MSISDN : ${data.msisdn}`);
-    console.log(`  💰 Amount       : R${data.amount.toFixed(2)} ZAR`);
-    console.log(`  🔑 Reference    : ${data.reference}`);
-    console.log(`  🏷️  External ID  : ${data.externalId}`);
-    console.log("  ⏳ Sending request to MTN MoMo API...");
+    console.log(`  Payer MSISDN : ${data.msisdn}`);
+    console.log(`  Amount       : R${data.amount.toFixed(2)} ZAR`);
+    console.log(`  Reference    : ${data.reference}`);
+    console.log(`  External ID  : ${data.externalId}`);
+    console.log("  Sending request to MTN MoMo API...");
 
     const { requestToPay } = await import("./momo.server");
     const result = await requestToPay({
@@ -32,10 +32,10 @@ export const momoRequestToPay = createServerFn({ method: "POST" })
     });
 
     if (result.accepted) {
-      console.log("  ✅ MTN MoMo accepted the request (HTTP 202)");
-      console.log("  📲 Push notification sent to buyer's phone!");
+      console.log("  MTN MoMo accepted the request (HTTP 202)");
+      console.log("  Push notification sent to buyer's phone");
     } else {
-      console.log(`  ❌ MTN MoMo rejected: ${result.providerStatus}`);
+      console.log(`  MTN MoMo rejected: ${result.providerStatus}`);
     }
     console.log("══════════════════════════════════════════\n");
 
@@ -51,14 +51,14 @@ export const momoCheckStatus = createServerFn({ method: "POST" })
     const result = await fetchPaymentStatus(data.reference);
 
     const icon =
-      result.status === "SUCCESSFUL" ? "✅" :
-      result.status === "FAILED"     ? "❌" : "⏳";
+      result.status === "SUCCESSFUL" ? "[OK]" :
+      result.status === "FAILED"     ? "[FAILED]" : "[PENDING]";
 
-    console.log(`  ${icon} MoMo status check → ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
+    console.log(`  ${icon} MoMo status -> ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
 
     if (result.status === "SUCCESSFUL") {
       console.log("╔══════════════════════════════════════════╗");
-      console.log("║   💚 PAYMENT CONFIRMED — MONEY RECEIVED  ║");
+      console.log("║     PAYMENT CONFIRMED — MONEY RECEIVED   ║");
       console.log("╚══════════════════════════════════════════╝\n");
     }
 
