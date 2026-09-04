@@ -314,7 +314,7 @@ function RunnerPage() {
         <p className="text-xs text-muted-foreground mt-0.5">See what buyers near you are asking for — restock before they wave.</p>
       </div>
 
-      <DemandInsights state={{ ...state, runners, customItems: stateCustomItems }} runnerId={me.id} onAdded={setHighlight} />
+      <DemandInsights state={{ ...state, userId: null, runners, customItems: stateCustomItems }} runnerId={me.id} onAdded={setHighlight} />
       <div className="h-8" />
     </main>
   );

@@ -44,7 +44,6 @@ function AuthPage() {
         if (signUpError) throw signUpError;
         if (data.user) {
           await supabase.from("profiles").upsert({ id: data.user.id, name: name.trim(), role });
-          await supabase.from("wallets").upsert({ user_id: data.user.id, balance: 500, pin: "1234" });
           toast.success("Account created! Welcome to Mdeko.");
         }
       } else {
