@@ -504,51 +504,47 @@ function BuyerPage() {
         amount={request?.total ?? 0}
         traderName={assigned?.name ?? "your trader"}
         onPay={async (msisdn) => {
+          const orderId = request?.orderId;
+          if (!orderId) {
+            toast.error("Your trader has to accept the order before you can pay");
+            return;
+          }
           setPayLoading(true);
           try {
-            const { momoRequestToPay, momoCheckStatus } = await import("@/lib/momo.functions");
-            const reference = crypto.randomUUID();
-            const externalId = `mdeko-${Date.now()}`;
-
-            const result = await momoRequestToPay({
-              data: { msisdn, amount: request?.total ?? 5, reference, externalId },
-            });
-
-            if (!result.accepted) {
-              toast.error("MoMo rejected the request — try again");
+            // The amount is taken from the saved order on the server, never from this page.
+            const started = await actions.startPayment.mutateAsync({ orderId, msisdn });
+            if (started.status === "failed") {
+              toast.error("MTN MoMo turned the request down — try again");
+              setPayLoading(false);
               return;
             }
 
-            toast.success(`MoMo request sent to ${msisdn} — approve on your phone`);
+            toast.success(`MoMo request sent to ${msisdn} — approve it on your phone`);
             setPayOpen(false);
 
-            // Poll every 2s for up to 60s
+            // Ask MTN what happened, every 2s for up to a minute.
             for (let i = 0; i < 30; i++) {
               await new Promise((r) => setTimeout(r, 2000));
-              const { status } = await momoCheckStatus({ data: { reference } });
-              if (status === "SUCCESSFUL") {
+              const result = await actions.verifyPayment(orderId);
+              if (result?.status === "successful") {
                 updateState((prev) => {
                   if (!prev.request) return prev;
-                  const paid = { ...prev.request, status: "paid" as const, paidWith: "wave-pay" as const };
                   return {
                     ...prev,
-                    request: paid,
-                    runners: prev.runners.map((r) =>
-                      r.id === paid.runnerId ? { ...r, earnings: r.earnings + paid.total } : r
-                    ),
+                    request: { ...prev.request, status: "paid", paidWith: "wave-pay" },
                     wallet: {
                       ...prev.wallet,
-                      balance: Math.round((prev.wallet.balance - paid.total) * 100) / 100,
-                      stokvel_credit: Math.round((prev.wallet.stokvel_credit + 0.50) * 100) / 100,
+                      stokvel_credit: Math.round((prev.wallet.stokvel_credit + 0.5) * 100) / 100,
                     },
                   };
                 });
+                actions.refresh();
                 toast.success("Payment confirmed! Enjoy your veggies");
-                toast.success(`+R0.50 Mdeko Community Credit earned`);
+                toast.success("+R0.50 Mdeko Community Credit earned");
                 setPayLoading(false);
                 return;
               }
-              if (status === "FAILED") {
+              if (result?.status === "failed") {
                 toast.error("Payment was declined on your phone");
                 setPayLoading(false);
                 return;
