@@ -164,34 +164,47 @@ function BuyerPage() {
   const bump = useCallback((id: string, delta: number) =>
     setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) })), []);
 
-  const wave = useCallback(() => {
+  const wave = useCallback(async () => {
     if (!picked.length && !wish.trim()) { toast.error("Pick what you need first"); return; }
-    updateState((prev) => ({
-      ...prev,
-      request: {
-        id: crypto.randomUUID(),
-        items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
+    if (!signedIn) {
+      toast.error("Sign in first so traders can reach you");
+      navigate({ to: "/auth" });
+      return;
+    }
+
+    const items = picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 }));
+    try {
+      const saved = await actions.createWave.mutateAsync({
+        items,
         wish: wish.trim(),
-        total,
         note: `${picked.length} items`,
-        status: "waving",
-        runnerId: null,
-        createdAt: Date.now(),
-      },
-    }));
-    console.log("\n╔══════════════════════════════════════════╗");
-    console.log("║          BUYER RAISED HAND — WAVING      ║");
-    console.log("╚══════════════════════════════════════════╝");
-    console.log(`  Items : ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
-    console.log(`  Total : R${total.toFixed(2)}`);
-    console.log(`  Time  : ${new Date().toLocaleTimeString()}`);
-    console.log("  Broadcasting wave to nearby traders...");
-    logDemand([
-      ...picked.map((p) => ({ itemId: p.id, label: p.name })),
-      ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
-    ]);
-    toast.success("Hand raised — traders nearby can see you waving");
-  }, [picked, wish, total, qty]);
+        lat: buyer.located ? buyer.lat : null,
+        lng: buyer.located ? buyer.lng : null,
+      });
+      updateState((prev) => ({
+        ...prev,
+        request: {
+          id: saved.id,
+          waveId: saved.id,
+          items,
+          wish: wish.trim(),
+          total,
+          note: `${picked.length} items`,
+          status: "waving",
+          runnerId: null,
+          createdAt: new Date(saved.created_at).getTime(),
+        },
+      }));
+      logDemand([
+        ...picked.map((p) => ({ itemId: p.id, label: p.name })),
+        ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
+      ]);
+      toast.success("Hand raised — traders nearby can see you waving");
+    } catch (err) {
+      console.error("[mdeko] wave failed", err);
+      toast.error("Could not send your wave — please try again");
+    }
+  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer]);
 
   const waveAgain = useCallback(() =>
     updateState((prev) => ({
