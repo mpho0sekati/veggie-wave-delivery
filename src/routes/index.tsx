@@ -233,9 +233,29 @@ function BuyerPage() {
             : `${online.length} traders · location not shared`
           }
         />
-        <Button asChild variant="secondary" size="sm" className="shrink-0">
-          <Link to="/runner"><Store /> I&apos;m a trader</Link>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/runner"><Store /> I&apos;m a trader</Link>
+          </Button>
+          {signedIn ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Sign out"
+              onClick={async () => {
+                await signOutEverywhere();
+                toast.success("Signed out");
+                navigate({ to: "/auth" });
+              }}
+            >
+              <LogOut />
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          )}
+        </div>
       </header>
 
       <section className={`relative mx-4 overflow-hidden rounded-3xl border shadow-lift transition-[height] duration-300 ${isCollapsed ? "h-40" : "h-72"}`}>
@@ -382,7 +402,7 @@ function BuyerPage() {
           <OrderStepper status={request.status} />
           <div className="flex items-center gap-2">
             {request.status === "waving" && <><Hand className="size-5 animate-wave text-accent" /><p className="font-semibold">Waving… waiting for a trader</p></>}
-            {request.status === "accepted" && assigned && <><MapPin className="size-5 text-primary" /><p className="font-semibold">{assigned.name} is on the way</p></>}
+            {request.status === "accepted" && <><MapPin className="size-5 text-primary" /><p className="font-semibold">{assigned?.name ?? "Your trader"} is on the way</p></>}
             {request.status === "delivered" && <><CheckCircle2 className="size-5 text-primary" /><p className="font-semibold">Delivered — time to pay</p></>}
             {request.status === "paid" && <><CheckCircle2 className="size-5 text-primary" /><p className="font-semibold">Paid {request.paidWith === "cash" ? "in cash" : "with MTN MoMo"}. Enjoy!</p></>}
           </div>
