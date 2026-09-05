@@ -42,19 +42,40 @@ function AuthPage() {
       if (mode === "signup") {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
-        if (data.user) {
-          await supabase.from("profiles").upsert({ id: data.user.id, name: name.trim(), role });
-          toast.success("Account created! Welcome to Mdeko.");
+        if (!data.session) {
+          toast.success("Account created — check your email to confirm, then sign in.");
+          setMode("signin");
+          return;
         }
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert({ id: data.user.id, name: name.trim(), role });
+          if (profileError) throw profileError;
+        }
+        toast.success("Account created! Welcome to Mdeko.");
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
         toast.success("Welcome back!");
       }
 
-      navigate({ to: role === "trader" ? "/runner" : "/" });
-    } catch (err: any) {
-      setError(err.message ?? "Something went wrong");
+      // The role always comes from the saved profile, never from the form,
+      // so nobody can land on the trader stall by editing the page.
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session.session?.user.id;
+      let savedRole: "buyer" | "trader" = "buyer";
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .maybeSingle();
+        if (profile?.role === "trader") savedRole = "trader";
+      }
+      navigate({ to: savedRole === "trader" ? "/runner" : "/" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
