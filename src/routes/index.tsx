@@ -87,6 +87,52 @@ function BuyerPage() {
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
+  const navigate = useNavigate();
+  const session = useSession();
+  const signedIn = Boolean(session.userId);
+  const actions = useMdekoActions();
+  const { data: liveWave } = useMyWave(signedIn);
+  const { data: liveOrders } = useMyOrders(signedIn);
+
+  // Mirror the saved wave/order from the backend onto the card, so the buyer sees
+  // the trader's progress on this phone without refreshing.
+  const liveOrder = useMemo(() => {
+    if (!liveWave || !liveOrders) return null;
+    return liveOrders.find((o) => o.wave_id === liveWave.id) ?? null;
+  }, [liveWave, liveOrders]);
+
+  useEffect(() => {
+    if (!signedIn || !liveWave) return;
+    const status: "waving" | "accepted" | "delivered" | "paid" = !liveOrder
+      ? "waving"
+      : liveOrder.status === "completed"
+        ? "paid"
+        : liveOrder.status === "delivered"
+          ? "delivered"
+          : "accepted";
+    updateState((prev) => {
+      if (!prev.request || prev.request.waveId !== liveWave.id) return prev;
+      const total = liveOrder ? Number(liveOrder.amount) : prev.request.total;
+      if (
+        prev.request.status === status &&
+        prev.request.orderId === (liveOrder?.id ?? undefined) &&
+        prev.request.total === total
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        request: {
+          ...prev.request,
+          status,
+          total,
+          orderId: liveOrder?.id ?? undefined,
+        },
+      };
+    });
+  }, [signedIn, liveWave, liveOrder]);
+
+
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = runners.filter((r) => r.online);
   const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
