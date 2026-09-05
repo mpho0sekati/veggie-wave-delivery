@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand, Minus, Plus, Star, Store, MapPin, CheckCircle2,
-  Crosshair, Wallet, History, Clock, ChevronDown, ChevronUp, Loader2,
+  Crosshair, Wallet, History, Clock, ChevronDown, ChevronUp, Loader2, LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   refundOrder, setBuyerLocation, updateState, useAppState,
 } from "@/lib/veggie-store";
 import { useGeolocation } from "@/lib/use-geolocation";
+import { useSession, signOutEverywhere } from "@/lib/use-session";
+import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
 import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
@@ -85,6 +87,52 @@ function BuyerPage() {
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
+  const navigate = useNavigate();
+  const session = useSession();
+  const signedIn = Boolean(session.userId);
+  const actions = useMdekoActions();
+  const { data: liveWave } = useMyWave(signedIn);
+  const { data: liveOrders } = useMyOrders(signedIn);
+
+  // Mirror the saved wave/order from the backend onto the card, so the buyer sees
+  // the trader's progress on this phone without refreshing.
+  const liveOrder = useMemo(() => {
+    if (!liveWave || !liveOrders) return null;
+    return liveOrders.find((o) => o.wave_id === liveWave.id) ?? null;
+  }, [liveWave, liveOrders]);
+
+  useEffect(() => {
+    if (!signedIn || !liveWave) return;
+    const status: "waving" | "accepted" | "delivered" | "paid" = !liveOrder
+      ? "waving"
+      : liveOrder.status === "completed"
+        ? "paid"
+        : liveOrder.status === "delivered"
+          ? "delivered"
+          : "accepted";
+    updateState((prev) => {
+      if (!prev.request || prev.request.waveId !== liveWave.id) return prev;
+      const total = liveOrder ? Number(liveOrder.amount) : prev.request.total;
+      if (
+        prev.request.status === status &&
+        prev.request.orderId === (liveOrder?.id ?? undefined) &&
+        prev.request.total === total
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        request: {
+          ...prev.request,
+          status,
+          total,
+          orderId: liveOrder?.id ?? undefined,
+        },
+      };
+    });
+  }, [signedIn, liveWave, liveOrder]);
+
+
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = runners.filter((r) => r.online);
   const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
@@ -116,34 +164,47 @@ function BuyerPage() {
   const bump = useCallback((id: string, delta: number) =>
     setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) })), []);
 
-  const wave = useCallback(() => {
+  const wave = useCallback(async () => {
     if (!picked.length && !wish.trim()) { toast.error("Pick what you need first"); return; }
-    updateState((prev) => ({
-      ...prev,
-      request: {
-        id: crypto.randomUUID(),
-        items: picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
+    if (!signedIn) {
+      toast.error("Sign in first so traders can reach you");
+      navigate({ to: "/auth" });
+      return;
+    }
+
+    const items = picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 }));
+    try {
+      const saved = await actions.createWave.mutateAsync({
+        items,
         wish: wish.trim(),
-        total,
         note: `${picked.length} items`,
-        status: "waving",
-        runnerId: null,
-        createdAt: Date.now(),
-      },
-    }));
-    console.log("\n╔══════════════════════════════════════════╗");
-    console.log("║          BUYER RAISED HAND — WAVING      ║");
-    console.log("╚══════════════════════════════════════════╝");
-    console.log(`  Items : ${picked.map(p => `${qty[p.id]}x ${p.name}`).join(", ")}${wish.trim() ? ` + "${wish.trim()}"` : ""}`);
-    console.log(`  Total : R${total.toFixed(2)}`);
-    console.log(`  Time  : ${new Date().toLocaleTimeString()}`);
-    console.log("  Broadcasting wave to nearby traders...");
-    logDemand([
-      ...picked.map((p) => ({ itemId: p.id, label: p.name })),
-      ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
-    ]);
-    toast.success("Hand raised — traders nearby can see you waving");
-  }, [picked, wish, total, qty]);
+        lat: buyer.located ? buyer.lat : null,
+        lng: buyer.located ? buyer.lng : null,
+      });
+      updateState((prev) => ({
+        ...prev,
+        request: {
+          id: saved.id,
+          waveId: saved.id,
+          items,
+          wish: wish.trim(),
+          total,
+          note: `${picked.length} items`,
+          status: "waving",
+          runnerId: null,
+          createdAt: new Date(saved.created_at).getTime(),
+        },
+      }));
+      logDemand([
+        ...picked.map((p) => ({ itemId: p.id, label: p.name })),
+        ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
+      ]);
+      toast.success("Hand raised — traders nearby can see you waving");
+    } catch (err) {
+      console.error("[mdeko] wave failed", err);
+      toast.error("Could not send your wave — please try again");
+    }
+  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer]);
 
   const waveAgain = useCallback(() =>
     updateState((prev) => ({
@@ -172,9 +233,29 @@ function BuyerPage() {
             : `${online.length} traders · location not shared`
           }
         />
-        <Button asChild variant="secondary" size="sm" className="shrink-0">
-          <Link to="/runner"><Store /> I&apos;m a trader</Link>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/runner"><Store /> I&apos;m a trader</Link>
+          </Button>
+          {signedIn ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Sign out"
+              onClick={async () => {
+                await signOutEverywhere();
+                toast.success("Signed out");
+                navigate({ to: "/auth" });
+              }}
+            >
+              <LogOut />
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          )}
+        </div>
       </header>
 
       <section className={`relative mx-4 overflow-hidden rounded-3xl border shadow-lift transition-[height] duration-300 ${isCollapsed ? "h-40" : "h-72"}`}>
@@ -321,7 +402,7 @@ function BuyerPage() {
           <OrderStepper status={request.status} />
           <div className="flex items-center gap-2">
             {request.status === "waving" && <><Hand className="size-5 animate-wave text-accent" /><p className="font-semibold">Waving… waiting for a trader</p></>}
-            {request.status === "accepted" && assigned && <><MapPin className="size-5 text-primary" /><p className="font-semibold">{assigned.name} is on the way</p></>}
+            {request.status === "accepted" && <><MapPin className="size-5 text-primary" /><p className="font-semibold">{assigned?.name ?? "Your trader"} is on the way</p></>}
             {request.status === "delivered" && <><CheckCircle2 className="size-5 text-primary" /><p className="font-semibold">Delivered — time to pay</p></>}
             {request.status === "paid" && <><CheckCircle2 className="size-5 text-primary" /><p className="font-semibold">Paid {request.paidWith === "cash" ? "in cash" : "with MTN MoMo"}. Enjoy!</p></>}
           </div>
@@ -443,51 +524,47 @@ function BuyerPage() {
         amount={request?.total ?? 0}
         traderName={assigned?.name ?? "your trader"}
         onPay={async (msisdn) => {
+          const orderId = request?.orderId;
+          if (!orderId) {
+            toast.error("Your trader has to accept the order before you can pay");
+            return;
+          }
           setPayLoading(true);
           try {
-            const { momoRequestToPay, momoCheckStatus } = await import("@/lib/momo.functions");
-            const reference = crypto.randomUUID();
-            const externalId = `mdeko-${Date.now()}`;
-
-            const result = await momoRequestToPay({
-              data: { msisdn, amount: request?.total ?? 5, reference, externalId },
-            });
-
-            if (!result.accepted) {
-              toast.error("MoMo rejected the request — try again");
+            // The amount is taken from the saved order on the server, never from this page.
+            const started = await actions.startPayment.mutateAsync({ orderId, msisdn });
+            if (started.status === "failed") {
+              toast.error("MTN MoMo turned the request down — try again");
+              setPayLoading(false);
               return;
             }
 
-            toast.success(`MoMo request sent to ${msisdn} — approve on your phone`);
+            toast.success(`MoMo request sent to ${msisdn} — approve it on your phone`);
             setPayOpen(false);
 
-            // Poll every 2s for up to 60s
+            // Ask MTN what happened, every 2s for up to a minute.
             for (let i = 0; i < 30; i++) {
               await new Promise((r) => setTimeout(r, 2000));
-              const { status } = await momoCheckStatus({ data: { reference } });
-              if (status === "SUCCESSFUL") {
+              const result = await actions.verifyPayment(orderId);
+              if (result?.status === "successful") {
                 updateState((prev) => {
                   if (!prev.request) return prev;
-                  const paid = { ...prev.request, status: "paid" as const, paidWith: "wave-pay" as const };
                   return {
                     ...prev,
-                    request: paid,
-                    runners: prev.runners.map((r) =>
-                      r.id === paid.runnerId ? { ...r, earnings: r.earnings + paid.total } : r
-                    ),
+                    request: { ...prev.request, status: "paid", paidWith: "wave-pay" },
                     wallet: {
                       ...prev.wallet,
-                      balance: Math.round((prev.wallet.balance - paid.total) * 100) / 100,
-                      stokvel_credit: Math.round((prev.wallet.stokvel_credit + 0.50) * 100) / 100,
+                      stokvel_credit: Math.round((prev.wallet.stokvel_credit + 0.5) * 100) / 100,
                     },
                   };
                 });
+                actions.refresh();
                 toast.success("Payment confirmed! Enjoy your veggies");
-                toast.success(`+R0.50 Mdeko Community Credit earned`);
+                toast.success("+R0.50 Mdeko Community Credit earned");
                 setPayLoading(false);
                 return;
               }
-              if (status === "FAILED") {
+              if (result?.status === "failed") {
                 toast.error("Payment was declined on your phone");
                 setPayLoading(false);
                 return;

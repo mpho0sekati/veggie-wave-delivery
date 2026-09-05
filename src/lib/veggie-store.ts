@@ -23,6 +23,9 @@ export type WaveRequest = {
   runnerId: string | null;
   createdAt: number;
   paidWith?: PaidWith;
+  /** Persisted backend ids, so the wave survives a refresh and reaches other phones. */
+  waveId?: string;
+  orderId?: string;
 };
 
 export type DemandEntry = {
