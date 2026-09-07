@@ -126,8 +126,9 @@ function BuyerPage() {
           ...prev.request,
           status,
           total,
-          orderId: liveOrder?.id ?? undefined,
+          ...(liveOrder ? { orderId: liveOrder.id } : {}),
         },
+
       };
     });
   }, [signedIn, liveWave, liveOrder]);
