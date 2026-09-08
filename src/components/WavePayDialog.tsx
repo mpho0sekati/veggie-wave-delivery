@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRand } from "@/lib/veggie-data";
+import { cn } from "@/lib/utils";
 import { COMMUNITY_CREDIT_PER_ORDER, PLATFORM_FEE, MTN_FEE } from "@/lib/veggie-store";
 
 type Props = {
@@ -30,6 +31,8 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
 
   const msisdn = normaliseMsisdn(phone);
   const valid = msisdn !== null;
+  const totalFee = PLATFORM_FEE + MTN_FEE;
+  const canPay = valid && amount >= totalFee;
 
   const confirm = async () => {
     if (!msisdn) { setError("Enter a valid SA mobile number, e.g. 0788 033 288"); return; }
@@ -39,7 +42,8 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
       await onPay(msisdn);
       setPhone("");
       onOpenChange(false);
-    } catch {
+    } catch (err) {
+      console.error("WavePay failed:", err);
       setError("Payment request failed — please try again");
     } finally {
       setBusy(false);
@@ -97,7 +101,7 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setError(""); }}
               disabled={busy}
-              className={error ? "border-destructive" : ""}
+              className={cn(error && "border-destructive")}
             />
             {error
               ? <p className="text-xs text-destructive">{error}</p>
@@ -105,7 +109,7 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
             }
           </div>
 
-          <Button variant="wave" className="w-full" disabled={!valid || busy} onClick={confirm}>
+          <Button variant="wave" className="w-full" disabled={!canPay || busy} onClick={confirm}>
             {busy
               ? <><Loader2 className="animate-spin" /> Sending request…</>
               : <><Wallet /> Pay {formatRand(amount)} with MoMo</>
