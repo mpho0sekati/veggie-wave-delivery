@@ -64,7 +64,7 @@ export const createWave = createServerFn({ method: "POST" })
   });
 
 /** The buyer's own wave that is still open or already accepted. */
-export const getMyWave = createServerFn({ method: "GET" })
+export const getMyWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Wave | null> => {
     const { data, error } = await context.supabase
@@ -79,7 +79,7 @@ export const getMyWave = createServerFn({ method: "GET" })
   });
 
 /** Open waves a trader can still accept. */
-export const listOpenWaves = createServerFn({ method: "GET" })
+export const listOpenWaves = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Wave[]> => {
     const db = await admin();
@@ -123,7 +123,7 @@ export const declineWave = createServerFn({ method: "POST" })
 
 /* ------------------------------- ORDERS ------------------------------- */
 
-export const listMyOrders = createServerFn({ method: "GET" })
+export const listMyOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Order[]> => {
     const { data, error } = await context.supabase
@@ -136,7 +136,7 @@ export const listMyOrders = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
-export const getOrder = createServerFn({ method: "GET" })
+export const getOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ order: Order | null; payment: Payment | null }> => {
@@ -344,7 +344,7 @@ export const verifyMomoPayment = createServerFn({ method: "POST" })
 
 /* ---------------------------- SETTLEMENTS ---------------------------- */
 
-export const listMySettlements = createServerFn({ method: "GET" })
+export const listMySettlements = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Settlement[]> => {
     const { data, error } = await context.supabase
