@@ -41,6 +41,94 @@ export type Database = {
         }
         Relationships: []
       }
+      courier_positions: {
+        Row: {
+          accuracy: number | null
+          created_at: string
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          order_id: string
+          recorded_at: string
+          speed: number | null
+          trader_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          created_at?: string
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          order_id: string
+          recorded_at?: string
+          speed?: number | null
+          trader_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          created_at?: string
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          order_id?: string
+          recorded_at?: string
+          speed?: number | null
+          trader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_positions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "wave_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_traces: {
+        Row: {
+          created_at: string
+          distance_m: number
+          duration_s: number
+          id: string
+          order_id: string
+          points: Json
+          trader_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m?: number
+          duration_s?: number
+          id?: string
+          order_id: string
+          points?: Json
+          trader_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          duration_s?: number
+          id?: string
+          order_id?: string
+          points?: Json
+          trader_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_traces_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "wave_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demand: {
         Row: {
           item_id: string | null
@@ -65,6 +153,45 @@ export type Database = {
           last_at?: string
           requests?: number
           unfilled?: number
+        }
+        Relationships: []
+      }
+      learned_paths: {
+        Row: {
+          created_at: string
+          distance_m: number
+          duration_s: number
+          end_cell: string
+          id: string
+          last_used_at: string
+          points: Json
+          start_cell: string
+          updated_at: string
+          uses: number
+        }
+        Insert: {
+          created_at?: string
+          distance_m?: number
+          duration_s?: number
+          end_cell: string
+          id?: string
+          last_used_at?: string
+          points?: Json
+          start_cell: string
+          updated_at?: string
+          uses?: number
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          duration_s?: number
+          end_cell?: string
+          id?: string
+          last_used_at?: string
+          points?: Json
+          start_cell?: string
+          updated_at?: string
+          uses?: number
         }
         Relationships: []
       }
@@ -614,6 +741,19 @@ export type Database = {
           _comment: string
           _order_id: string
           _rating: number
+        }
+        Returns: undefined
+      }
+      record_delivery_trace: {
+        Args: {
+          _baseline_distance_m: number
+          _distance_m: number
+          _duration_s: number
+          _end_cell: string
+          _order_id: string
+          _points: Json
+          _start_cell: string
+          _trader: string
         }
         Returns: undefined
       }
