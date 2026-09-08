@@ -64,23 +64,23 @@ export function useRoute(
   /**
    * Calculate deviation from current position to route
    */
-  const calculateDeviation = useCallback((
-    position: { lat: number; lng: number },
-    routePolyline: RoutePoint[],
-  ) => {
-    if (routePolyline.length === 0) return null;
+  const calculateDeviation = useCallback(
+    (position: { lat: number; lng: number }, routePolyline: RoutePoint[]) => {
+      if (routePolyline.length === 0) return null;
 
-    // Find minimum distance from position to any point on the route
-    let minDistance = Infinity;
-    for (const point of routePolyline) {
-      const dist = distanceKm(position, point) * 1000; // in meters
-      if (dist < minDistance) {
-        minDistance = dist;
+      // Find minimum distance from position to any point on the route
+      let minDistance = Infinity;
+      for (const point of routePolyline) {
+        const dist = distanceKm(position, point) * 1000; // in meters
+        if (dist < minDistance) {
+          minDistance = dist;
+        }
       }
-    }
 
-    return minDistance;
-  }, []);
+      return minDistance;
+    },
+    [],
+  );
 
   /**
    * Manually trigger route recalculation

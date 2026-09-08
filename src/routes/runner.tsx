@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/lib/veggie-data";
 import {
-  cancelRequest, failRequest, updateState, useAppState,
+  cancelRequest,
+  failRequest,
+  updateState,
+  useAppState,
   setBuyerLocation,
 } from "@/lib/veggie-store";
 import { useGeolocation } from "@/lib/use-geolocation";
@@ -31,9 +34,16 @@ export const Route = createFileRoute("/runner")({
   head: () => ({
     meta: [
       { title: "Trader stall — Mdeko · Veggie Wave" },
-      { name: "description", content: "Go online as a township veggie trader on Mdeko, set your stock and prices, see who is waving nearby and get paid with MTN MoMo." },
+      {
+        name: "description",
+        content:
+          "Go online as a township veggie trader on Mdeko, set your stock and prices, see who is waving nearby and get paid with MTN MoMo.",
+      },
       { property: "og:title", content: "Trader stall — Mdeko · Veggie Wave" },
-      { property: "og:description", content: "Set your stock and prices, see waves nearby, deliver and get paid with MTN MoMo." },
+      {
+        property: "og:description",
+        content: "Set your stock and prices, see waves nearby, deliver and get paid with MTN MoMo.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -67,9 +77,13 @@ function RunnerPage() {
   // Get active delivery order for this trader
   const { data: myOrders } = useMyOrders(signedIn);
   const activeDeliveryOrder = useMemo(() => {
-    return myOrders?.find(
-      (o) => o.trader_id === (session.userId || myId) && ["accepted", "preparing", "ready", "delivering"].includes(o.status),
-    ) ?? null;
+    return (
+      myOrders?.find(
+        (o) =>
+          o.trader_id === (session.userId || myId) &&
+          ["accepted", "preparing", "ready", "delivering"].includes(o.status),
+      ) ?? null
+    );
   }, [myOrders, session.userId, myId]);
 
   // Start live position reporting when delivering
@@ -81,7 +95,12 @@ function RunnerPage() {
   );
 
   // Get route from courier position to buyer
-  const { route, shouldReroute, isLoading: routeLoading, recalculateRoute } = useRoute(
+  const {
+    route,
+    shouldReroute,
+    isLoading: routeLoading,
+    recalculateRoute,
+  } = useRoute(
     activeDeliveryOrder?.id ?? null,
     courierCurrentPosition,
     activeDeliveryOrder?.status === "delivering",
@@ -105,8 +124,12 @@ function RunnerPage() {
   const request = stateRequest;
   const km = distanceKm(stateBuyer, me);
   const catalog = catalogWith(stateCustomItems);
-  const canFill = request ? request.items.filter((line) => priceFor(me, line.id) !== null).length : 0;
-  const myTotal = request ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0) : 0;
+  const canFill = request
+    ? request.items.filter((line) => priceFor(me, line.id) !== null).length
+    : 0;
+  const myTotal = request
+    ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0)
+    : 0;
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
@@ -254,30 +277,53 @@ function RunnerPage() {
           </div>
         </div>
       )}
-      
+
       <header className="animate-rise flex items-center gap-2 px-4 pt-6 pb-3">
         <Button asChild variant="ghost" size="icon" aria-label="Back to buyer view">
-          <Link to="/"><ArrowLeft /></Link>
+          <Link to="/">
+            <ArrowLeft />
+          </Link>
         </Button>
-        <BrandMark subtitle={`Trader stall · ${me.online ? "you're online" : "you're offline"}`} className="min-w-0" />
+        <BrandMark
+          subtitle={`Trader stall · ${me.online ? "you're online" : "you're offline"}`}
+          className="min-w-0"
+        />
       </header>
 
       <Card className="mx-4 gap-4 p-5">
         <div className="flex items-center gap-4">
-          <button type="button" onClick={() => fileRef.current?.click()}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
             className="relative size-16 shrink-0 overflow-hidden rounded-full border-2 border-dashed border-primary bg-secondary"
-            aria-label="Upload profile picture">
-            {me.avatar
-              ? <img src={me.avatar} alt="Your profile" className="size-full object-cover" />
-              : <Camera className="absolute inset-0 m-auto size-6 text-primary" />}
+            aria-label="Upload profile picture"
+          >
+            {me.avatar ? (
+              <img src={me.avatar} alt="Your profile" className="size-full object-cover" />
+            ) : (
+              <Camera className="absolute inset-0 m-auto size-6 text-primary" />
+            )}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden"
-            onChange={(e) => onPickAvatar(e.target.files?.[0])} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="user"
+            className="hidden"
+            onChange={(e) => onPickAvatar(e.target.files?.[0])}
+          />
           <div className="flex-1 space-y-2">
             <Label htmlFor="runner-name">Your name</Label>
             <div className="flex gap-2">
-              <Input id="runner-name" placeholder={me.name} value={name} onChange={(e) => setName(e.target.value)} />
-              <Button variant="secondary" onClick={saveName}>Save</Button>
+              <Input
+                id="runner-name"
+                placeholder={me.name}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Button variant="secondary" onClick={saveName}>
+                Save
+              </Button>
             </div>
           </div>
         </div>
@@ -308,10 +354,21 @@ function RunnerPage() {
             />
           </Suspense>
         </ClientOnly>
-        <Button size="sm" variant="secondary" className="absolute top-3 left-3 z-400 shadow-lift"
-          onClick={() => { locate(); setRecenterTrigger((p) => p + 1); }}>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="absolute top-3 left-3 z-400 shadow-lift"
+          onClick={() => {
+            locate();
+            setRecenterTrigger((p) => p + 1);
+          }}
+        >
           <Crosshair />
-          {geoStatus === "locating" ? "Locating…" : state.buyer.located ? "Recentre" : "Use my location"}
+          {geoStatus === "locating"
+            ? "Locating…"
+            : state.buyer.located
+              ? "Recentre"
+              : "Use my location"}
         </Button>
       </section>
 
@@ -342,16 +399,20 @@ function RunnerPage() {
           <Card className="animate-rise animate-slide-up gap-4 p-5">
             <OrderStepper status={request.status} />
             <div className="flex items-center gap-2">
-              <Hand className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`} />
+              <Hand
+                className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`}
+              />
               <p className="font-semibold">
                 {request.status === "waving" && "Someone is waving"}
                 {request.status === "accepted" && "You accepted — deliver now"}
                 {request.status === "delivered" && "Waiting for payment"}
-                {request.status === "paid" && (request.paidWith === "cash" ? "Paid in cash" : "Paid with MTN MoMo")}
+                {request.status === "paid" &&
+                  (request.paidWith === "cash" ? "Paid in cash" : "Paid with MTN MoMo")}
               </p>
             </div>
             <p className="text-sm text-muted-foreground">
-              {km.toFixed(1)} km away · about {walkMinutes(km)} min walk · you can fill {canFill}/{request.items.length}
+              {km.toFixed(1)} km away · about {walkMinutes(km)} min walk · you can fill {canFill}/
+              {request.items.length}
             </p>
             <ul className="space-y-1 text-sm">
               {request.items.map((line) => {
@@ -365,11 +426,15 @@ function RunnerPage() {
                     <span className={price === null ? "text-muted-foreground line-through" : ""}>
                       {line.qty} × {item.name} ({item.unit})
                     </span>
-                    {price === null && <span className="text-xs text-muted-foreground">not in your stock</span>}
+                    {price === null && (
+                      <span className="text-xs text-muted-foreground">not in your stock</span>
+                    )}
                   </li>
                 );
               })}
-              {request.wish && <li className="text-muted-foreground italic">also asked for: {request.wish}</li>}
+              {request.wish && (
+                <li className="text-muted-foreground italic">also asked for: {request.wish}</li>
+              )}
             </ul>
             <p className="font-display text-xl font-bold">
               {formatRand(request.status === "waving" ? myTotal : request.total)}
@@ -382,22 +447,43 @@ function RunnerPage() {
             )}
             {request.status === "accepted" && (
               <div className="space-y-2">
-                <Button size="lg" variant="wave" className="w-full" onClick={deliver} disabled={isReporting}>
-                  <CheckCircle2 /> {isReporting ? "Starting tracking..." : "Start delivering — share live location"}
+                <Button
+                  size="lg"
+                  variant="wave"
+                  className="w-full"
+                  onClick={deliver}
+                  disabled={isReporting}
+                >
+                  <CheckCircle2 />{" "}
+                  {isReporting ? "Starting tracking..." : "Start delivering — share live location"}
                 </Button>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10"
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-destructive hover:bg-destructive/10"
                     onClick={() => {
-                      console.log(`\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`);
-                      failRequest("Trader marked delivery as failed"); toast.error("Delivery marked as failed");
-                    }}>
+                      console.log(
+                        `\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`,
+                      );
+                      failRequest("Trader marked delivery as failed");
+                      toast.error("Delivery marked as failed");
+                    }}
+                  >
                     Mark Failed
                   </Button>
-                  <Button size="sm" variant="ghost" className="flex-1"
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1"
                     onClick={() => {
-                      console.log(`\n  WAVE DECLINED -- ${me.name} at ${new Date().toLocaleTimeString()}`);
-                      cancelRequest("Trader cancelled"); toast.info("Wave cancelled");
-                    }}>
+                      console.log(
+                        `\n  WAVE DECLINED -- ${me.name} at ${new Date().toLocaleTimeString()}`,
+                      );
+                      cancelRequest("Trader cancelled");
+                      toast.info("Wave cancelled");
+                    }}
+                  >
                     Decline
                   </Button>
                 </div>
@@ -409,16 +495,29 @@ function RunnerPage() {
                   <CheckCircle2 /> I&apos;ve arrived — request payment
                 </Button>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10"
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-destructive hover:bg-destructive/10"
                     onClick={() => {
-                      console.log(`\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`);
-                      failRequest("Trader marked delivery as failed"); toast.error("Delivery marked as failed");
-                    }}>
+                      console.log(
+                        `\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`,
+                      );
+                      failRequest("Trader marked delivery as failed");
+                      toast.error("Delivery marked as failed");
+                    }}
+                  >
                     Mark Failed
                   </Button>
                 </div>
                 {shouldReroute && (
-                  <Button size="sm" variant="secondary" className="w-full" onClick={recalculateRoute} disabled={routeLoading}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={recalculateRoute}
+                    disabled={routeLoading}
+                  >
                     {routeLoading ? "Recalculating..." : "↻ Re-route"}
                   </Button>
                 )}
@@ -446,21 +545,35 @@ function RunnerPage() {
             )}
             {request.status === "delivered" && (
               <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">
-                <Wallet className="size-4 text-primary" /> Ask the customer to pay with MTN MoMo, or take cash.
+                <Wallet className="size-4 text-primary" /> Ask the customer to pay with MTN MoMo, or
+                take cash.
               </p>
             )}
           </Card>
         )}
       </div>
 
-      <StockEditor runnerId={me.id} stock={me.stock} customItems={stateCustomItems} highlightItemId={highlight} />
+      <StockEditor
+        runnerId={me.id}
+        stock={me.stock}
+        customItems={stateCustomItems}
+        highlightItemId={highlight}
+      />
 
       <div className="mx-4 mt-4 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
-        <p className="text-xs font-semibold text-primary uppercase tracking-wide">Demand Intelligence</p>
-        <p className="text-xs text-muted-foreground mt-0.5">See what buyers near you are asking for — restock before they wave.</p>
+        <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+          Demand Intelligence
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          See what buyers near you are asking for — restock before they wave.
+        </p>
       </div>
 
-      <DemandInsights state={{ ...state, userId: null, runners, customItems: stateCustomItems }} runnerId={me.id} onAdded={setHighlight} />
+      <DemandInsights
+        state={{ ...state, runners, customItems: stateCustomItems }}
+        runnerId={me.id}
+        onAdded={setHighlight}
+      />
       <div className="h-8" />
     </main>
   );

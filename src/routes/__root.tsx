@@ -51,9 +51,7 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Button onClick={() => window.location.reload()}>
-            Try again
-          </Button>
+          <Button onClick={() => window.location.reload()}>Try again</Button>
           <Button asChild variant="outline">
             <Link to="/">Go home</Link>
           </Button>

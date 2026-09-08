@@ -92,13 +92,19 @@ function AuthPage() {
         <div className="flex rounded-xl bg-secondary p-1">
           <button
             className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signin" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-            onClick={() => { setMode("signin"); setError(""); }}
+            onClick={() => {
+              setMode("signin");
+              setError("");
+            }}
           >
             Sign in
           </button>
           <button
             className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signup" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-            onClick={() => { setMode("signup"); setError(""); }}
+            onClick={() => {
+              setMode("signup");
+              setError("");
+            }}
           >
             Create account
           </button>
@@ -169,9 +175,14 @@ function AuthPage() {
 
         <Button variant="wave" className="w-full" onClick={submit} disabled={loading}>
           {loading ? (
-            <><Loader2 className="animate-spin" /> {mode === "signup" ? "Creating account…" : "Signing in…"}</>
+            <>
+              <Loader2 className="animate-spin" />{" "}
+              {mode === "signup" ? "Creating account…" : "Signing in…"}
+            </>
+          ) : mode === "signup" ? (
+            "Create account"
           ) : (
-            mode === "signup" ? "Create account" : "Sign in"
+            "Sign in"
           )}
         </Button>
       </Card>

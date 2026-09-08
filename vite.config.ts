@@ -16,4 +16,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   ...netlifyNitro,
+  vite: {
+    optimizeDeps: {
+      exclude: ["react-dom", "react"],
+    },
+  },
 });

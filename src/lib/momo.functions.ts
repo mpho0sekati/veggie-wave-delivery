@@ -5,12 +5,14 @@ import { z } from "zod";
 
 export const momoRequestToPay = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
-    z.object({
-      msisdn: z.string().min(9),
-      amount: z.number().positive(),
-      reference: z.string().uuid(),
-      externalId: z.string(),
-    }).parse(input),
+    z
+      .object({
+        msisdn: z.string().min(9),
+        amount: z.number().positive(),
+        reference: z.string().uuid(),
+        externalId: z.string(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }): Promise<{ accepted: boolean; reference: string }> => {
     console.log("\n╔══════════════════════════════════════════╗");
@@ -43,24 +45,31 @@ export const momoRequestToPay = createServerFn({ method: "POST" })
   });
 
 export const momoCheckStatus = createServerFn({ method: "POST" })
-  .validator((input: unknown) =>
-    z.object({ reference: z.string().uuid() }).parse(input),
-  )
-  .handler(async ({ data }): Promise<{ status: "PENDING" | "SUCCESSFUL" | "FAILED"; reason: string | null }> => {
-    const { fetchPaymentStatus } = await import("./momo.server");
-    const result = await fetchPaymentStatus(data.reference);
+  .validator((input: unknown) => z.object({ reference: z.string().uuid() }).parse(input))
+  .handler(
+    async ({
+      data,
+    }): Promise<{ status: "PENDING" | "SUCCESSFUL" | "FAILED"; reason: string | null }> => {
+      const { fetchPaymentStatus } = await import("./momo.server");
+      const result = await fetchPaymentStatus(data.reference);
 
-    const icon =
-      result.status === "SUCCESSFUL" ? "[OK]" :
-      result.status === "FAILED"     ? "[FAILED]" : "[PENDING]";
+      const icon =
+        result.status === "SUCCESSFUL"
+          ? "[OK]"
+          : result.status === "FAILED"
+            ? "[FAILED]"
+            : "[PENDING]";
 
-    console.log(`  ${icon} MoMo status -> ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
+      console.log(
+        `  ${icon} MoMo status -> ${result.status}${result.reason ? ` (${result.reason})` : ""}`,
+      );
 
-    if (result.status === "SUCCESSFUL") {
-      console.log("╔══════════════════════════════════════════╗");
-      console.log("║     PAYMENT CONFIRMED — MONEY RECEIVED   ║");
-      console.log("╚══════════════════════════════════════════╝\n");
-    }
+      if (result.status === "SUCCESSFUL") {
+        console.log("╔══════════════════════════════════════════╗");
+        console.log("║     PAYMENT CONFIRMED — MONEY RECEIVED   ║");
+        console.log("╚══════════════════════════════════════════╝\n");
+      }
 
-    return { status: result.status, reason: result.reason };
-  });
+      return { status: result.status, reason: result.reason };
+    },
+  );

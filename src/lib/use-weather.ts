@@ -47,9 +47,12 @@ export function useWeatherWarning(orderId: string | null) {
   useEffect(() => {
     if (!orderId) return;
 
-    const interval = setInterval(() => {
-      void fetchWeather();
-    }, 10 * 60 * 1000); // 10 minutes
+    const interval = setInterval(
+      () => {
+        void fetchWeather();
+      },
+      10 * 60 * 1000,
+    ); // 10 minutes
 
     return () => clearInterval(interval);
   }, [orderId]);

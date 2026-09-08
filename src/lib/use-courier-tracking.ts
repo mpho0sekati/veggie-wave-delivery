@@ -30,11 +30,17 @@ export function useReportCourierPosition(
   const [currentPosition, setCurrentPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   const reportPosition = useCallback(
-    async (position: { lat: number; lng: number; heading?: number; speed?: number; accuracy?: number }) => {
+    async (position: {
+      lat: number;
+      lng: number;
+      heading?: number;
+      speed?: number;
+      accuracy?: number;
+    }) => {
       if (!orderId) return;
 
       const last = lastPositionRef.current;
-      
+
       // Skip if we reported too recently
       if (last && Date.now() - last.timestamp < throttleMs) {
         return;
@@ -181,7 +187,7 @@ export function useCourierPositions(orderId: string | null) {
         (payload) => {
           const newPosition = payload.new as CourierPosition;
           setPositions((prev) => [...prev, newPosition]);
-          
+
           // Update latest position with ETA calculation if we have buyer position
           if (buyerPosition) {
             const dist = distanceKm(newPosition, buyerPosition);

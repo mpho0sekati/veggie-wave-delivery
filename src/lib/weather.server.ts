@@ -21,10 +21,7 @@ function isValidCoordinates(lat: number, lng: number): boolean {
  * Fetches weather data from Open-Meteo API
  * Uses free public endpoint with no authentication required
  */
-async function fetchOpenMeteo(
-  lat: number,
-  lng: number,
-): Promise<OpenMeteoResponse | null> {
+async function fetchOpenMeteo(lat: number, lng: number): Promise<OpenMeteoResponse | null> {
   // Build URL with coordinates (Open-Meteo accepts lat/lng directly)
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&minutely_15=precipitation`;
 
@@ -76,7 +73,7 @@ interface OpenMeteoResponse {
 function getWeatherType(weathercode: number, precipitation: number[]): WeatherWarning | null {
   // Check precipitation first (rain/storms)
   const maxPrecip = Math.max(...precipitation);
-  
+
   // Heavy rain: >= 5mm/h
   if (maxPrecip >= 5) {
     return {
@@ -178,10 +175,7 @@ function getWindWarning(windspeed: number): WeatherWarning | null {
  * Main function to get weather warning for a location
  * Returns the most severe warning found
  */
-export async function getWeatherWarning(
-  lat: number,
-  lng: number,
-): Promise<WeatherWarning | null> {
+export async function getWeatherWarning(lat: number, lng: number): Promise<WeatherWarning | null> {
   // Validate coordinates
   if (!isValidCoordinates(lat, lng)) {
     console.warn("Invalid coordinates for weather check");
@@ -239,7 +233,7 @@ export async function getWeatherWarningCached(
   lng: number,
 ): Promise<WeatherWarning | null> {
   const cacheKey = getCacheKey(lat, lng);
-  
+
   // Check cache
   const cached = weatherCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -248,10 +242,10 @@ export async function getWeatherWarningCached(
 
   // Fetch fresh
   const warning = await getWeatherWarning(lat, lng);
-  
+
   // Update cache
   weatherCache.set(cacheKey, { warning, timestamp: Date.now() });
-  
+
   // Clean up old cache entries (every 10th request)
   if (Math.random() < 0.1) {
     const now = Date.now();

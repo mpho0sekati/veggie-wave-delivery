@@ -37,7 +37,7 @@ async function admin() {
 
 export const createWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         items: itemsSchema,
@@ -97,7 +97,7 @@ export const listOpenWaves = createServerFn({ method: "POST" })
 
 export const acceptWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ waveId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ waveId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<Order> => {
     const db = await admin();
     const { data: order, error } = await db.rpc("accept_wave", {
@@ -110,7 +110,7 @@ export const acceptWave = createServerFn({ method: "POST" })
 
 export const declineWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ waveId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ waveId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const db = await admin();
     const { error } = await db.rpc("decline_wave", {
@@ -138,7 +138,7 @@ export const listMyOrders = createServerFn({ method: "POST" })
 
 export const getOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ order: Order | null; payment: Payment | null }> => {
     const { data: order, error } = await context.supabase
       .from("wave_orders")
@@ -158,7 +158,7 @@ export const getOrder = createServerFn({ method: "POST" })
 /** Trader: preparing / ready / delivering / delivered. Buyer: completed. */
 export const advanceOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         orderId: z.string().uuid(),
@@ -179,7 +179,7 @@ export const advanceOrder = createServerFn({ method: "POST" })
 
 export const rateOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         orderId: z.string().uuid(),
@@ -217,7 +217,7 @@ export type PaymentResult = {
  */
 export const startMomoPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         orderId: z.string().uuid(),
@@ -295,7 +295,7 @@ export const startMomoPayment = createServerFn({ method: "POST" })
  */
 export const verifyMomoPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<PaymentResult | null> => {
     const { data: existing, error } = await context.supabase
       .from("payments")
@@ -438,7 +438,7 @@ export const getWeatherForOrder = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<WeatherWarning | null> => {
     const db = await admin();
-    
+
     // Get order and verify user is either buyer or trader
     const { data: order, error } = await db
       .from("wave_orders")
@@ -474,7 +474,7 @@ export const getRoute = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<RouteResult> => {
     const db = await admin();
-    
+
     // Verify trader owns this order and it's in a valid state for routing
     const { data: order, error } = await db
       .from("wave_orders")

@@ -179,7 +179,7 @@ export async function getWalkingRoute(
   }
 
   const data = await fetchOSRMRoute(start, end);
-  
+
   if (!data || !data.routes || data.routes.length === 0) {
     console.error("No routes found from OSRM");
     // Cache the failure briefly
@@ -228,7 +228,9 @@ export function calculateBearing(
   const endLat = (end.lat * Math.PI) / 180;
 
   const y = Math.sin(endLng - startLng) * Math.cos(endLat);
-  const x = Math.cos(startLat) * Math.sin(endLat) - Math.sin(startLat) * Math.cos(endLat) * Math.cos(endLng - startLng);
+  const x =
+    Math.cos(startLat) * Math.sin(endLat) -
+    Math.sin(startLat) * Math.cos(endLat) * Math.cos(endLng - startLng);
 
   let bearing = Math.atan2(y, x);
   bearing = bearing * (180 / Math.PI);

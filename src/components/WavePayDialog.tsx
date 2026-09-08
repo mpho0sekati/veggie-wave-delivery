@@ -35,7 +35,10 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
   const canPay = valid && amount >= totalFee;
 
   const confirm = async () => {
-    if (!msisdn) { setError("Enter a valid SA mobile number, e.g. 0788 033 288"); return; }
+    if (!msisdn) {
+      setError("Enter a valid SA mobile number, e.g. 0788 033 288");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -51,7 +54,16 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!busy) { setPhone(""); setError(""); onOpenChange(v); } }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!busy) {
+          setPhone("");
+          setError("");
+          onOpenChange(v);
+        }
+      }}
+    >
       <DialogContent className="max-w-xs">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -71,7 +83,9 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
             <p className="font-semibold text-sm mb-2">How your payment is split</p>
             <div className="flex justify-between text-muted-foreground">
               <span>Trader receives</span>
-              <span className="font-medium text-foreground">{formatRand(Math.max(0, amount - PLATFORM_FEE - MTN_FEE))}</span>
+              <span className="font-medium text-foreground">
+                {formatRand(Math.max(0, amount - PLATFORM_FEE - MTN_FEE))}
+              </span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>Veggie Wave fee</span>
@@ -99,21 +113,32 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
               placeholder="e.g. 0788 033 288"
               autoComplete="tel"
               value={phone}
-              onChange={(e) => { setPhone(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setError("");
+              }}
               disabled={busy}
               className={cn(error && "border-destructive")}
             />
-            {error
-              ? <p className="text-xs text-destructive">{error}</p>
-              : <p className="text-xs text-muted-foreground">You will get a MoMo push notification to approve.</p>
-            }
+            {error ? (
+              <p className="text-xs text-destructive">{error}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                You will get a MoMo push notification to approve.
+              </p>
+            )}
           </div>
 
           <Button variant="wave" className="w-full" disabled={!canPay || busy} onClick={confirm}>
-            {busy
-              ? <><Loader2 className="animate-spin" /> Sending request…</>
-              : <><Wallet /> Pay {formatRand(amount)} with MoMo</>
-            }
+            {busy ? (
+              <>
+                <Loader2 className="animate-spin" /> Sending request…
+              </>
+            ) : (
+              <>
+                <Wallet /> Pay {formatRand(amount)} with MoMo
+              </>
+            )}
           </Button>
         </div>
       </DialogContent>

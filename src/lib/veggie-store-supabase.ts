@@ -23,6 +23,8 @@ export type WaveRequest = {
   runnerId: string | null;
   createdAt: number;
   paidWith?: PaidWith;
+  waveId?: string;
+  orderId?: string;
 };
 
 export type DemandEntry = {
@@ -40,7 +42,7 @@ export type AppState = {
   orders: WaveRequest[];
   demand: DemandEntry[];
   customItems: CustomItem[];
-  wallet: { balance: number; pin: string };
+  wallet: { balance: number; pin_hash: string };
   buyer: { lat: number; lng: number; located: boolean };
   me: { id: string; name: string; avatar: string | null; online: boolean };
   userId: string | null;
@@ -119,19 +121,19 @@ async function fetchOrders(userId: string): Promise<WaveRequest[]> {
 }
 
 // Fetch user's wallet
-async function fetchWallet(userId: string): Promise<{ balance: number; pin: string }> {
+async function fetchWallet(userId: string): Promise<{ balance: number; pin_hash: string }> {
   const { data, error } = await supabase
     .from("wallets")
-    .select("balance")
+    .select("balance, pin_hash")
     .eq("user_id", userId)
     .single();
 
   if (error) {
     console.error("Error fetching wallet:", error);
-    return { balance: 0, pin: "" };
+    return { balance: 0, pin_hash: "" };
   }
 
-  return { balance: data?.balance ?? 0, pin: "" };
+  return { balance: data?.balance ?? 0, pin_hash: data?.pin_hash ?? "" };
 }
 
 // Fetch user's profile
@@ -407,10 +409,10 @@ export async function failRequest(reason = "Unavailable"): Promise<void> {
 }
 
 // Pay with Wave Pay (calls server function)
-export async function payWithWavePay(orderId: string, pin: string): Promise<string> {
+export async function payWithWavePayRpc(orderId: string, pin_hash: string): Promise<string> {
   const { data, error } = await supabase.rpc("pay_order", {
     _order_id: orderId,
-    _pin: pin,
+    _pin: pin_hash,
     _method: "wave-pay",
   });
 
@@ -597,7 +599,7 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
           orders: [],
           demand: [],
           customItems: [],
-          wallet: { balance: 0, pin: "" },
+          wallet: { balance: 0, pin_hash: "" },
           buyer: { lat: BUYER_POSITION.lat, lng: BUYER_POSITION.lng, located: false },
           me: { id: "", name: "", avatar: null, online: false },
           userId: null,
@@ -608,7 +610,7 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
           orders: [],
           demand: [],
           customItems: [],
-          wallet: { balance: 0, pin: "" },
+          wallet: { balance: 0, pin_hash: "" },
           buyer: { lat: BUYER_POSITION.lat, lng: BUYER_POSITION.lng, located: false },
           me: { id: "", name: "", avatar: null, online: false },
           userId: null,

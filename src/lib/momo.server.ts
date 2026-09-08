@@ -87,7 +87,6 @@ async function accessToken(cfg: MomoConfig): Promise<string> {
   return body.access_token;
 }
 
-
 /**
  * Ask the payer to approve a collection. `reference` is our unique transaction
  * reference and doubles as MoMo's X-Reference-Id, which makes retries idempotent
@@ -165,7 +164,6 @@ export async function fetchPaymentStatus(
     console.error(`[momo] status lookup failed ${res.status}: ${detail.slice(0, 300)}`);
     return { status: "PENDING", providerStatus: `lookup-error:${res.status}`, reason: null };
   }
-
 
   const body = (await res.json()) as {
     status?: string;

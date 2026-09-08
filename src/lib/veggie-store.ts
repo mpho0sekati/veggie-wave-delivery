@@ -43,9 +43,10 @@ export type AppState = {
   orders: WaveRequest[];
   demand: DemandEntry[];
   customItems: CustomItem[];
-  wallet: { balance: number; pin: string; stokvel_credit: number };
+  wallet: { balance: number; pin_hash: string; stokvel_credit: number };
   buyer: { lat: number; lng: number; located: boolean };
   me: { id: string; name: string; avatar: string | null; online: boolean };
+  userId: string | null;
 };
 
 const KEY = "veggieguy-state-v3";
@@ -59,9 +60,10 @@ function initialState(): AppState {
     orders: [],
     demand: [],
     customItems: [],
-    wallet: { balance: 5, pin: "1234", stokvel_credit: 0 },
+    wallet: { balance: 5, pin_hash: "1234", stokvel_credit: 0 },
     buyer: { ...BUYER_POSITION, located: false },
     me: { id: "me", name: "", avatar: null, online: false },
+    userId: null,
   };
 }
 
@@ -176,9 +178,9 @@ export function suggestedPrice(state: AppState, itemId: string): number {
 }
 
 // Business model constants
-export const COMMUNITY_CREDIT_PER_ORDER = 0.50; // Buyer earns R0.50 Mdeko Community Credit per MoMo pay
-export const PLATFORM_FEE = 0.30;               // Veggie Wave keeps R0.30
-export const MTN_FEE = 0.20;                    // MTN takes R0.20
+export const COMMUNITY_CREDIT_PER_ORDER = 0.5; // Buyer earns R0.50 Mdeko Community Credit per MoMo pay
+export const PLATFORM_FEE = 0.3; // Veggie Wave keeps R0.30
+export const MTN_FEE = 0.2; // MTN takes R0.20
 export const TOTAL_FEE = PLATFORM_FEE + MTN_FEE; // R0.50 total fee
 
 function settle(prev: AppState, paidWith: PaidWith): AppState {
@@ -196,7 +198,8 @@ function settle(prev: AppState, paidWith: PaidWith): AppState {
             ...prev.wallet,
             balance: prev.wallet.balance - paid.total,
             // R0.50 Mdeko Community Credit for every MoMo payment — loyalty reward
-            stokvel_credit: Math.round((prev.wallet.stokvel_credit + COMMUNITY_CREDIT_PER_ORDER) * 100) / 100,
+            stokvel_credit:
+              Math.round((prev.wallet.stokvel_credit + COMMUNITY_CREDIT_PER_ORDER) * 100) / 100,
           }
         : prev.wallet,
   };
@@ -205,11 +208,11 @@ function settle(prev: AppState, paidWith: PaidWith): AppState {
 export type PayResult = "ok" | "wrong-pin" | "insufficient" | "no-request";
 
 /** Demo money only — moves Rands from the buyer's Wave Pay balance to the trader. */
-export function payWithWavePay(pin: string): PayResult {
+export function payWithWavePay(pin_hash: string): PayResult {
   if (typeof window === "undefined") return "no-request";
   const state = read();
   if (!state.request) return "no-request";
-  if (pin !== state.wallet.pin) return "wrong-pin";
+  if (pin_hash !== state.wallet.pin_hash) return "wrong-pin";
   if (state.wallet.balance < state.request.total) return "insufficient";
   write(settle(state, "wave-pay"));
   return "ok";
@@ -281,7 +284,10 @@ export function refundOrder(orderId: string) {
         ...prev.wallet,
         balance: prev.wallet.balance + refundAmount,
         stokvel_credit: wasWavePay
-          ? Math.max(0, Math.round((prev.wallet.stokvel_credit - COMMUNITY_CREDIT_PER_ORDER) * 100) / 100)
+          ? Math.max(
+              0,
+              Math.round((prev.wallet.stokvel_credit - COMMUNITY_CREDIT_PER_ORDER) * 100) / 100,
+            )
           : prev.wallet.stokvel_credit,
       },
       runners: prev.runners.map((r) =>
