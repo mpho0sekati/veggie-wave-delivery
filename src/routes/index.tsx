@@ -23,6 +23,8 @@ import {
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useSession, signOutEverywhere } from "@/lib/use-session";
 import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
+import { useCourierPositions } from "@/lib/use-courier-tracking";
+import { useWeatherWarning } from "@/lib/use-weather";
 import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
@@ -100,6 +102,21 @@ function BuyerPage() {
     if (!liveWave || !liveOrders) return null;
     return liveOrders.find((o) => o.wave_id === liveWave.id) ?? null;
   }, [liveWave, liveOrders]);
+
+  // Live courier tracking for active delivery orders
+  const { latestPosition: courierPosition, setBuyerPosition } = useCourierPositions(
+    liveOrder?.id ?? null,
+  );
+
+  // Weather warning for active delivery orders
+  const { warning: weatherWarning } = useWeatherWarning(liveOrder?.id ?? null);
+
+  // Update buyer position for ETA calculation
+  useEffect(() => {
+    if (buyer.located) {
+      setBuyerPosition({ lat: buyer.lat, lng: buyer.lng });
+    }
+  }, [buyer.lat, buyer.lng, buyer.located, setBuyerPosition]);
 
   useEffect(() => {
     if (!signedIn || !liveWave) return;
@@ -226,6 +243,31 @@ function BuyerPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col pb-4">
+      {/* Weather warning banner for active delivery orders */}
+      {weatherWarning && (
+        <div
+          className={`fixed top-4 left-4 right-4 z-50 animate-slide-down p-4 rounded-xl shadow-lg ${
+            weatherWarning.severity === "warning"
+              ? "bg-destructive/10 border border-destructive text-destructive"
+              : "bg-secondary"
+          }`}
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{weatherWarning.icon}</span>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">{weatherWarning.message}</p>
+              {weatherWarning.severity === "warning" && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Deliveries continue. Weather may slow your order.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <header className="animate-rise flex items-center justify-between gap-3 px-5 pt-6 pb-3">
         <BrandMark
           subtitle={
@@ -267,6 +309,7 @@ function BuyerPage() {
               activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
+              courierPosition={courierPosition}
               recenterTrigger={recenterTrigger}
               onPickPosition={onPosition}
             />

@@ -151,6 +151,33 @@
   animation: ping-soft 1.6s ease-out infinite;
 }
 
+/* Courier (delivery) marker - animated bike emoji */
+.marker-courier {
+  display: flex;
+  height: 40px;
+  width: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 2px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: var(--shadow-lift);
+  font-size: 20px;
+  animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-gentle {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.74 0.17 62 / 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px oklch(0.74 0.17 62 / 0);
+  }
+}
+
 .leaflet-container {
   background: oklch(0.94 0.02 120);
   font-family: var(--font-sans);

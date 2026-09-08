@@ -356,3 +356,151 @@ export const listMySettlements = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+/* ---------------------------- COURIER POSITIONS ---------------------------- */
+
+export type CourierPosition = Tables<"courier_positions">;
+
+export const recordCourierPosition = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        heading: z.number().nullable().optional(),
+        speed: z.number().nullable().optional(),
+        accuracy: z.number().nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<CourierPosition> => {
+    const db = await admin();
+    const { data: position, error } = await db
+      .from("courier_positions")
+      .insert({
+        order_id: data.orderId,
+        trader_id: context.userId,
+        lat: data.lat,
+        lng: data.lng,
+        heading: data.heading ?? null,
+        speed: data.speed ?? null,
+        accuracy: data.accuracy ?? null,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return position as CourierPosition;
+  });
+
+export const getCourierPositions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<CourierPosition[]> => {
+    const { data: positions, error } = await context.supabase
+      .from("courier_positions")
+      .select("*")
+      .eq("order_id", data.orderId)
+      .order("recorded_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return positions ?? [];
+  });
+
+/* ------------------------------ WEATHER ------------------------------ */
+
+import type { WeatherWarning } from "./weather.server";
+import { getWeatherWarningCached } from "./weather.server";
+
+/* ----------------------------- ROUTING ----------------------------- */
+
+import type { RouteResult } from "./routing.server";
+import { getWalkingRoute } from "./routing.server";
+
+/**
+ * Get weather warning for an order's delivery location.
+ * Only the buyer or trader for the order can request this.
+ */
+export const getWeatherForOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<WeatherWarning | null> => {
+    const db = await admin();
+    
+    // Get order and verify user is either buyer or trader
+    const { data: order, error } = await db
+      .from("wave_orders")
+      .select("buyer_lat, buyer_lng")
+      .eq("id", data.orderId)
+      .or(`buyer_id.eq.${context.userId},trader_id.eq.${context.userId}`)
+      .single();
+
+    if (error || !order) {
+      throw new Error("order-not-found");
+    }
+
+    // Fetch weather warning for buyer's location
+    const warning = await getWeatherWarningCached(order.buyer_lat, order.buyer_lng);
+    return warning;
+  });
+
+/**
+ * Get walking route from trader's current position to buyer's location.
+ * Only the trader for the order can request this.
+ * Uses OSRM public demo server (free, no API key).
+ */
+export const getRoute = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        fromLat: z.number().min(-90).max(90),
+        fromLng: z.number().min(-180).max(180),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<RouteResult> => {
+    const db = await admin();
+    
+    // Verify trader owns this order and it's in a valid state for routing
+    const { data: order, error } = await db
+      .from("wave_orders")
+      .select("buyer_lat, buyer_lng, status")
+      .eq("id", data.orderId)
+      .eq("trader_id", context.userId)
+      .single();
+
+    if (error || !order) {
+      throw new Error("order-not-found-or-not-yours");
+    }
+
+    // Only allow routing for active delivery orders
+    const validStatuses = ["accepted", "preparing", "ready", "delivering"];
+    if (!validStatuses.includes(order.status)) {
+      throw new Error("order-not-in-delivery-state");
+    }
+
+    const route = await getWalkingRoute(
+      { lat: data.fromLat, lng: data.fromLng },
+      { lat: order.buyer_lat, lng: order.buyer_lng },
+    );
+
+    if (!route) {
+      throw new Error("route-failed");
+    }
+
+    return route;
+  });

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useRef, useState, useCallback } from "react";
+import { lazy, Suspense, useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,10 @@ import {
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useSession } from "@/lib/use-session";
 import { useMdekoActions, useMyOrders, useMySettlements, useOpenWaves } from "@/lib/use-mdeko";
+import { useReportCourierPosition } from "@/lib/use-courier-tracking";
+import { useWeatherWarning } from "@/lib/use-weather";
+import { useRoute } from "@/lib/use-route";
+import { useCompass } from "@/lib/use-compass";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import BrandMark from "@/components/BrandMark";
@@ -55,8 +59,39 @@ function RunnerPage() {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
 
+  const session = useSession();
+  const signedIn = Boolean(session.userId);
   const myId = state.me.id !== "" ? state.me.id : MY_ID;
   const me = runners.find((r) => r.id === myId) ?? runners.find((r) => r.id === MY_ID)!;
+
+  // Get active delivery order for this trader
+  const { data: myOrders } = useMyOrders(signedIn);
+  const activeDeliveryOrder = useMemo(() => {
+    return myOrders?.find(
+      (o) => o.trader_id === (session.userId || myId) && ["accepted", "preparing", "ready", "delivering"].includes(o.status),
+    ) ?? null;
+  }, [myOrders, session.userId, myId]);
+
+  // Start live position reporting when delivering
+  const { isReporting, currentPosition: courierCurrentPosition } = useReportCourierPosition(
+    activeDeliveryOrder?.id ?? null,
+    activeDeliveryOrder?.status === "delivering",
+    5000, // 5 seconds throttle
+    10, // 10 meters minimum movement
+  );
+
+  // Get route from courier position to buyer
+  const { route, shouldReroute, isLoading: routeLoading, recalculateRoute } = useRoute(
+    activeDeliveryOrder?.id ?? null,
+    courierCurrentPosition,
+    activeDeliveryOrder?.status === "delivering",
+  );
+
+  // Get compass bearing as fallback
+  const bearing = useCompass(courierCurrentPosition, stateBuyer);
+
+  // Weather warning for active delivery orders
+  const { warning: weatherWarning } = useWeatherWarning(activeDeliveryOrder?.id ?? null);
 
   if (!me) {
     return (
@@ -79,6 +114,7 @@ function RunnerPage() {
     toast.success("Location updated");
   }, []);
   const { status: geoStatus, locate } = useGeolocation(onPosition);
+  const actions = useMdekoActions();
 
   const onPickAvatar = (file?: File | null) => {
     if (!file) return;
@@ -129,19 +165,65 @@ function RunnerPage() {
     }));
   };
 
-  const deliver = () => {
-    console.log("\n╔══════════════════════════════════════════╗");
-    console.log("║       TRADER ARRIVED — DELIVERY DONE     ║");
-    console.log("╚══════════════════════════════════════════╝");
-    console.log(`  Trader  : ${me.name}`);
-    console.log(`  Distance: ${km.toFixed(2)} km`);
-    console.log(`  Amount  : R${(request?.total ?? 0).toFixed(2)}`);
-    console.log(`  Time    : ${new Date().toLocaleTimeString()}`);
-    console.log("  Waiting for buyer to pay via MTN MoMo...");
-    updateState((prev) => ({
-      ...prev,
-      request: prev.request ? { ...prev.request, status: "delivered" } : null,
-    }));
+  const deliver = async () => {
+    if (!request?.orderId) {
+      toast.error("No active order to mark as delivered");
+      return;
+    }
+
+    try {
+      // First mark as delivering to start position tracking
+      await actions.advanceOrder.mutateAsync({
+        orderId: request.orderId,
+        status: "delivering",
+      });
+
+      console.log("\n╔══════════════════════════════════════════╗");
+      console.log("║       TRADER DELIVERING — LIVE TRACKING STARTED     ║");
+      console.log("╚══════════════════════════════════════════╝");
+      console.log(`  Trader  : ${me.name}`);
+      console.log(`  Distance: ${km.toFixed(2)} km`);
+      console.log(`  Amount  : R${(request?.total ?? 0).toFixed(2)}`);
+      console.log(`  Time    : ${new Date().toLocaleTimeString()}`);
+      console.log("  Live tracking: ACTIVE");
+
+      toast.success("Live tracking started — buyer can see your location");
+    } catch (err) {
+      console.error("Failed to start delivering:", err);
+      toast.error("Could not start live tracking");
+    }
+  };
+
+  const markDelivered = async () => {
+    if (!request?.orderId) {
+      toast.error("No active order to mark as delivered");
+      return;
+    }
+
+    try {
+      await actions.advanceOrder.mutateAsync({
+        orderId: request.orderId,
+        status: "delivered",
+      });
+
+      console.log("\n╔══════════════════════════════════════════╗");
+      console.log("║       TRADER ARRIVED — DELIVERY DONE     ║");
+      console.log("╚══════════════════════════════════════════╝");
+      console.log(`  Trader  : ${me.name}`);
+      console.log(`  Distance: ${km.toFixed(2)} km`);
+      console.log(`  Amount  : R${(request?.total ?? 0).toFixed(2)}`);
+      console.log(`  Time    : ${new Date().toLocaleTimeString()}`);
+      console.log("  Waiting for buyer to pay via MTN MoMo...");
+
+      updateState((prev) => ({
+        ...prev,
+        request: prev.request ? { ...prev.request, status: "delivered" } : null,
+      }));
+      toast.success("Delivery marked as complete — live tracking stopped");
+    } catch (err) {
+      console.error("Failed to mark as delivered:", err);
+      toast.error("Could not mark delivery as complete");
+    }
   };
 
   if (!me) {
@@ -155,6 +237,24 @@ function RunnerPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">
+      {/* Weather warning banner for active delivery orders */}
+      {weatherWarning && (
+        <div
+          className={`fixed top-4 left-4 right-4 z-50 animate-slide-down p-4 rounded-xl shadow-lg ${
+            weatherWarning.severity === "warning"
+              ? "bg-destructive/10 border border-destructive text-destructive"
+              : "bg-secondary"
+          }`}
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{weatherWarning.icon}</span>
+            <p className="font-semibold text-sm">{weatherWarning.message}</p>
+          </div>
+        </div>
+      )}
+      
       <header className="animate-rise flex items-center gap-2 px-4 pt-6 pb-3">
         <Button asChild variant="ghost" size="icon" aria-label="Back to buyer view">
           <Link to="/"><ArrowLeft /></Link>
@@ -201,6 +301,9 @@ function RunnerPage() {
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={stateBuyer}
+              courierPosition={null}
+              route={route}
+              bearing={bearing}
               recenterTrigger={recenterTrigger}
             />
           </Suspense>
@@ -279,8 +382,8 @@ function RunnerPage() {
             )}
             {request.status === "accepted" && (
               <div className="space-y-2">
-                <Button size="lg" variant="wave" className="w-full" onClick={deliver}>
-                  <CheckCircle2 /> I&apos;ve arrived — request payment
+                <Button size="lg" variant="wave" className="w-full" onClick={deliver} disabled={isReporting}>
+                  <CheckCircle2 /> {isReporting ? "Starting tracking..." : "Start delivering — share live location"}
                 </Button>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10"
@@ -298,6 +401,47 @@ function RunnerPage() {
                     Decline
                   </Button>
                 </div>
+              </div>
+            )}
+            {request.status === "delivering" && (
+              <div className="space-y-2">
+                <Button size="lg" variant="wave" className="w-full" onClick={markDelivered}>
+                  <CheckCircle2 /> I&apos;ve arrived — request payment
+                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1 text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      console.log(`\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`);
+                      failRequest("Trader marked delivery as failed"); toast.error("Delivery marked as failed");
+                    }}>
+                    Mark Failed
+                  </Button>
+                </div>
+                {shouldReroute && (
+                  <Button size="sm" variant="secondary" className="w-full" onClick={recalculateRoute} disabled={routeLoading}>
+                    {routeLoading ? "Recalculating..." : "↻ Re-route"}
+                  </Button>
+                )}
+                {isReporting && (
+                  <p className="text-xs text-center text-muted-foreground bg-secondary rounded-xl px-3 py-2">
+                    📍 Live tracking active — buyer can see your location
+                  </p>
+                )}
+                {/* Route navigation info */}
+                {route && !routeLoading && (
+                  <div className="bg-secondary/50 rounded-lg px-4 py-3 text-sm">
+                    <p className="font-semibold text-xs mb-1">Route to buyer:</p>
+                    <p className="font-medium">{Math.round(route.distanceM)}m total</p>
+                    <p className="text-muted-foreground text-xs">
+                      {route.steps.length} steps · {Math.round(route.durationS / 60)}min
+                    </p>
+                    {route.steps[0] && (
+                      <p className="text-muted-foreground text-xs mt-1 italic">
+                        Next: {route.steps[0].instruction}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {request.status === "delivered" && (
