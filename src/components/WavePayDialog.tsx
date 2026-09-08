@@ -67,7 +67,7 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
             <p className="font-semibold text-sm mb-2">How your payment is split</p>
             <div className="flex justify-between text-muted-foreground">
               <span>Trader receives</span>
-              <span className="font-medium text-foreground">{formatRand(amount - PLATFORM_FEE - MTN_FEE)}</span>
+              <span className="font-medium text-foreground">{formatRand(Math.max(0, amount - PLATFORM_FEE - MTN_FEE))}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>Veggie Wave fee</span>
