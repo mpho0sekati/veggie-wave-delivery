@@ -82,6 +82,7 @@ export default function VeggieMap({
   const pickRef = useRef(onPickPosition);
   pickRef.current = onPickPosition;
   const buyer = buyerPosition ?? BUYER_POSITION;
+  const [followMode, setFollowMode] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -131,22 +132,26 @@ export default function VeggieMap({
     const layer = layerRef.current;
     if (!layer) return;
 
-    // Remove existing courier marker and line
-    if (courierMarkerRef.current) {
-      layer.removeLayer(courierMarkerRef.current);
-      courierMarkerRef.current = null;
-    }
+    // Remove existing courier line
     if (courierLineRef.current) {
       layer.removeLayer(courierLineRef.current);
       courierLineRef.current = null;
     }
 
-    // Create animated courier marker
-    const courierMarker = L.marker([courierPosition.lat, courierPosition.lng], {
-      icon: courierIcon(),
-    }).addTo(layer);
-    
-    courierMarkerRef.current = courierMarker;
+    // Create or update courier marker with smooth animation
+    if (!courierMarkerRef.current) {
+      const courierMarker = L.marker([courierPosition.lat, courierPosition.lng], {
+        icon: courierIcon(),
+      }).addTo(layer);
+      courierMarkerRef.current = courierMarker;
+    } else {
+      // Smooth slide animation for existing marker
+      courierMarkerRef.current.setLatLng([courierPosition.lat, courierPosition.lng], {
+        animate: true,
+        duration: 0.5,
+        easeLinearity: 0.5,
+      });
+    }
 
     // Create line from courier to buyer
     const line = L.polyline(
@@ -156,16 +161,22 @@ export default function VeggieMap({
       ],
       { color: "oklch(0.55 0.25 145)", weight: 3, dashArray: "6 8" },
     ).addTo(layer);
-    
+
     courierLineRef.current = line;
 
-    // Smooth transition to show both markers
+    // Auto-center if follow mode is on, otherwise fit bounds once
     const bounds = L.latLngBounds([
       [courierPosition.lat, courierPosition.lng],
       [buyer.lat, buyer.lng],
     ]);
-    map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
-  }, [courierPosition, buyer.lat, buyer.lng]);
+    
+    if (followMode) {
+      map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
+    } else if (!courierMarkerRef.current?.getLatLng()) {
+      // Only fit bounds on first position update if not in follow mode
+      map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
+    }
+  }, [courierPosition, buyer.lat, buyer.lng, followMode]);
 
   // Render route polyline when available
   useEffect(() => {
@@ -267,46 +278,109 @@ export default function VeggieMap({
   }, [runnersKey, activeRunnerId, waving, buyer.lat, buyer.lng]);
 
   return (
-    <div ref={containerRef} className="h-full w-full relative" aria-label="Map of nearby veggie runners">
+    <div
+      ref={containerRef}
+      className="h-full w-full relative"
+      aria-label="Map of nearby veggie runners"
+    >
+      {/* Recenter button - top left */}
+      <button
+        onClick={() => {
+          mapRef.current?.setView([buyer.lat, buyer.lng], 15, { animate: true });
+          setFollowMode(false);
+        }}
+        className="absolute top-4 left-4 z-400 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border"
+        aria-label="Recenter map"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+
+      {/* Follow toggle - top right */}
       {courierPosition && (
-        <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg">
-          <p className="text-sm font-medium">
-            Courier: {formatDistance(courierPosition.distanceKm)} away
-          </p>
+        <button
+          onClick={() => setFollowMode(!followMode)}
+          className={`absolute top-4 right-4 z-400 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border ${
+            followMode ? "ring-2 ring-primary" : ""
+          }`}
+          aria-label={followMode ? "Stop following courier" : "Follow courier"}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </button>
+      )}
+
+      {/* Status indicator - bottom center */}
+      {courierPosition === null && activeRunnerId && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border">
           <p className="text-sm text-muted-foreground">
-            Arriving in ~{courierPosition.etaMinutes} min
+            Waiting for seller location...
           </p>
         </div>
       )}
 
-      {/* Compass fallback when we have a bearing but no route */}
+      {/* Courier info panel - bottom left */}
+      {courierPosition && (
+        <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-primary text-xl">🚴</span>
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Courier en route</p>
+              <p className="text-xs text-muted-foreground">
+                {formatDistance(courierPosition.distanceKm)} away
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border/50">
+            <p className="text-sm">
+              <span className="font-medium">ETA:</span> ~{courierPosition.etaMinutes} min
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Compass fallback - top right when no route */}
       {bearing !== null && !route && courierPosition && (
         <div
           ref={compassRef}
-          className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm rounded-full w-20 h-20 flex items-center justify-center shadow-lg border"
+          className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm rounded-xl w-16 h-16 flex items-center justify-center shadow-lg border z-400"
           style={{ transform: `rotate(${bearing}deg)` }}
         >
           <div className="text-2xl" style={{ transform: `rotate(${-bearing}deg)` }}>
             ↗
           </div>
+          <span className="absolute bottom-1 text-[10px] text-muted-foreground">
+            {Math.round(bearing)}°
+          </span>
         </div>
       )}
 
-      {/* Route step instructions */}
+      {/* Route step instructions - bottom right */}
       {route && route.steps.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg max-w-[280px]">
-          <p className="text-xs font-semibold text-muted-foreground mb-1">Next step:</p>
-          <p className="text-sm font-medium">
-            {route.steps[0].instruction}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {Math.round(route.steps[0].distance)}m · {Math.round(route.steps[0].duration / 60)}min
-          </p>
-          {route.steps.length > 1 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              +{route.steps.length - 1} more steps · Total: {Math.round(route.distanceM)}m
-            </p>
-          )}
+        <div className="absolute bottom-4 right-4 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border max-w-[320px]">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-primary text-xs">↗</span>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Next step</p>
+              <p className="font-medium text-sm">{route.steps[0].instruction}</p>
+              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                <span>{Math.round(route.steps[0].distance)}m</span>
+                <span>{Math.round(route.steps[0].duration / 60)}min</span>
+              </div>
+              {route.steps.length > 1 && (
+                <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                  +{route.steps.length - 1} more steps
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
