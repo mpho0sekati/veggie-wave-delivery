@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { formatRand } from "@/lib/veggie-data";
 import { cn } from "@/lib/utils";
 import { COMMUNITY_CREDIT_PER_ORDER, PLATFORM_FEE, MTN_FEE } from "@/lib/veggie-store";
+import { createLogger } from "@/lib/logger";
+
+const payLogger = createLogger("WavePay");
 
 type Props = {
   open: boolean;
@@ -18,9 +21,20 @@ type Props = {
 
 function normaliseMsisdn(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
-  if (/^0\d{9}$/.test(digits)) return `27${digits.slice(1)}`;
-  if (/^27\d{9}$/.test(digits)) return digits;
-  if (/^\d{9}$/.test(digits)) return `27${digits}`;
+  payLogger.debug("Normalizing MSISDN", { raw, digits, length: digits.length });
+  if (/^0\d{9}$/.test(digits)) {
+    payLogger.debug("MSISDN: 0-prefix format");
+    return `27${digits.slice(1)}`;
+  }
+  if (/^27\d{9}$/.test(digits)) {
+    payLogger.debug("MSISDN: 27-prefix format");
+    return digits;
+  }
+  if (/^\d{9}$/.test(digits)) {
+    payLogger.debug("MSISDN: 9-digit format");
+    return `27${digits}`;
+  }
+  payLogger.warn("Invalid MSISDN format", { raw, digits });
   return null;
 }
 
@@ -29,24 +43,35 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  payLogger.info("WavePayDialog rendered", { open, amount, traderName });
+
   const msisdn = normaliseMsisdn(phone);
   const valid = msisdn !== null;
   const totalFee = PLATFORM_FEE + MTN_FEE;
   const canPay = valid && amount >= totalFee;
+  
+  payLogger.debug("Payment state", { valid, canPay, amount, totalFee, phoneLength: phone.length });
 
   const confirm = async () => {
+    payLogger.info("Payment confirm clicked", { msisdn, amount });
     if (!msisdn) {
+      payLogger.warn("Payment attempt with invalid MSISDN", { phone });
       setError("Enter a valid SA mobile number, e.g. 0788 033 288");
       return;
+    }
+    if (amount < totalFee) {
+      payLogger.warn("Payment amount below minimum", { amount, totalFee });
     }
     setBusy(true);
     setError("");
     try {
+      payLogger.info("Calling onPay", { msisdn, amount });
       await onPay(msisdn);
+      payLogger.info("Payment successful", { msisdn, amount });
       setPhone("");
       onOpenChange(false);
     } catch (err) {
-      console.error("WavePay failed:", err);
+      payLogger.error("Payment failed", { msisdn, amount, error: err });
       setError("Payment request failed — please try again");
     } finally {
       setBusy(false);

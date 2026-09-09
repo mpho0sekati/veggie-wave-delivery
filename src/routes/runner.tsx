@@ -18,6 +18,9 @@ import {
 } from "@/lib/veggie-store";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useSession } from "@/lib/use-session";
+import { createLogger } from "@/lib/logger";
+
+const runnerLogger = createLogger("RunnerRoute");
 import { useMdekoActions, useMyOrders, useMySettlements, useOpenWaves } from "@/lib/use-mdeko";
 import { useReportCourierPosition } from "@/lib/use-courier-tracking";
 import { useWeatherWarning } from "@/lib/use-weather";
@@ -58,12 +61,18 @@ function MapSkeleton() {
 const MY_ID = "r1";
 
 function RunnerPage() {
+  runnerLogger.info("RunnerPage rendering");
   const state = useAppState();
   // Use targeted selectors so stock/runner changes trigger re-renders
   const runners = useAppState((s) => s.runners);
   const stateCustomItems = useAppState((s) => s.customItems);
   const stateRequest = useAppState((s) => s.request);
   const stateBuyer = useAppState((s) => s.buyer);
+  runnerLogger.debug("Runner state", {
+    runnersCount: runners.length,
+    hasRequest: !!stateRequest,
+    buyerLocated: stateBuyer.located,
+  });
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
