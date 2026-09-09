@@ -4,6 +4,9 @@ import "leaflet/dist/leaflet.css";
 import { BUYER_POSITION, type Runner, formatDistance } from "@/lib/veggie-data";
 import type { TrackedPosition } from "@/lib/use-courier-tracking";
 import type { RouteResult } from "@/lib/routing.server";
+import { createLogger } from "@/lib/logger";
+
+const mapLogger = createLogger("VeggieMap");
 
 type Props = {
   runners: Runner[];
@@ -86,6 +89,7 @@ export default function VeggieMap({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    mapLogger.info("Initializing Leaflet map", { buyerLat: buyer.lat, buyerLng: buyer.lng });
     const map = L.map(containerRef.current, {
       center: [buyer.lat, buyer.lng],
       zoom: 15,
@@ -95,6 +99,7 @@ export default function VeggieMap({
       scrollWheelZoom: false,
     });
     const handleMapPick = (e: L.LeafletMouseEvent) => {
+      mapLogger.debug("Map pick", { lat: e.latlng.lat, lng: e.latlng.lng });
       pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng });
     };
     map.on("click", handleMapPick);
@@ -106,11 +111,16 @@ export default function VeggieMap({
     L.control.zoom({ position: "bottomright" }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
+    mapLogger.info("Map initialized successfully");
 
-    const ro = new ResizeObserver(() => map.invalidateSize());
+    const ro = new ResizeObserver(() => {
+      mapLogger.debug("Map container resized");
+      map.invalidateSize();
+    });
     ro.observe(containerRef.current);
 
     return () => {
+      mapLogger.info("Cleaning up map");
       ro.disconnect();
       map.remove();
       mapRef.current = null;
@@ -127,6 +137,12 @@ export default function VeggieMap({
   // Animate courier marker when position updates
   useEffect(() => {
     if (!courierPosition || !mapRef.current) return;
+    mapLogger.info("Courier position updated", {
+      lat: courierPosition.lat,
+      lng: courierPosition.lng,
+      distanceKm: courierPosition.distanceKm,
+      etaMinutes: courierPosition.etaMinutes,
+    });
 
     const map = mapRef.current;
     const layer = layerRef.current;
@@ -140,12 +156,17 @@ export default function VeggieMap({
 
     // Create or update courier marker with smooth animation
     if (!courierMarkerRef.current) {
+      mapLogger.debug("Creating courier marker");
       const courierMarker = L.marker([courierPosition.lat, courierPosition.lng], {
         icon: courierIcon(),
       }).addTo(layer);
       courierMarkerRef.current = courierMarker;
     } else {
       // Smooth slide animation for existing marker
+      mapLogger.debug("Animating courier marker", {
+        from: courierMarkerRef.current.getLatLng(),
+        to: [courierPosition.lat, courierPosition.lng],
+      });
       courierMarkerRef.current.setLatLng([courierPosition.lat, courierPosition.lng], {
         animate: true,
         duration: 0.5,
@@ -171,9 +192,11 @@ export default function VeggieMap({
     ]);
     
     if (followMode) {
+      mapLogger.debug("Follow mode: fitting bounds to view");
       map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
     } else if (!courierMarkerRef.current?.getLatLng()) {
       // Only fit bounds on first position update if not in follow mode
+      mapLogger.debug("First position: fitting bounds to view");
       map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
     }
   }, [courierPosition, buyer.lat, buyer.lng, followMode]);
@@ -181,17 +204,24 @@ export default function VeggieMap({
   // Render route polyline when available
   useEffect(() => {
     if (!route || !mapRef.current || !layerRef.current) return;
+    mapLogger.info("Route received", {
+      distanceM: route.distanceM,
+      duration: route.duration,
+      stepsCount: route.steps.length,
+    });
 
     const layer = layerRef.current;
     const map = mapRef.current;
 
     // Remove existing route line
     if (routeLineRef.current) {
+      mapLogger.debug("Removing old route line");
       layer.removeLayer(routeLineRef.current);
       routeLineRef.current = null;
     }
 
     // Draw new route line
+    mapLogger.debug("Drawing route polyline");
     const line = L.polyline(route.polyline, {
       color: "oklch(0.55 0.15 62)",
       weight: 5,
@@ -211,8 +241,10 @@ export default function VeggieMap({
           [courierPosition.lat, courierPosition.lng],
           [buyer.lat, buyer.lng],
         ]);
+        mapLogger.debug("Fitting combined bounds to view");
         map.fitBounds(combinedBounds, { animate: true, duration: 0.5, padding: [40, 40] });
       } else {
+        mapLogger.debug("Fitting route bounds to view");
         map.fitBounds(routeBounds, { animate: true, duration: 0.5, padding: [40, 40] });
       }
     }
@@ -233,6 +265,12 @@ export default function VeggieMap({
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
+    mapLogger.info("Rendering runners and buyer", {
+      runnersCount: runners.length,
+      onlineRunners: runners.filter((r) => r.online).length,
+      activeRunnerId,
+      waving,
+    });
     layer.clearLayers();
 
     L.circle([buyer.lat, buyer.lng], {
@@ -252,6 +290,14 @@ export default function VeggieMap({
       .forEach((r) => {
         const map = mapRef.current;
         const active = r.id === activeRunnerId;
+        mapLogger.debug("Rendering runner", {
+          id: r.id,
+          name: r.name,
+          active,
+          lat: r.lat,
+          lng: r.lng,
+          rating: r.rating,
+        });
         const marker = L.marker([r.lat, r.lng], {
           icon: runnerIcon(active, r.name.charAt(0), r.avatar),
         })
@@ -261,10 +307,12 @@ export default function VeggieMap({
           );
 
         if (active && map) {
+          mapLogger.debug("Active runner: centering map and opening popup");
           map.setView([r.lat, r.lng], map.getZoom(), { animate: true });
           marker.openPopup();
         }
         if (active) {
+          mapLogger.debug("Drawing line to active runner");
           L.polyline(
             [
               [r.lat, r.lng],

@@ -4,6 +4,9 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { CourierPosition } from "./mdeko.functions";
 import { distanceKm, walkMinutes } from "./veggie-data";
+import { createLogger } from "@/lib/logger";
+
+const trackingLogger = createLogger("CourierTracking");
 
 /** Position update with computed metadata for display */
 export type TrackedPosition = {
@@ -24,6 +27,8 @@ export function useReportCourierPosition(
   throttleMs: number = 5000,
   minDistanceMeters: number = 10,
 ) {
+  trackingLogger.info("useReportCourierPosition initialized", { orderId, enabled, throttleMs, minDistanceMeters });
+  
   const lastPositionRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isReporting, setIsReporting] = useState(false);
@@ -37,12 +42,20 @@ export function useReportCourierPosition(
       speed?: number;
       accuracy?: number;
     }) => {
-      if (!orderId) return;
+      trackingLogger.debug("reportPosition called", { position });
+      if (!orderId) {
+        trackingLogger.warn("reportPosition: no orderId, skipping");
+        return;
+      }
 
       const last = lastPositionRef.current;
 
       // Skip if we reported too recently
       if (last && Date.now() - last.timestamp < throttleMs) {
+        trackingLogger.debug("reportPosition: throttled, skipping", {
+          timeSinceLast: Date.now() - last.timestamp,
+          throttleMs,
+        });
         return;
       }
 
@@ -50,10 +63,15 @@ export function useReportCourierPosition(
       if (last) {
         const dist = distanceKm(last, position);
         if (dist * 1000 < minDistanceMeters) {
+          trackingLogger.debug("reportPosition: not moved enough, skipping", {
+            distanceM: dist * 1000,
+            minDistanceMeters,
+          });
           return;
         }
       }
 
+      trackingLogger.info("Reporting position to Supabase", { lat: position.lat, lng: position.lng });
       setIsReporting(true);
       try {
         const { data, error } = await supabase
@@ -71,8 +89,9 @@ export function useReportCourierPosition(
           .single();
 
         if (error) {
-          console.error("Failed to report position:", error);
+          trackingLogger.error("Failed to report position", { error });
         } else {
+          trackingLogger.debug("Position reported successfully", { data });
           lastPositionRef.current = {
             lat: position.lat,
             lng: position.lng,
@@ -146,6 +165,7 @@ export function useReportCourierPosition(
   }, [enabled, orderId, reportPosition]);
 
   const stopReporting = useCallback(() => {
+    trackingLogger.info("Stopping position reporting");
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -159,6 +179,8 @@ export function useReportCourierPosition(
 
 /** Hook for buyers to subscribe to live courier position updates */
 export function useCourierPositions(orderId: string | null) {
+  trackingLogger.info("useCourierPositions initialized", { orderId });
+  
   const [positions, setPositions] = useState<CourierPosition[]>([]);
   const [latestPosition, setLatestPosition] = useState<TrackedPosition | null>(null);
   const [buyerPosition, setBuyerPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -166,14 +188,19 @@ export function useCourierPositions(orderId: string | null) {
 
   // Clear state when order changes
   useEffect(() => {
+    trackingLogger.info("Clearing positions for new order", { orderId });
     setPositions([]);
     setLatestPosition(null);
   }, [orderId]);
 
   // Subscribe to realtime updates
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId) {
+      trackingLogger.debug("useCourierPositions: no orderId, skipping subscription");
+      return;
+    }
 
+    trackingLogger.info("Subscribing to courier positions channel", { orderId });
     const channel = supabase
       .channel(`courier_positions_${orderId}`)
       .on(
@@ -186,12 +213,18 @@ export function useCourierPositions(orderId: string | null) {
         },
         (payload) => {
           const newPosition = payload.new as CourierPosition;
+          trackingLogger.debug("New courier position received", {
+            lat: newPosition.lat,
+            lng: newPosition.lng,
+            trader_id: newPosition.trader_id,
+          });
           setPositions((prev) => [...prev, newPosition]);
 
           // Update latest position with ETA calculation if we have buyer position
           if (buyerPosition) {
             const dist = distanceKm(newPosition, buyerPosition);
             const eta = walkMinutes(dist);
+            trackingLogger.debug("Calculating ETA", { distanceKm: dist, etaMinutes: eta });
             setLatestPosition({
               lat: newPosition.lat,
               lng: newPosition.lng,
@@ -203,6 +236,7 @@ export function useCourierPositions(orderId: string | null) {
               etaMinutes: eta,
             });
           } else {
+            trackingLogger.debug("Setting position without ETA (no buyer position)");
             setLatestPosition({
               lat: newPosition.lat,
               lng: newPosition.lng,
@@ -216,54 +250,70 @@ export function useCourierPositions(orderId: string | null) {
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        trackingLogger.info("Channel subscription status", { status });
+      });
 
+    trackingLogger.info("Channel subscribed successfully", { orderId });
     channelRef.current = channel;
 
     // Load initial positions
     const loadInitialPositions = async () => {
+      trackingLogger.info("Loading initial positions", { orderId });
       const { data, error } = await supabase
         .from("courier_positions")
         .select("*")
         .eq("order_id", orderId)
         .order("recorded_at", { ascending: true });
 
-      if (!error && data) {
+      if (error) {
+        trackingLogger.error("Failed to load initial positions", { error });
+        return;
+      }
+
+      if (data && data.length > 0) {
+        trackingLogger.info("Initial positions loaded", { count: data.length });
         setPositions(data);
-        if (data.length > 0) {
-          const last = data[data.length - 1];
-          if (buyerPosition) {
-            const dist = distanceKm(last, buyerPosition);
-            const eta = walkMinutes(dist);
-            setLatestPosition({
-              lat: last.lat,
-              lng: last.lng,
-              heading: last.heading,
-              speed: last.speed,
-              accuracy: last.accuracy,
-              recordedAt: last.recorded_at,
-              distanceKm: dist,
-              etaMinutes: eta,
-            });
-          } else {
-            setLatestPosition({
-              lat: last.lat,
-              lng: last.lng,
-              heading: last.heading,
-              speed: last.speed,
-              accuracy: last.accuracy,
-              recordedAt: last.recorded_at,
-              distanceKm: 0,
-              etaMinutes: 0,
-            });
-          }
+        const last = data[data.length - 1];
+        if (buyerPosition) {
+          const dist = distanceKm(last, buyerPosition);
+          const eta = walkMinutes(dist);
+          trackingLogger.debug("Setting initial latest position with ETA", {
+            distanceKm: dist,
+            etaMinutes: eta,
+          });
+          setLatestPosition({
+            lat: last.lat,
+            lng: last.lng,
+            heading: last.heading,
+            speed: last.speed,
+            accuracy: last.accuracy,
+            recordedAt: last.recorded_at,
+            distanceKm: dist,
+            etaMinutes: eta,
+          });
+        } else {
+          trackingLogger.debug("Setting initial latest position without ETA");
+          setLatestPosition({
+            lat: last.lat,
+            lng: last.lng,
+            heading: last.heading,
+            speed: last.speed,
+            accuracy: last.accuracy,
+            recordedAt: last.recorded_at,
+            distanceKm: 0,
+            etaMinutes: 0,
+          });
         }
+      } else {
+        trackingLogger.debug("No initial positions found", { orderId });
       }
     };
 
     void loadInitialPositions();
 
     return () => {
+      trackingLogger.info("Cleaning up channel subscription");
       channelRef.current?.unsubscribe();
       channelRef.current = null;
     };
@@ -272,8 +322,10 @@ export function useCourierPositions(orderId: string | null) {
   // Update latest position when buyer position changes
   useEffect(() => {
     if (latestPosition && buyerPosition) {
+      trackingLogger.debug("Buyer position changed, recalculating ETA");
       const dist = distanceKm(latestPosition, buyerPosition);
       const eta = walkMinutes(dist);
+      trackingLogger.debug("New ETA calculation", { distanceKm: dist, etaMinutes: eta });
       setLatestPosition((prev) =>
         prev
           ? {
@@ -286,5 +338,9 @@ export function useCourierPositions(orderId: string | null) {
     }
   }, [buyerPosition, latestPosition]);
 
+  trackingLogger.info("useCourierPositions returning", {
+    positionsCount: positions.length,
+    hasLatestPosition: !!latestPosition,
+  });
   return { positions, latestPosition, setBuyerPosition };
 }

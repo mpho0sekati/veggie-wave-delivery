@@ -49,7 +49,7 @@ export type AppState = {
   userId: string | null;
 };
 
-const KEY = "veggieguy-state-v3";
+const KEY = "veggieguy-state-v2";
 const EVENT = "veggieguy-state";
 const MAX_DEMAND = 50;
 
