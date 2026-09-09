@@ -3,6 +3,7 @@
 ## Phase 1: Deploy Database Changes
 
 ### Step 1: Apply the migration
+
 ```bash
 supabase db push
 ```
@@ -10,8 +11,9 @@ supabase db push
 This deploys the `refund_order` server function and updates the orders status enum to include 'refunded' and 'failed'.
 
 **Verify**: Check that `refund_order` function exists:
+
 ```sql
-SELECT routine_name FROM information_schema.routines 
+SELECT routine_name FROM information_schema.routines
 WHERE routine_schema = 'public' AND routine_name = 'refund_order';
 ```
 
@@ -22,6 +24,7 @@ WHERE routine_schema = 'public' AND routine_name = 'refund_order';
 ### Step 2: Replace imports in index.tsx
 
 **Find these imports:**
+
 ```typescript
 import {
   catalogWith,
@@ -47,6 +50,7 @@ import {
 ```
 
 **Replace with:**
+
 ```typescript
 import {
   catalogWith,
@@ -73,6 +77,7 @@ import {
 ### Step 3: Update index.tsx wave logic
 
 **Find this block in BuyerPage():**
+
 ```typescript
 const wave = useCallback(() => {
   if (!picked.length && !wish.trim()) {
@@ -98,6 +103,7 @@ const wave = useCallback(() => {
 ```
 
 **Replace with:**
+
 ```typescript
 const wave = useCallback(async () => {
   if (!picked.length && !wish.trim()) {
@@ -108,7 +114,7 @@ const wave = useCallback(async () => {
     await waveRequest(
       picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 })),
       wish.trim(),
-      total
+      total,
     );
     await logDemand([
       ...picked.map((p) => ({ itemId: p.id, label: p.name })),
@@ -124,6 +130,7 @@ const wave = useCallback(async () => {
 ### Step 4: Update finish callback in index.tsx
 
 **Find:**
+
 ```typescript
 const finish = useCallback(() => {
   archiveRequest();
@@ -133,6 +140,7 @@ const finish = useCallback(() => {
 ```
 
 **Replace with:**
+
 ```typescript
 const finish = useCallback(() => {
   setQty({});
@@ -145,6 +153,7 @@ const finish = useCallback(() => {
 ### Step 5: Update payment handling in index.tsx
 
 **Find:**
+
 ```typescript
 const handlePayWavePay = useCallback(async (pin: string) => {
   const result = payWithWavePay(pin);
@@ -162,39 +171,38 @@ const handlePayWavePay = useCallback(async (pin: string) => {
 ```
 
 **Or create if missing and use:**
+
 ```typescript
-const handlePayWavePay = useCallback(async (pin: string) => {
-  if (!request) return;
-  try {
-    const result = await payWithWavePay(request.id, pin);
-    if (result === "ok") {
-      toast.success("Payment successful!");
-      setPayOpen(false);
-    } else if (result === "wrong-pin") {
-      toast.error("Wrong PIN");
-    } else if (result === "insufficient") {
-      toast.error("Insufficient balance");
-    } else {
-      toast.error(`Payment failed: ${result}`);
+const handlePayWavePay = useCallback(
+  async (pin: string) => {
+    if (!request) return;
+    try {
+      const result = await payWithWavePay(request.id, pin);
+      if (result === "ok") {
+        toast.success("Payment successful!");
+        setPayOpen(false);
+      } else if (result === "wrong-pin") {
+        toast.error("Wrong PIN");
+      } else if (result === "insufficient") {
+        toast.error("Insufficient balance");
+      } else {
+        toast.error(`Payment failed: ${result}`);
+      }
+    } catch (error) {
+      toast.error("Payment error");
     }
-  } catch (error) {
-    toast.error("Payment error");
-  }
-}, [request]);
+  },
+  [request],
+);
 ```
 
 ### Step 6: Update runner.tsx
 
 **Replace the imports:**
+
 ```typescript
 // OLD
-import {
-  setStock,
-  setOnline,
-  updateName,
-  updateState,
-  useAppState,
-} from "@/lib/veggie-store";
+import { setStock, setOnline, updateName, updateState, useAppState } from "@/lib/veggie-store";
 
 // NEW
 import {
@@ -208,6 +216,7 @@ import {
 ```
 
 **Update the accept wave handler:**
+
 ```typescript
 const accept = () =>
   updateState((prev) => ({
@@ -219,6 +228,7 @@ const accept = () =>
 ```
 
 **Replace with:**
+
 ```typescript
 const accept = useCallback(async () => {
   if (!request) return;
@@ -232,6 +242,7 @@ const accept = useCallback(async () => {
 ```
 
 **Update deliver handler:**
+
 ```typescript
 const deliver = () =>
   updateState((prev) => ({
@@ -241,6 +252,7 @@ const deliver = () =>
 ```
 
 **Replace with:**
+
 ```typescript
 const deliver = useCallback(async () => {
   if (!request) return;
@@ -254,6 +266,7 @@ const deliver = useCallback(async () => {
 ```
 
 ### Step 7: Remove old veggie-store.ts
+
 ```bash
 rm src/lib/veggie-store.ts
 ```
@@ -281,15 +294,19 @@ Or keep it temporarily and only switch imports when confident.
 ### Common Issues & Fixes
 
 #### Issue: "Cannot find module veggie-store-supabase"
+
 - **Fix**: Ensure the file is saved at `src/lib/veggie-store-supabase.ts`
 
 #### Issue: "RPC function not found"
+
 - **Fix**: Run `supabase db push` to deploy the migration
 
 #### Issue: Realtime not updating
+
 - **Fix**: Verify `ALTER PUBLICATION supabase_realtime ADD TABLE` commands ran in the migration
 
 #### Issue: Auth not working
+
 - **Fix**: Ensure auth middleware is active and user is signed in before creating orders
 
 ---
@@ -308,16 +325,16 @@ Or keep it temporarily and only switch imports when confident.
 
 ## API Changes Summary
 
-| Old (localStorage) | New (Supabase) |
-|---|---|
-| `updateState()` | Direct async calls + Realtime subscriptions |
-| `logDemand()` | `await logDemand()` |
-| `setBuyerLocation()` | `await setBuyerLocation()` |
-| `setStock()` | `await setStock()` |
-| `payWithWavePay(pin)` | `await payWithWavePay(orderId, pin)` |
-| `payCash()` | `await payCash(orderId)` |
-| `refundOrder()` | `await refundOrder(orderId)` |
-| `useAppState()` | `useAppState()` (same API, different backend) |
+| Old (localStorage)    | New (Supabase)                                |
+| --------------------- | --------------------------------------------- |
+| `updateState()`       | Direct async calls + Realtime subscriptions   |
+| `logDemand()`         | `await logDemand()`                           |
+| `setBuyerLocation()`  | `await setBuyerLocation()`                    |
+| `setStock()`          | `await setStock()`                            |
+| `payWithWavePay(pin)` | `await payWithWavePay(orderId, pin)`          |
+| `payCash()`           | `await payCash(orderId)`                      |
+| `refundOrder()`       | `await refundOrder(orderId)`                  |
+| `useAppState()`       | `useAppState()` (same API, different backend) |
 
 ---
 
@@ -328,4 +345,4 @@ Or keep it temporarily and only switch imports when confident.
 ✅ **Audit trail** - All transactions stored in Supabase  
 ✅ **Scalable** - Supports unlimited traders and buyers  
 ✅ **Secure** - RLS policies control data access  
-✅ **Real-time** - Instant updates via Realtime subscriptions  
+✅ **Real-time** - Instant updates via Realtime subscriptions

@@ -49,7 +49,7 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
   const valid = msisdn !== null;
   const totalFee = PLATFORM_FEE + MTN_FEE;
   const canPay = valid && amount >= totalFee;
-  
+
   payLogger.debug("Payment state", { valid, canPay, amount, totalFee, phoneLength: phone.length });
 
   const confirm = async () => {

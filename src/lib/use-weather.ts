@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import type { WeatherWarning } from "./mdeko.functions";
 import { getWeatherForOrder } from "./mdeko.functions";
@@ -16,7 +16,7 @@ export function useWeatherWarning(orderId: string | null) {
   const serverFn = useServerFn(getWeatherForOrder);
 
   // Fetch weather warning
-  const fetchWeather = async () => {
+  const fetchWeather = useCallback(async () => {
     if (!orderId) {
       setWarning(null);
       setError(null);
@@ -36,12 +36,12 @@ export function useWeatherWarning(orderId: string | null) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId, serverFn]);
 
   // Fetch on mount and when orderId changes
   useEffect(() => {
     void fetchWeather();
-  }, [orderId]);
+  }, [fetchWeather]);
 
   // Set up periodic refresh (every 10 minutes)
   useEffect(() => {
@@ -55,7 +55,7 @@ export function useWeatherWarning(orderId: string | null) {
     ); // 10 minutes
 
     return () => clearInterval(interval);
-  }, [orderId]);
+  }, [orderId, fetchWeather]);
 
   return { warning, loading, error, refresh: fetchWeather };
 }

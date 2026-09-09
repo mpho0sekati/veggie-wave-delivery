@@ -59,7 +59,7 @@ export function useRoute(
     } finally {
       setIsLoading(false);
     }
-  }, [orderId, courierPosition?.lat, courierPosition?.lng, enabled, serverFn]);
+  }, [orderId, courierPosition, enabled, serverFn]);
 
   /**
    * Calculate deviation from current position to route

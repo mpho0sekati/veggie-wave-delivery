@@ -51,6 +51,47 @@ export type AppState = {
 const MAX_DEMAND = 50;
 const LOCATION_UPDATED_EVENT = "veggie-wave:location-updated";
 
+type ProfileWithStockRow = {
+  id: string;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  online: boolean | null;
+  rating: number | null;
+  avatar: string | null;
+  earnings: number | null;
+  stock?: { id: string; item_id: string; price: number }[] | null;
+};
+
+type DemandRow = {
+  key: string;
+  item_id: string | null;
+  label: string;
+  requests: number;
+  unfilled: number;
+  last_at: string;
+};
+
+type CatalogItemRow = {
+  id: string;
+  name: string;
+  unit: string;
+  price: number;
+  icon_key: string;
+};
+
+type OrderRow = {
+  id: string;
+  items?: { id: string; qty: number }[] | null;
+  wish?: string | null;
+  total?: number | null;
+  note?: string | null;
+  status?: WaveStatus | null;
+  trader_id?: string | null;
+  created_at: string;
+  paid_with?: PaidWith | null;
+};
+
 // Fetch all runners from profiles table where role = 'trader'
 async function fetchRunners(): Promise<Runner[]> {
   const { data, error } = await supabase
@@ -66,7 +107,7 @@ async function fetchRunners(): Promise<Runner[]> {
     return [];
   }
 
-  return (data || []).map((profile: any) => ({
+  return ((data || []) as unknown as ProfileWithStockRow[]).map((profile) => ({
     id: profile.id,
     name: profile.name,
     lat: profile.lat ?? BUYER_POSITION.lat,
@@ -75,7 +116,7 @@ async function fetchRunners(): Promise<Runner[]> {
     rating: profile.rating ?? 5.0,
     avatar: profile.avatar ?? null,
     earnings: profile.earnings ?? 0,
-    stock: (profile.stock || []).map((s: any) => ({
+    stock: (profile.stock || []).map((s) => ({
       itemId: s.item_id,
       price: s.price,
     })),
@@ -189,7 +230,7 @@ async function fetchDemand(): Promise<DemandEntry[]> {
     return [];
   }
 
-  return (data || []).map((d: any) => ({
+  return ((data || []) as unknown as DemandRow[]).map((d) => ({
     key: d.key,
     itemId: d.item_id,
     label: d.label,
@@ -208,20 +249,20 @@ async function fetchCustomItems(): Promise<CustomItem[]> {
     return [];
   }
 
-  return (data || []).map((item: any) => ({
+  return ((data || []) as unknown as CatalogItemRow[]).map((item) => ({
     id: item.id,
     name: item.name,
     unit: item.unit,
     price: item.price,
-    iconKey: item.icon_key,
+    iconKey: item.icon_key as ReturnType<typeof iconKeyFromName>,
   }));
 }
 
 // Convert DB order row to WaveRequest
-function dbOrderToWaveRequest(dbOrder: any): WaveRequest {
+function dbOrderToWaveRequest(dbOrder: OrderRow): WaveRequest {
   return {
     id: dbOrder.id,
-    items: (dbOrder.items || []).map((item: any) => ({
+    items: (dbOrder.items || []).map((item) => ({
       id: item.id,
       qty: item.qty,
     })),
@@ -231,7 +272,7 @@ function dbOrderToWaveRequest(dbOrder: any): WaveRequest {
     status: dbOrder.status ?? "waving",
     runnerId: dbOrder.trader_id ?? null,
     createdAt: new Date(dbOrder.created_at).getTime(),
-    paidWith: dbOrder.paid_with,
+    paidWith: dbOrder.paid_with ?? undefined,
   };
 }
 
@@ -553,7 +594,7 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
     // Subscribe to runners (stock changes)
     const runnerSub = supabase
       .channel("public:profiles")
-      .on("postgres_changes", { event: "*" as any, schema: "public", table: "profiles" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
         initState();
       })
       .subscribe();
@@ -561,7 +602,7 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
     // Subscribe to orders
     const orderSub = supabase
       .channel("public:orders")
-      .on("postgres_changes", { event: "*" as any, schema: "public", table: "orders" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
         initState();
       })
       .subscribe();
@@ -569,13 +610,9 @@ export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | Ap
     // Subscribe to current user's wallet
     const walletSub = supabase
       .channel("public:wallets")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE" as any, schema: "public", table: "wallets" },
-        () => {
-          initState();
-        },
-      )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets" }, () => {
+        initState();
+      })
       .subscribe();
 
     subscriptionsRef.current = [
