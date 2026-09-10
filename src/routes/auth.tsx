@@ -185,6 +185,99 @@ function AuthPage() {
             "Sign in"
           )}
         </Button>
+
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Or test with demo accounts</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setError("");
+              try {
+                const { supabase } = await import("@/integrations/supabase/client");
+                const demoEmail = "buyer.demo@mdeko.co.za";
+                const demoPass = "DemoPassword123!";
+
+                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                  email: demoEmail,
+                  password: demoPass,
+                });
+
+                if (signInErr) {
+                  const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+                    email: demoEmail,
+                    password: demoPass,
+                  });
+                  if (signUpErr) throw signUpErr;
+                  if (signUpData.user) {
+                    await supabase
+                      .from("profiles")
+                      .upsert({ id: signUpData.user.id, name: "Demo Buyer", role: "buyer" });
+                  }
+                }
+                toast.success("Signed in as Demo Buyer");
+                navigate({ to: "/" });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Demo sign in failed");
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Demo Buyer
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setError("");
+              try {
+                const { supabase } = await import("@/integrations/supabase/client");
+                const demoEmail = "trader.demo@mdeko.co.za";
+                const demoPass = "DemoPassword123!";
+
+                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                  email: demoEmail,
+                  password: demoPass,
+                });
+
+                if (signInErr) {
+                  const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+                    email: demoEmail,
+                    password: demoPass,
+                  });
+                  if (signUpErr) throw signUpErr;
+                  if (signUpData.user) {
+                    await supabase
+                      .from("profiles")
+                      .upsert({ id: signUpData.user.id, name: "Demo Trader", role: "trader" });
+                  }
+                }
+                toast.success("Signed in as Demo Trader");
+                navigate({ to: "/runner" });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Demo sign in failed");
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Demo Trader
+          </Button>
+        </div>
       </Card>
     </main>
   );
