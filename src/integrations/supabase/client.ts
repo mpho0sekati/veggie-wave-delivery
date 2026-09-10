@@ -36,18 +36,16 @@ function createSupabaseClient() {
   const SUPABASE_URL =
     import.meta.env["VITE_SUPABASE_URL"] ||
     process.env["SUPABASE_URL"] ||
-    "https://placeholder-project.supabase.co";
+    "https://mkeraihcfflzruvbwlcq.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
     import.meta.env["VITE_SUPABASE_ANON_KEY"] ||
     process.env["SUPABASE_PUBLISHABLE_KEY"] ||
     process.env["SUPABASE_ANON_KEY"] ||
-    "placeholder-anon-key";
+    "sb_publishable_-qd5qwKKKVe6aqt-3IGtYg_zfQDaaJJ";
 
   if (!import.meta.env["VITE_SUPABASE_URL"] && !process.env["SUPABASE_URL"]) {
-    console.warn(
-      "[Supabase] VITE_SUPABASE_URL is missing. Using demo fallback client.",
-    );
+    console.warn("[Supabase] VITE_SUPABASE_URL is missing. Using demo fallback client.");
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
