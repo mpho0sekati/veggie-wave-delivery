@@ -168,7 +168,8 @@
 }
 
 @keyframes pulse-gentle {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 oklch(0.74 0.17 62 / 0.4);
   }
@@ -254,7 +255,8 @@
 
 /* Pulse for the pay button while waiting */
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 oklch(0.55 0.15 146 / 0.4);
   }
   50% {
@@ -276,7 +278,9 @@ button:focus-visible {
 
 /* Smoother switch transitions */
 [data-state] {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 /* Toast improvements */
@@ -292,8 +296,13 @@ button:focus-visible {
 
 /* Trader marker pulse when a wave is incoming */
 @keyframes wave-incoming {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 .marker-runner-wave {

@@ -27,8 +27,13 @@ export function useReportCourierPosition(
   throttleMs: number = 5000,
   minDistanceMeters: number = 10,
 ) {
-  trackingLogger.info("useReportCourierPosition initialized", { orderId, enabled, throttleMs, minDistanceMeters });
-  
+  trackingLogger.info("useReportCourierPosition initialized", {
+    orderId,
+    enabled,
+    throttleMs,
+    minDistanceMeters,
+  });
+
   const lastPositionRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isReporting, setIsReporting] = useState(false);
@@ -71,7 +76,10 @@ export function useReportCourierPosition(
         }
       }
 
-      trackingLogger.info("Reporting position to Supabase", { lat: position.lat, lng: position.lng });
+      trackingLogger.info("Reporting position to Supabase", {
+        lat: position.lat,
+        lng: position.lng,
+      });
       setIsReporting(true);
       try {
         const { data, error } = await supabase
@@ -180,7 +188,7 @@ export function useReportCourierPosition(
 /** Hook for buyers to subscribe to live courier position updates */
 export function useCourierPositions(orderId: string | null) {
   trackingLogger.info("useCourierPositions initialized", { orderId });
-  
+
   const [positions, setPositions] = useState<CourierPosition[]>([]);
   const [latestPosition, setLatestPosition] = useState<TrackedPosition | null>(null);
   const [buyerPosition, setBuyerPosition] = useState<{ lat: number; lng: number } | null>(null);

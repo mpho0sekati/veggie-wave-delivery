@@ -121,6 +121,14 @@ function RunnerPage() {
   // Weather warning for active delivery orders
   const { warning: weatherWarning } = useWeatherWarning(activeDeliveryOrder?.id ?? null);
 
+  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
+    setBuyerLocation(pos);
+    setRecenterTrigger((p) => p + 1);
+    toast.success("Location updated");
+  }, []);
+  const { status: geoStatus, locate } = useGeolocation(onPosition);
+  const actions = useMdekoActions();
+
   if (!me) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
@@ -139,14 +147,6 @@ function RunnerPage() {
   const myTotal = request
     ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0)
     : 0;
-
-  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
-    setBuyerLocation(pos);
-    setRecenterTrigger((p) => p + 1);
-    toast.success("Location updated");
-  }, []);
-  const { status: geoStatus, locate } = useGeolocation(onPosition);
-  const actions = useMdekoActions();
 
   const onPickAvatar = (file?: File | null) => {
     if (!file) return;
@@ -257,15 +257,6 @@ function RunnerPage() {
       toast.error("Could not mark delivery as complete");
     }
   };
-
-  if (!me) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
-        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground">Loading your stall…</p>
-      </main>
-    );
-  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col">

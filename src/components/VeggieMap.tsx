@@ -190,7 +190,7 @@ export default function VeggieMap({
       [courierPosition.lat, courierPosition.lng],
       [buyer.lat, buyer.lng],
     ]);
-    
+
     if (followMode) {
       mapLogger.debug("Follow mode: fitting bounds to view");
       map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
@@ -341,8 +341,18 @@ export default function VeggieMap({
         aria-label="Recenter map"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+          />
         </svg>
       </button>
 
@@ -356,7 +366,12 @@ export default function VeggieMap({
           aria-label={followMode ? "Stop following courier" : "Follow courier"}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
           </svg>
         </button>
       )}
@@ -364,9 +379,7 @@ export default function VeggieMap({
       {/* Status indicator - bottom center */}
       {courierPosition === null && activeRunnerId && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border">
-          <p className="text-sm text-muted-foreground">
-            Waiting for seller location...
-          </p>
+          <p className="text-sm text-muted-foreground">Waiting for seller location...</p>
         </div>
       )}
 

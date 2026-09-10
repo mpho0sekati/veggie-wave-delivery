@@ -73,11 +73,7 @@ function getTimestamp(): string {
 /**
  * Format a log message with colors and prefix
  */
-function formatMessage(
-  message: unknown,
-  level: LogLevel,
-  options: Required<LogOptions>,
-): string {
+function formatMessage(message: unknown, level: LogLevel, options: Required<LogOptions>): string {
   const timestamp = options.timestamp ? `[${getTimestamp()}]` : "";
   const prefix = options.prefix ? `[${options.prefix}]` : "";
   const levelLabel = LEVEL_LABELS[level];
@@ -103,7 +99,7 @@ export function log(message: unknown, options: LogOptions = {}): void {
   }
 
   const formattedMessage = formatMessage(message, mergedOptions.level, mergedOptions);
-  
+
   switch (mergedOptions.level) {
     case "debug":
       console.debug(formattedMessage);
@@ -168,11 +164,13 @@ export function createLogger(prefix: string) {
 export function logSeparator(label?: string): void {
   const line = "─".repeat(60);
   const timestamp = `[${getTimestamp()}]`;
-  
+
   if (label) {
     const padding = " ".repeat(Math.max(0, (60 - label.length) / 2));
     console.log(`${COLORS.dim}${timestamp} ${COLORS.reset}${COLORS.bright}${line}${COLORS.reset}`);
-    console.log(`${COLORS.dim}${timestamp} ${COLORS.reset}${COLORS.bright} ${padding}${label}${padding} ${COLORS.reset}`);
+    console.log(
+      `${COLORS.dim}${timestamp} ${COLORS.reset}${COLORS.bright} ${padding}${label}${padding} ${COLORS.reset}`,
+    );
     console.log(`${COLORS.dim}${timestamp} ${COLORS.reset}${COLORS.bright}${line}${COLORS.reset}`);
   } else {
     console.log(`${COLORS.dim}${timestamp} ${COLORS.reset}${COLORS.bright}${line}${COLORS.reset}`);

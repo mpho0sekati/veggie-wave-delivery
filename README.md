@@ -15,9 +15,11 @@ This version is a working demo app built in React with TanStack Router, Leaflet,
 ## What we built
 
 ### Buyer experience
+
 The buyer journey is centered around a map and a produce catalogue.
 
 Users can:
+
 - browse produce by category and quantity,
 - see nearby traders ranked by stock match and distance,
 - use their location or manually pin a delivery point,
@@ -26,9 +28,11 @@ Users can:
 - pay via Wave Pay balance or cash.
 
 ### Trader experience
+
 The trader view is a stall dashboard.
 
 Traders can:
+
 - toggle availability online/offline,
 - update their name and profile picture,
 - adjust stock and item prices,
@@ -37,7 +41,9 @@ Traders can:
 - review earnings and delivery progression.
 
 ### Core product feel
+
 The app is deliberately designed as a lightweight local-market UX prototype, with:
+
 - a leafy, warm visual style,
 - mobile-first layout,
 - map-based proximity logic,
@@ -174,6 +180,7 @@ npm run build
 This is a front-end prototype and not yet a production backend integration. The current version intentionally simulates the marketplace logic with in-browser state and seeded demo data.
 
 It is best understood as a proof of concept for:
+
 - local produce discovery,
 - community supply matching,
 - delivery coordination,
