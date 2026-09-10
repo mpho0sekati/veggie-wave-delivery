@@ -201,12 +201,44 @@ function AuthPage() {
             variant="outline"
             disabled={loading}
             onClick={async () => {
-              setEmail("buyer.demo@mdeko.co.za");
-              setPassword("DemoPassword123!");
-              setMode("signin");
-              toast.info(
-                "Demo Buyer credentials filled. Click Sign in or Create account if needed.",
-              );
+              setLoading(true);
+              setError("");
+              try {
+                const { supabase } = await import("@/integrations/supabase/client");
+                // Try anonymous sign in or sign in with password fallback
+                const { data: anonData, error: anonErr } = await supabase.auth.signInAnonymously();
+                const user = anonData?.user;
+
+                if (user) {
+                  await supabase
+                    .from("profiles")
+                    .upsert({ id: user.id, name: "Demo Buyer", role: "buyer" });
+                  toast.success("Logged in as Demo Buyer");
+                  navigate({ to: "/" });
+                  return;
+                }
+
+                // Fallback to password sign in if anonymous auth is disabled
+                const demoEmail = "buyer.demo@mdeko.co.za";
+                const demoPass = "DemoPassword123!";
+                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                  email: demoEmail,
+                  password: demoPass,
+                });
+
+                if (signInErr) {
+                  throw new Error(
+                    "Could not log in as Demo Buyer: " + (anonErr?.message || signInErr.message),
+                  );
+                }
+
+                toast.success("Logged in as Demo Buyer");
+                navigate({ to: "/" });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Demo sign in failed");
+              } finally {
+                setLoading(false);
+              }
             }}
           >
             Demo Buyer
@@ -217,12 +249,44 @@ function AuthPage() {
             variant="outline"
             disabled={loading}
             onClick={async () => {
-              setEmail("trader.demo@mdeko.co.za");
-              setPassword("DemoPassword123!");
-              setMode("signin");
-              toast.info(
-                "Demo Trader credentials filled. Click Sign in or Create account if needed.",
-              );
+              setLoading(true);
+              setError("");
+              try {
+                const { supabase } = await import("@/integrations/supabase/client");
+                // Try anonymous sign in or sign in with password fallback
+                const { data: anonData, error: anonErr } = await supabase.auth.signInAnonymously();
+                const user = anonData?.user;
+
+                if (user) {
+                  await supabase
+                    .from("profiles")
+                    .upsert({ id: user.id, name: "Demo Trader", role: "trader" });
+                  toast.success("Logged in as Demo Trader");
+                  navigate({ to: "/runner" });
+                  return;
+                }
+
+                // Fallback to password sign in if anonymous auth is disabled
+                const demoEmail = "trader.demo@mdeko.co.za";
+                const demoPass = "DemoPassword123!";
+                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                  email: demoEmail,
+                  password: demoPass,
+                });
+
+                if (signInErr) {
+                  throw new Error(
+                    "Could not log in as Demo Trader: " + (anonErr?.message || signInErr.message),
+                  );
+                }
+
+                toast.success("Logged in as Demo Trader");
+                navigate({ to: "/runner" });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Demo sign in failed");
+              } finally {
+                setLoading(false);
+              }
             }}
           >
             Demo Trader
