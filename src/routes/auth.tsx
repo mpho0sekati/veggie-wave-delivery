@@ -201,37 +201,12 @@ function AuthPage() {
             variant="outline"
             disabled={loading}
             onClick={async () => {
-              setLoading(true);
-              setError("");
-              try {
-                const { supabase } = await import("@/integrations/supabase/client");
-                const demoEmail = "buyer.demo@mdeko.co.za";
-                const demoPass = "DemoPassword123!";
-
-                const { error: signInErr } = await supabase.auth.signInWithPassword({
-                  email: demoEmail,
-                  password: demoPass,
-                });
-
-                if (signInErr) {
-                  const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-                    email: demoEmail,
-                    password: demoPass,
-                  });
-                  if (signUpErr) throw signUpErr;
-                  if (signUpData.user) {
-                    await supabase
-                      .from("profiles")
-                      .upsert({ id: signUpData.user.id, name: "Demo Buyer", role: "buyer" });
-                  }
-                }
-                toast.success("Signed in as Demo Buyer");
-                navigate({ to: "/" });
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Demo sign in failed");
-              } finally {
-                setLoading(false);
-              }
+              setEmail("buyer.demo@mdeko.co.za");
+              setPassword("DemoPassword123!");
+              setMode("signin");
+              toast.info(
+                "Demo Buyer credentials filled. Click Sign in or Create account if needed.",
+              );
             }}
           >
             Demo Buyer
@@ -242,37 +217,12 @@ function AuthPage() {
             variant="outline"
             disabled={loading}
             onClick={async () => {
-              setLoading(true);
-              setError("");
-              try {
-                const { supabase } = await import("@/integrations/supabase/client");
-                const demoEmail = "trader.demo@mdeko.co.za";
-                const demoPass = "DemoPassword123!";
-
-                const { error: signInErr } = await supabase.auth.signInWithPassword({
-                  email: demoEmail,
-                  password: demoPass,
-                });
-
-                if (signInErr) {
-                  const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-                    email: demoEmail,
-                    password: demoPass,
-                  });
-                  if (signUpErr) throw signUpErr;
-                  if (signUpData.user) {
-                    await supabase
-                      .from("profiles")
-                      .upsert({ id: signUpData.user.id, name: "Demo Trader", role: "trader" });
-                  }
-                }
-                toast.success("Signed in as Demo Trader");
-                navigate({ to: "/runner" });
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Demo sign in failed");
-              } finally {
-                setLoading(false);
-              }
+              setEmail("trader.demo@mdeko.co.za");
+              setPassword("DemoPassword123!");
+              setMode("signin");
+              toast.info(
+                "Demo Trader credentials filled. Click Sign in or Create account if needed.",
+              );
             }}
           >
             Demo Trader
