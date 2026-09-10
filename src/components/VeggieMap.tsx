@@ -285,43 +285,58 @@ export default function VeggieMap({
       icon: buyerIcon(Boolean(waving)),
     }).addTo(layer);
 
-    runners
-      .filter((r) => r.online)
-      .forEach((r) => {
-        const map = mapRef.current;
-        const active = r.id === activeRunnerId;
-        mapLogger.debug("Rendering runner", {
-          id: r.id,
-          name: r.name,
-          active,
-          lat: r.lat,
-          lng: r.lng,
-          rating: r.rating,
-        });
-        const marker = L.marker([r.lat, r.lng], {
-          icon: runnerIcon(active, r.name.charAt(0), r.avatar),
-        })
-          .addTo(layer)
-          .bindPopup(
-            `<strong>${escapeHtml(r.name)}</strong><br/>Veggie runner · ★ ${r.rating.toFixed(1)}`,
-          );
+    const onlineRunners = runners.filter((r) => r.online);
 
-        if (active && map) {
-          mapLogger.debug("Active runner: centering map and opening popup");
-          map.setView([r.lat, r.lng], map.getZoom(), { animate: true });
-          marker.openPopup();
-        }
-        if (active) {
-          mapLogger.debug("Drawing line to active runner");
-          L.polyline(
-            [
-              [r.lat, r.lng],
-              [buyer.lat, buyer.lng],
-            ],
-            { color: "oklch(0.72 0.17 62)", weight: 3, dashArray: "6 8" },
-          ).addTo(layer);
-        }
+    onlineRunners.forEach((r) => {
+      const active = r.id === activeRunnerId;
+      const dist = formatDistance(
+        Math.hypot(
+          (r.lat - buyer.lat) * 111,
+          (r.lng - buyer.lng) * 111 * Math.cos((buyer.lat * Math.PI) / 180),
+        ),
+      );
+      mapLogger.debug("Rendering runner", {
+        id: r.id,
+        name: r.name,
+        active,
+        lat: r.lat,
+        lng: r.lng,
+        rating: r.rating,
       });
+      const marker = L.marker([r.lat, r.lng], {
+        icon: runnerIcon(active, r.name.charAt(0), r.avatar),
+      })
+        .addTo(layer)
+        .bindPopup(
+          `<div class="p-1 text-center font-sans">` +
+            `<strong class="text-sm font-semibold">${escapeHtml(r.name)}</strong>` +
+            `<div class="text-xs text-muted-foreground mt-0.5">Trader · ★ ${r.rating.toFixed(1)}</div>` +
+            `<div class="text-xs font-medium text-primary mt-1">${dist} away</div>` +
+            `</div>`,
+        );
+
+      if (active) {
+        mapLogger.debug("Drawing line to active runner");
+        L.polyline(
+          [
+            [r.lat, r.lng],
+            [buyer.lat, buyer.lng],
+          ],
+          { color: "oklch(0.72 0.17 62)", weight: 3, dashArray: "6 8" },
+        ).addTo(layer);
+      }
+    });
+
+    // Smart bounds calculation: fit buyer and all online traders in view if available
+    const map = mapRef.current;
+    if (map && !courierPosition && !route) {
+      const points: [number, number][] = [[buyer.lat, buyer.lng]];
+      onlineRunners.forEach((r) => points.push([r.lat, r.lng]));
+      if (points.length > 1) {
+        const bounds = L.latLngBounds(points);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: true });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runners is intentionally omitted; runnersKey is its stable proxy
   }, [runnersKey, activeRunnerId, waving, buyer.lat, buyer.lng]);
 
