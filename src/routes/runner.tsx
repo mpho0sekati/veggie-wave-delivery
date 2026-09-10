@@ -8,7 +8,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { catalogWith, distanceKm, formatRand, priceFor, walkMinutes } from "@/lib/veggie-data";
+import {
+  SEED_RUNNERS,
+  catalogWith,
+  distanceKm,
+  formatRand,
+  priceFor,
+  walkMinutes,
+} from "@/lib/veggie-data";
 import {
   cancelRequest,
   failRequest,
@@ -81,7 +88,11 @@ function RunnerPage() {
   const session = useSession();
   const signedIn = Boolean(session.userId);
   const myId = state.me.id !== "" ? state.me.id : MY_ID;
-  const me = runners.find((r) => r.id === myId) ?? runners.find((r) => r.id === MY_ID)!;
+  const me =
+    runners.find((r) => r.id === myId) ??
+    runners.find((r) => r.id === MY_ID) ??
+    SEED_RUNNERS.find((r) => r.id === MY_ID) ??
+    SEED_RUNNERS[0];
 
   // Get active delivery order for this trader
   const { data: myOrders } = useMyOrders(signedIn);
