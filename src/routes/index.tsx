@@ -139,9 +139,53 @@ function BuyerPage() {
   }, [liveWave, liveOrders]);
 
   // Live courier tracking for active delivery orders
-  const { latestPosition: courierPosition, setBuyerPosition } = useCourierPositions(
-    liveOrder?.id ?? null,
-  );
+  const {
+    latestPosition: courierPosition,
+    setBuyerPosition,
+    isDisconnected,
+  } = useCourierPositions(liveOrder?.id ?? null);
+
+  // Navigation steps for tracking overlay
+  const navigationSteps = useMemo(() => {
+    if (!request) return undefined;
+    const isAccepted =
+      request.status === "accepted" || request.status === "delivered" || request.status === "paid";
+    const isDelivered = request.status === "delivered" || request.status === "paid";
+    const isPaid = request.status === "paid";
+
+    return [
+      {
+        id: "s1",
+        label: "Wave Raised",
+        sublabel: "Looking for nearby traders",
+        completed: isAccepted,
+        active: request.status === "waving",
+      },
+      {
+        id: "s2",
+        label: "Trader Matched",
+        sublabel: assigned ? `${assigned.name} accepted` : "Trader assigned",
+        completed: isAccepted,
+        active: request.status === "accepted" && !courierPosition,
+      },
+      {
+        id: "s3",
+        label: "En Route to You",
+        sublabel: courierPosition
+          ? `${formatDistance(courierPosition.distanceKm)} away`
+          : "On the way",
+        completed: isDelivered,
+        active: request.status === "accepted" && Boolean(courierPosition),
+      },
+      {
+        id: "s4",
+        label: "Delivered & Paid",
+        sublabel: isPaid ? "Payment complete" : "Awaiting payment",
+        completed: isPaid,
+        active: request.status === "delivered",
+      },
+    ];
+  }, [request, assigned, courierPosition]);
 
   // Weather warning for active delivery orders
   const { warning: weatherWarning } = useWeatherWarning(liveOrder?.id ?? null);
@@ -380,6 +424,8 @@ function BuyerPage() {
               waving={request?.status === "waving"}
               buyerPosition={buyer}
               courierPosition={courierPosition}
+              isGpsDisconnected={isDisconnected}
+              navigationSteps={request ? navigationSteps : undefined}
               recenterTrigger={recenterTrigger}
               onPickPosition={onPosition}
             />

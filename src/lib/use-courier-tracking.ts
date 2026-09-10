@@ -192,14 +192,39 @@ export function useCourierPositions(orderId: string | null) {
   const [positions, setPositions] = useState<CourierPosition[]>([]);
   const [latestPosition, setLatestPosition] = useState<TrackedPosition | null>(null);
   const [buyerPosition, setBuyerPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [isDisconnected, setIsDisconnected] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const lastPingTimestampRef = useRef<number | null>(null);
 
   // Clear state when order changes
   useEffect(() => {
     trackingLogger.info("Clearing positions for new order", { orderId });
     setPositions([]);
     setLatestPosition(null);
+    setIsDisconnected(false);
+    lastPingTimestampRef.current = null;
   }, [orderId]);
+
+  // Heartbeat monitor: check every 500ms if 4s elapsed since last ping
+  useEffect(() => {
+    if (!orderId || !latestPosition) {
+      setIsDisconnected(false);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (lastPingTimestampRef.current !== null) {
+        const elapsed = Date.now() - lastPingTimestampRef.current;
+        if (elapsed > 4000) {
+          setIsDisconnected(true);
+        } else {
+          setIsDisconnected(false);
+        }
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [orderId, latestPosition]);
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -227,6 +252,9 @@ export function useCourierPositions(orderId: string | null) {
             trader_id: newPosition.trader_id,
           });
           setPositions((prev) => [...prev, newPosition]);
+
+          lastPingTimestampRef.current = Date.now();
+          setIsDisconnected(false);
 
           // Update latest position with ETA calculation if we have buyer position
           if (buyerPosition) {
@@ -283,6 +311,9 @@ export function useCourierPositions(orderId: string | null) {
         trackingLogger.info("Initial positions loaded", { count: data.length });
         setPositions(data);
         const last = data[data.length - 1];
+        lastPingTimestampRef.current = Date.now();
+        setIsDisconnected(false);
+
         if (buyerPosition) {
           const dist = distanceKm(last, buyerPosition);
           const eta = walkMinutes(dist);
@@ -350,5 +381,5 @@ export function useCourierPositions(orderId: string | null) {
     positionsCount: positions.length,
     hasLatestPosition: !!latestPosition,
   });
-  return { positions, latestPosition, setBuyerPosition };
+  return { positions, latestPosition, setBuyerPosition, isDisconnected };
 }

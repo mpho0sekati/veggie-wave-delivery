@@ -358,7 +358,18 @@ function RunnerPage() {
               activeRunnerId={request?.runnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={stateBuyer}
-              courierPosition={null}
+              courierPosition={
+                courierCurrentPosition
+                  ? {
+                      lat: courierCurrentPosition.lat,
+                      lng: courierCurrentPosition.lng,
+                      distanceKm: km,
+                      etaMinutes: walkMinutes(km),
+                      recordedAt: new Date().toISOString(),
+                    }
+                  : null
+              }
+              routeLoading={routeLoading}
               route={route}
               bearing={bearing}
               recenterTrigger={recenterTrigger}

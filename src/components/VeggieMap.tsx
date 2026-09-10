@@ -4,7 +4,11 @@ import "leaflet/dist/leaflet.css";
 import { BUYER_POSITION, type Runner, formatDistance } from "@/lib/veggie-data";
 import type { TrackedPosition } from "@/lib/use-courier-tracking";
 import type { RouteResult } from "@/lib/routing.server";
+import { animateMarker } from "@/lib/marker-animator";
+import NavigationTracker, { type NavigationStep } from "@/components/NavigationTracker";
+import RouteLoadingBanner from "@/components/RouteLoadingBanner";
 import { createLogger } from "@/lib/logger";
+import { WifiOff } from "lucide-react";
 
 const mapLogger = createLogger("VeggieMap");
 
@@ -16,6 +20,12 @@ type Props = {
   recenterTrigger?: number;
   /** Live courier position for delivery tracking */
   courierPosition?: TrackedPosition | null;
+  /** GPS stream disconnect state */
+  isGpsDisconnected?: boolean;
+  /** Route calculation loading state */
+  routeLoading?: boolean;
+  /** Navigation milestones steps */
+  navigationSteps?: NavigationStep[];
   /** Route polyline and steps for seller navigation */
   route?: RouteResult | null;
   /** Bearings for compass fallback when no route */
@@ -55,10 +65,10 @@ function buyerIcon(waving: boolean) {
   });
 }
 
-function courierIcon() {
+function courierIcon(isDisconnected = false) {
   return L.divIcon({
     className: "",
-    html: `<div class="marker-courier"><span>🚴</span></div>`,
+    html: `<div class="marker-courier ${isDisconnected ? "marker-courier-disconnected" : ""}"><span>🚴</span></div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 20],
   });
@@ -71,6 +81,9 @@ export default function VeggieMap({
   buyerPosition,
   recenterTrigger,
   courierPosition,
+  isGpsDisconnected = false,
+  routeLoading = false,
+  navigationSteps,
   route,
   bearing,
   onPickPosition,
@@ -134,7 +147,7 @@ export default function VeggieMap({
     if (map) map.setView([buyer.lat, buyer.lng], map.getZoom(), { animate: true });
   }, [buyer.lat, buyer.lng, recenterTrigger]);
 
-  // Animate courier marker when position updates
+  // Animate courier marker when position or disconnect status updates
   useEffect(() => {
     if (!courierPosition || !mapRef.current) return;
     mapLogger.info("Courier position updated", {
@@ -142,6 +155,7 @@ export default function VeggieMap({
       lng: courierPosition.lng,
       distanceKm: courierPosition.distanceKm,
       etaMinutes: courierPosition.etaMinutes,
+      isGpsDisconnected,
     });
 
     const map = mapRef.current;
@@ -154,24 +168,21 @@ export default function VeggieMap({
       courierLineRef.current = null;
     }
 
-    // Create or update courier marker with smooth animation
+    // Create or update courier marker with smooth frame-by-frame LERP animation (2s)
     if (!courierMarkerRef.current) {
       mapLogger.debug("Creating courier marker");
       const courierMarker = L.marker([courierPosition.lat, courierPosition.lng], {
-        icon: courierIcon(),
+        icon: courierIcon(isGpsDisconnected),
       }).addTo(layer);
       courierMarkerRef.current = courierMarker;
     } else {
-      // Smooth slide animation for existing marker
-      mapLogger.debug("Animating courier marker", {
+      courierMarkerRef.current.setIcon(courierIcon(isGpsDisconnected));
+      // Smooth 2-second LERP animation for marker position
+      mapLogger.debug("Animating courier marker via LERP", {
         from: courierMarkerRef.current.getLatLng(),
         to: [courierPosition.lat, courierPosition.lng],
       });
-      courierMarkerRef.current.setLatLng([courierPosition.lat, courierPosition.lng], {
-        animate: true,
-        duration: 0.5,
-        easeLinearity: 0.5,
-      });
+      animateMarker(courierMarkerRef.current, courierPosition.lat, courierPosition.lng, 2000);
     }
 
     // Create line from courier to buyer
@@ -194,12 +205,8 @@ export default function VeggieMap({
     if (followMode) {
       mapLogger.debug("Follow mode: fitting bounds to view");
       map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
-    } else if (!courierMarkerRef.current?.getLatLng()) {
-      // Only fit bounds on first position update if not in follow mode
-      mapLogger.debug("First position: fitting bounds to view");
-      map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
     }
-  }, [courierPosition, buyer.lat, buyer.lng, followMode]);
+  }, [courierPosition, buyer.lat, buyer.lng, followMode, isGpsDisconnected]);
 
   // Render route polyline when available
   useEffect(() => {
@@ -343,9 +350,19 @@ export default function VeggieMap({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full relative"
+      className="h-full w-full relative overflow-hidden"
       aria-label="Map of nearby veggie runners"
     >
+      {/* Glassmorphic Route Loading Banner */}
+      <RouteLoadingBanner isLoading={routeLoading} />
+
+      {/* Navigation Progress Tracker Overlay (top left / overlay) */}
+      {navigationSteps && navigationSteps.length > 0 && (
+        <div className="absolute top-16 left-4 z-400">
+          <NavigationTracker steps={navigationSteps} />
+        </div>
+      )}
+
       {/* Recenter button - top left */}
       <button
         onClick={() => {
@@ -393,8 +410,16 @@ export default function VeggieMap({
 
       {/* Status indicator - bottom center */}
       {courierPosition === null && activeRunnerId && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border z-400">
           <p className="text-sm text-muted-foreground">Waiting for seller location...</p>
+        </div>
+      )}
+
+      {/* GPS Disconnected Slide-Up Banner */}
+      {isGpsDisconnected && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-500 w-[90%] max-w-sm rounded-xl bg-destructive/15 border border-destructive/40 backdrop-blur-md px-4 py-2.5 shadow-xl animate-slide-up flex items-center justify-center gap-2.5 text-destructive">
+          <WifiOff className="size-4 animate-pulse shrink-0" />
+          <span className="text-xs font-semibold tracking-wide">Reconnecting to live GPS...</span>
         </div>
       )}
 
