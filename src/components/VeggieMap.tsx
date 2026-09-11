@@ -34,16 +34,23 @@ type Props = {
   onPickPosition?: (pos: { lat: number; lng: number }) => void;
 };
 
-function runnerIcon(active: boolean, initial: string, avatar?: string | null) {
+function runnerIcon(active: boolean, name: string, rating: number, avatar?: string | null) {
   const safeAvatar = avatar?.startsWith("data:image/") ? escapeHtml(avatar) : null;
-  const inner = safeAvatar
-    ? `<img src="${safeAvatar}" alt="" class="h-full w-full rounded-full object-cover" />`
-    : `<span class="text-sm font-semibold">${escapeHtml(initial)}</span>`;
+  const avatarHtml = safeAvatar
+    ? `<img src="${safeAvatar}" alt="" class="size-7 rounded-full object-cover shrink-0" />`
+    : `<div class="size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs shrink-0">${escapeHtml(name.charAt(0))}</div>`;
+
   return L.divIcon({
     className: "",
-    html: `<div class="marker-runner ${active ? "marker-runner-active" : ""}">${inner}</div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
+    html: `<div class="uber-marker-runner ${active ? "active" : ""}">
+      ${avatarHtml}
+      <div class="flex flex-col text-left leading-none pr-1">
+        <span class="text-[0.7rem] font-bold truncate max-w-[80px]">${escapeHtml(name)}</span>
+        <span class="text-[0.6rem] opacity-80 mt-0.5">★ ${rating.toFixed(1)}</span>
+      </div>
+    </div>`,
+    iconSize: [110, 36],
+    iconAnchor: [55, 18],
   });
 }
 
@@ -59,9 +66,13 @@ function escapeHtml(value: string) {
 function buyerIcon(waving: boolean) {
   return L.divIcon({
     className: "",
-    html: `<div class="marker-buyer ${waving ? "marker-buyer-waving" : ""}"><span>You</span></div>`,
-    iconSize: [46, 46],
-    iconAnchor: [23, 23],
+    html: `<div class="uber-marker-buyer ${waving ? "waving" : ""}">
+      <div class="dot"></div>
+      <div class="pulse"></div>
+      <span class="label">Pickup</span>
+    </div>`,
+    iconSize: [60, 60],
+    iconAnchor: [30, 30],
   });
 }
 
@@ -311,7 +322,7 @@ export default function VeggieMap({
         rating: r.rating,
       });
       const marker = L.marker([r.lat, r.lng], {
-        icon: runnerIcon(active, r.name.charAt(0), r.avatar),
+        icon: runnerIcon(active, r.name, r.rating, r.avatar),
       })
         .addTo(layer)
         .bindPopup(
