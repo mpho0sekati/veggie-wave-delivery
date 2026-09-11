@@ -145,6 +145,8 @@ function BuyerPage() {
     isDisconnected,
   } = useCourierPositions(liveOrder?.id ?? null);
 
+  const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
+
   // Navigation steps for tracking overlay
   const navigationSteps = useMemo(() => {
     if (!request) return undefined;
@@ -270,7 +272,6 @@ function BuyerPage() {
 
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
-  const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
 
   const bump = useCallback(
     (id: string, delta: number) =>
