@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as RunnerRouteImport } from './routes/runner'
+import { Route as AuthOnboardingRouteImport } from './routes/auth/onboarding'
 import { Route as ApiPublicMomoCallbackRouteImport } from './routes/api/public/momo-callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const RunnerRoute = RunnerRouteImport.update({
   path: '/runner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthRoute,
+} as any)
 const ApiPublicMomoCallbackRoute = ApiPublicMomoCallbackRouteImport.update({
   id: '/api/public/momo-callback',
   path: '/api/public/momo-callback',
@@ -37,34 +43,45 @@ const ApiPublicMomoCallbackRoute = ApiPublicMomoCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/runner': typeof RunnerRoute
+  '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/runner': typeof RunnerRoute
+  '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/runner': typeof RunnerRoute
+  '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/runner' | '/api/public/momo-callback'
+  fullPaths:
+    '/' | '/auth' | '/runner' | '/auth/onboarding' | '/api/public/momo-callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/runner' | '/api/public/momo-callback'
-  id: '__root__' | '/' | '/auth' | '/runner' | '/api/public/momo-callback'
+  to:
+    '/' | '/auth' | '/runner' | '/auth/onboarding' | '/api/public/momo-callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/runner'
+    | '/auth/onboarding'
+    | '/api/public/momo-callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   RunnerRoute: typeof RunnerRoute
   ApiPublicMomoCallbackRoute: typeof ApiPublicMomoCallbackRoute
 }
@@ -92,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RunnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/onboarding': {
+      id: '/auth/onboarding'
+      path: '/onboarding'
+      fullPath: '/auth/onboarding'
+      preLoaderRoute: typeof AuthOnboardingRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/api/public/momo-callback': {
       id: '/api/public/momo-callback'
       path: '/api/public/momo-callback'
@@ -102,9 +126,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthRouteChildren {
+  AuthOnboardingRoute: typeof AuthOnboardingRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthOnboardingRoute: AuthOnboardingRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   RunnerRoute: RunnerRoute,
   ApiPublicMomoCallbackRoute: ApiPublicMomoCallbackRoute,
 }
