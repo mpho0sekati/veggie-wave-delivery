@@ -46,7 +46,7 @@ function runnerIcon(active: boolean, name: string, rating: number, avatar?: stri
       ${avatarHtml}
       <div class="flex flex-col text-left leading-none pr-1">
         <span class="text-[0.7rem] font-bold truncate max-w-[80px]">${escapeHtml(name)}</span>
-        <span class="text-[0.6rem] opacity-80 mt-0.5">★ ${rating.toFixed(1)}</span>
+        <span class="text-[0.7rem] opacity-80 mt-0.5">★ ${rating.toFixed(1)}</span>
       </div>
     </div>`,
     iconSize: [110, 36],
@@ -369,7 +369,7 @@ export default function VeggieMap({
 
       {/* Navigation Progress Tracker Overlay (top left / overlay) */}
       {navigationSteps && navigationSteps.length > 0 && (
-        <div className="absolute top-16 left-4 z-400">
+        <div className="absolute top-16 left-4 z-500">
           <NavigationTracker steps={navigationSteps} />
         </div>
       )}
@@ -380,7 +380,7 @@ export default function VeggieMap({
           mapRef.current?.setView([buyer.lat, buyer.lng], 15, { animate: true });
           setFollowMode(false);
         }}
-        className="absolute top-4 left-4 z-400 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border"
+        className="absolute top-4 left-4 z-500 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border"
         aria-label="Recenter map"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,7 +403,7 @@ export default function VeggieMap({
       {courierPosition && (
         <button
           onClick={() => setFollowMode(!followMode)}
-          className={`absolute top-4 right-4 z-400 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border ${
+          className={`absolute top-4 right-4 z-500 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border ${
             followMode ? "ring-2 ring-primary" : ""
           }`}
           aria-label={followMode ? "Stop following courier" : "Follow courier"}
@@ -421,14 +421,14 @@ export default function VeggieMap({
 
       {/* Status indicator - bottom center */}
       {courierPosition === null && activeRunnerId && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border z-400">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border z-500">
           <p className="text-sm text-muted-foreground">Waiting for seller location...</p>
         </div>
       )}
 
       {/* GPS Disconnected Slide-Up Banner */}
       {isGpsDisconnected && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-500 w-[90%] max-w-sm rounded-xl bg-destructive/15 border border-destructive/40 backdrop-blur-md px-4 py-2.5 shadow-xl animate-slide-up flex items-center justify-center gap-2.5 text-destructive">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-600 w-[90%] max-w-sm rounded-xl bg-destructive/15 border border-destructive/40 backdrop-blur-md px-4 py-2.5 shadow-xl animate-slide-up flex items-center justify-center gap-2.5 text-destructive pointer-events-auto">
           <WifiOff className="size-4 animate-pulse shrink-0" />
           <span className="text-xs font-semibold tracking-wide">Reconnecting to live GPS...</span>
         </div>
@@ -436,7 +436,7 @@ export default function VeggieMap({
 
       {/* Courier info panel - bottom left */}
       {courierPosition && (
-        <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border">
+        <div className="absolute bottom-4 left-4 z-500 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <span className="text-primary text-xl">🚴</span>
@@ -460,7 +460,7 @@ export default function VeggieMap({
       {bearing !== null && !route && courierPosition && (
         <div
           ref={compassRef}
-          className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm rounded-xl w-16 h-16 flex items-center justify-center shadow-lg border z-400"
+          className="absolute top-20 right-4 bg-background/95 backdrop-blur-sm rounded-xl w-16 h-16 flex items-center justify-center shadow-lg border z-500"
           style={{ transform: `rotate(${bearing}deg)` }}
         >
           <div className="text-2xl" style={{ transform: `rotate(${-bearing}deg)` }}>
@@ -474,7 +474,7 @@ export default function VeggieMap({
 
       {/* Route step instructions - bottom right */}
       {route && route.steps.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border max-w-[320px]">
+        <div className="absolute bottom-4 right-4 z-500 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border max-w-[320px]">
           <div className="flex items-start gap-3">
             <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
               <span className="text-primary text-xs">↗</span>
