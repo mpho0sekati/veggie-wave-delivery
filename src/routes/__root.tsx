@@ -35,7 +35,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error }: { error: Error }) {
   console.error(error);
   useEffect(() => {
     reportError(error, { boundary: "tanstack_root_error_component" });
