@@ -27,7 +27,7 @@ export function useWeatherWarning(orderId: string | null) {
     setError(null);
 
     try {
-      const result = await serverFn({ orderId });
+      const result = await serverFn({ data: { orderId } });
       setWarning(result);
     } catch (err) {
       console.error("Failed to fetch weather:", err);

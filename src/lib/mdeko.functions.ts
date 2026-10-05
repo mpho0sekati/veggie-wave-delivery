@@ -416,6 +416,7 @@ export const getCourierPositions = createServerFn({ method: "POST" })
 /* ------------------------------ WEATHER ------------------------------ */
 
 import type { WeatherWarning } from "./weather.server";
+export type { WeatherWarning };
 import { getWeatherWarningCached } from "./weather.server";
 
 /* ----------------------------- ROUTING ----------------------------- */

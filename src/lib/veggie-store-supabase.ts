@@ -140,7 +140,7 @@ async function fetchCurrentRequest(userId: string): Promise<WaveRequest | null> 
 
   if (!data) return null;
 
-  return dbOrderToWaveRequest(data);
+  return dbOrderToWaveRequest(data as unknown as OrderRow);
 }
 
 // Fetch past orders
@@ -158,7 +158,7 @@ async function fetchOrders(userId: string): Promise<WaveRequest[]> {
     return [];
   }
 
-  return (data || []).map(dbOrderToWaveRequest);
+  return (data || []).map((d) => dbOrderToWaveRequest(d as unknown as OrderRow));
 }
 
 // Fetch user's wallet

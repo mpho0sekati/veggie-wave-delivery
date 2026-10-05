@@ -47,9 +47,7 @@ export function useRoute(
 
     try {
       const result = await serverFn({
-        orderId,
-        fromLat: courierPosition.lat,
-        fromLng: courierPosition.lng,
+        data: { orderId, fromLat: courierPosition.lat, fromLng: courierPosition.lng },
       });
       setRoute(result);
     } catch (err) {

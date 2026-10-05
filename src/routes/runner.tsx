@@ -458,7 +458,7 @@ function RunnerPage() {
                   </div>
                 </div>
               )}
-              {request.status === "delivering" && (
+              {(request.status as string) === "delivering" && (
                 <div className="space-y-2">
                   <Button size="lg" variant="wave" className="w-full" onClick={markDelivered}>
                     <CheckCircle2 /> I&apos;ve arrived — request payment

@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { setUserRole, getUserRole } from "@/lib/auth-guard";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/auth/onboarding")(() => {
-  return <OnboardingPage />;
+export const Route = createFileRoute("/auth/onboarding")({
+  component: OnboardingPage,
 });
 
 function OnboardingPage() {
