@@ -1,79 +1,57 @@
 # Mdeko · Veggie Wave
 
-Mdeko Veggie Wave is a local produce ordering prototype that connects buyers with nearby veggie traders through a map-based, mobile-first flow.
+Mdeko Veggie Wave is a township produce marketplace that connects buyers with nearby veggie traders through a map-based, mobile-first flow: a buyer raises a "wave", the closest trader accepts, an order is created, payment runs through MTN MoMo, and the trader delivers.
 
-This version is a working demo app built in React with TanStack Router, Leaflet, and local state persistence. It shows the core experience we built:
-
-- buyers browse produce and raise a wave for help,
-- nearby traders appear on a live map,
-- a trader can accept a request, deliver, and request payment,
-- the buyer can pay using a demo Wave Pay balance or cash,
-- the app remembers the state in browser local storage for the prototype experience.
+Built with React 19, TanStack Start, Leaflet, Tailwind CSS v4, and a Supabase backend.
 
 ---
 
-## What we built
+## The flow
 
-### Buyer experience
-
-The buyer journey is centered around a map and a produce catalogue.
-
-Users can:
-
-- browse produce by category and quantity,
-- see nearby traders ranked by stock match and distance,
-- use their location or manually pin a delivery point,
-- raise a wave when they need fresh produce,
-- track the order from “waving” to “accepted” to “delivered” to “paid”,
-- pay via Wave Pay balance or cash.
-
-### Trader experience
-
-The trader view is a stall dashboard.
-
-Traders can:
-
-- toggle availability online/offline,
-- update their name and profile picture,
-- adjust stock and item prices,
-- see incoming customer waves near their stall,
-- accept a wave, confirm delivery, and request payment,
-- review earnings and delivery progression.
-
-### Core product feel
-
-The app is deliberately designed as a lightweight local-market UX prototype, with:
-
-- a leafy, warm visual style,
-- mobile-first layout,
-- map-based proximity logic,
-- local demo pricing and stock simulation,
-- a transaction flow that feels like a working MVP rather than a static mock.
+```text
+Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery → Complete → Settlement
+```
 
 ---
 
-## Screenshots
+## Features
 
-### Buyer view
+### Buyer experience (`/`)
 
-![Buyer view](docs/screenshots/buyer-view.png)
+- Browse a produce catalogue with icons, quantities, and trader prices.
+- **Describe your order in words** — an AI assistant (via the AI gateway) converts a free-text description ("veg for a chakalaka for 6") into an itemized order; unrecognized items are logged as demand.
+- See nearby traders on a live OpenStreetMap, ranked by stock match and distance, with walking-time estimates.
+- Real browser geolocation with a manual pin-drop fallback (right-click / long-press the map).
+- Raise a wave and track it through a status stepper: waving → on the way → delivered → paid.
+- Pay with MTN MoMo (request-to-pay to the buyer's phone) or Mdeko Pay demo balance.
 
-### Trader view
+### Trader experience (`/runner`)
 
-![Trader view](docs/screenshots/trader-view.png)
+- Stall dashboard with online/offline availability toggle.
+- Profile with photo upload.
+- Full stock management: per-item availability, price, and quantity — including adding new items (e.g. blueberries) to the catalogue.
+- Incoming waves with accept / deliver / request-payment actions.
+- **Demand insights**: see what buyers are asking for that nobody stocks, with a one-tap "add to my stock" shortcut.
+- Earnings and settlement tracking.
+
+### Backend & integrations
+
+- **Supabase (Lovable Cloud)**: auth (email/password + roles), profiles, wallets, catalogue, stock, waves, orders, payments, settlements, and demand logs — all protected by row-level security, with writes going through security-definer database functions.
+- **MTN MoMo Collections** (production, `mtnsouthafrica`, ZAR): server-side token management with caching and 401 retry, idempotent request-to-pay with unique UUID references, status polling, and a public webhook callback that re-verifies status with MTN before settling. Credentials live in server-side secrets only.
+- **AI order parsing**: server function calling the Lovable AI gateway to turn free-text into structured order lines.
+- Weather alerts and walking-route guidance during delivery.
 
 ---
 
 ## Tech stack
 
-- React 19
-- TanStack Router + TanStack Start
-- Vite
+- React 19 + TanStack Start / Router
+- Vite 7
 - Tailwind CSS v4
 - Leaflet + OpenStreetMap tiles
-- Radix UI primitives
-- Lucide React icons
-- localStorage-based state persistence for prototype/demo behavior
+- Supabase (auth, database, realtime)
+- MTN MoMo Collections API
+- Radix UI primitives, Lucide icons, sonner toasts
 
 ---
 
@@ -86,37 +64,35 @@ The app is deliberately designed as a lightweight local-market UX prototype, wit
 │   │   ├── ui/
 │   │   ├── BrandMark.tsx
 │   │   ├── DemandInsights.tsx
+│   │   ├── DescribeOrder.tsx
+│   │   ├── NavigationTracker.tsx
 │   │   ├── OrderStepper.tsx
 │   │   ├── StockEditor.tsx
 │   │   ├── VeggieMap.tsx
 │   │   └── WavePayDialog.tsx
-│   ├── hooks/
-│   ├── integrations/
 │   ├── lib/
-│   │   ├── use-geolocation.ts
-│   │   ├── utils.ts
-│   │   ├── veggie-data.ts
-│   │   └── veggie-store.ts
+│   │   ├── ai-order.functions.ts   # AI describe-to-order server fn
+│   │   ├── ai-order.server.ts
+│   │   ├── mdeko.functions.ts      # wave/order/payment server API
+│   │   ├── momo.server.ts          # MTN MoMo client (token, requesttopay, status)
+│   │   ├── momo.functions.ts
+│   │   ├── veggie-store-supabase.ts
+│   │   ├── veggie-store.ts         # legacy local demo store
+│   │   ├── veggie-data.ts          # catalogue, icons, distance helpers
+│   │   ├── use-geolocation.ts      # watchPosition-based GPS hook
+│   │   └── ...                     # weather, routing, tracking, session hooks
 │   ├── routes/
 │   │   ├── __root.tsx
-│   │   ├── index.tsx
-│   │   └── runner.tsx
+│   │   ├── index.tsx               # buyer page
+│   │   ├── runner.tsx              # trader dashboard
+│   │   ├── auth.tsx                # sign in / sign up
+│   │   └── api/public/             # MoMo webhook callback
 │   ├── router.tsx
-│   ├── routeTree.gen.ts
-│   ├── server.ts
 │   ├── start.ts
 │   └── styles.css
-├── public/
-├── supabase/
-├── docs/
-│   └── screenshots/
-├── AGENTS.md
-├── components.json
-├── eslint.config.js
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── bunfig.toml
+├── supabase/                       # migrations
+├── docs/screenshots/
+├── .env.example
 └── README.md
 ```
 
@@ -126,68 +102,56 @@ The app is deliberately designed as a lightweight local-market UX prototype, wit
 
 ### Prerequisites
 
-- Node.js
-- npm
+- Node.js or Bun
+- A Supabase project (or Lovable Cloud) with the migrations in `supabase/` applied
+- MTN MoMo Collections credentials (API user, API key, subscription key)
 
-This repo was originally intended to use Bun, but in this environment the project has been verified using npm as the working equivalent.
-
-### Install dependencies
+### Install & run
 
 ```bash
 npm install
+npm run dev
 ```
 
-### Run the app locally
-
-```bash
-npm run dev -- --host 0.0.0.0
-```
-
-Then open the local URL shown in the terminal, normally:
-
-```text
-http://localhost:8081/
-```
-
-### Lint the project
+### Lint & build
 
 ```bash
 npm run lint
-```
-
-### Production build
-
-```bash
 npm run build
 ```
 
+### Environment variables
+
+Copy `.env.example` and fill in:
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Client-side Supabase config |
+| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | Server-side Supabase config |
+| `MOMO_BASE_URL` | `https://proxy.momoapi.mtn.com` (production) |
+| `MOMO_SUBSCRIPTION_KEY` | Ocp-Apim-Subscription-Key |
+| `MOMO_API_USER` / `MOMO_API_KEY` | Basic-auth credentials for token generation |
+| `MOMO_TARGET_ENVIRONMENT` | `mtnsouthafrica` |
+| `MOMO_CURRENCY` | `ZAR` |
+
+MoMo secrets are read inside server handlers only — never exposed to the browser.
+
 ---
 
-## Demo flow
+## Payments: MTN MoMo flow
 
-1. Open the buyer page.
-2. Pick vegetables and quantities.
-3. Click “Raise my hand”.
-4. See nearby traders ranked by stock match and distance.
-5. Switch to the trader view.
-6. Accept a wave and complete the delivery flow.
-7. Confirm payment through the demo payment flow.
+1. **Token** — `POST /collection/token/` with Basic auth (base64 of `API_USER:API_KEY`) plus the subscription key and `X-Target-Environment`. Tokens are cached server-side and refreshed before expiry, with one automatic retry on 401.
+2. **Request to pay** — `POST /collection/v1_0/requesttopay` with a unique UUID `X-Reference-Id` per transaction (idempotent: re-paying an order reuses its pending payment), amount formatted to two decimals, and the payer MSISDN normalized to `27XXXXXXXXX` (no `+`).
+3. **Status** — `GET /collection/v1_0/requesttopay/{referenceId}`; the webhook callback re-verifies with MTN rather than trusting the payload, then settles the order and credits the trader.
 
 ---
 
-## Notes
+## Deployment
 
-This is a front-end prototype and not yet a production backend integration. The current version intentionally simulates the marketplace logic with in-browser state and seeded demo data.
-
-It is best understood as a proof of concept for:
-
-- local produce discovery,
-- community supply matching,
-- delivery coordination,
-- and lightweight wallet-based payment UX.
+A GitHub Actions workflow (`.github/workflows/deploy.yml`) deploys to Netlify on every push to `main`. Set `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` as GitHub repository secrets.
 
 ---
 
 ## License
 
-This project is provided as-is for demo and prototype use.
+Provided as-is for demo and prototype use.
