@@ -224,7 +224,7 @@ export default function VeggieMap({
     if (!route || !mapRef.current || !layerRef.current) return;
     mapLogger.info("Route received", {
       distanceM: route.distanceM,
-      duration: route.duration,
+      durationS: route.durationS,
       stepsCount: route.steps.length,
     });
 
@@ -457,7 +457,7 @@ export default function VeggieMap({
       )}
 
       {/* Compass fallback - top right when no route */}
-      {bearing !== null && !route && courierPosition && (
+      {bearing != null && !route && courierPosition && (
         <div
           ref={compassRef}
           className="absolute top-20 right-4 bg-background/95 backdrop-blur-sm rounded-xl w-16 h-16 flex items-center justify-center shadow-lg border z-500"

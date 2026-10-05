@@ -416,6 +416,7 @@ export const getCourierPositions = createServerFn({ method: "POST" })
 /* ------------------------------ WEATHER ------------------------------ */
 
 import type { WeatherWarning } from "./weather.server";
+export type { WeatherWarning };
 import { getWeatherWarningCached } from "./weather.server";
 
 /* ----------------------------- ROUTING ----------------------------- */
@@ -442,7 +443,7 @@ export const getWeatherForOrder = createServerFn({ method: "POST" })
     // Get order and verify user is either buyer or trader
     const { data: order, error } = await db
       .from("wave_orders")
-      .select("buyer_lat, buyer_lng")
+      .select("wave_id")
       .eq("id", data.orderId)
       .or(`buyer_id.eq.${context.userId},trader_id.eq.${context.userId}`)
       .single();
@@ -451,8 +452,15 @@ export const getWeatherForOrder = createServerFn({ method: "POST" })
       throw new Error("order-not-found");
     }
 
+    const { data: wave } = await db
+      .from("waves")
+      .select("lat, lng")
+      .eq("id", order.wave_id)
+      .maybeSingle();
+    if (wave?.lat == null || wave?.lng == null) return null;
+
     // Fetch weather warning for buyer's location
-    const warning = await getWeatherWarningCached(order.buyer_lat, order.buyer_lng);
+    const warning = await getWeatherWarningCached(wave.lat, wave.lng);
     return warning;
   });
 
@@ -478,7 +486,7 @@ export const getRoute = createServerFn({ method: "POST" })
     // Verify trader owns this order and it's in a valid state for routing
     const { data: order, error } = await db
       .from("wave_orders")
-      .select("buyer_lat, buyer_lng, status")
+      .select("wave_id, status")
       .eq("id", data.orderId)
       .eq("trader_id", context.userId)
       .single();
@@ -493,9 +501,18 @@ export const getRoute = createServerFn({ method: "POST" })
       throw new Error("order-not-in-delivery-state");
     }
 
+    const { data: wave } = await db
+      .from("waves")
+      .select("lat, lng")
+      .eq("id", order.wave_id)
+      .maybeSingle();
+    if (wave?.lat == null || wave?.lng == null) {
+      throw new Error("buyer-location-unknown");
+    }
+
     const route = await getWalkingRoute(
       { lat: data.fromLat, lng: data.fromLng },
-      { lat: order.buyer_lat, lng: order.buyer_lng },
+      { lat: wave.lat, lng: wave.lng },
     );
 
     if (!route) {

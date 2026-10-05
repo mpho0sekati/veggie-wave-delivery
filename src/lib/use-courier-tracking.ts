@@ -86,7 +86,7 @@ export function useReportCourierPosition(
           .from("courier_positions")
           .insert({
             order_id: orderId,
-            trader_id: (await supabase.auth.getUser()).data.user?.id,
+            trader_id: (await supabase.auth.getUser()).data.user?.id ?? "",
             lat: position.lat,
             lng: position.lng,
             heading: position.heading ?? null,
