@@ -55,6 +55,7 @@ import { useWeatherWarning } from "@/lib/use-weather";
 import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
+import DescribeOrder from "@/components/DescribeOrder";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
@@ -541,6 +542,14 @@ function BuyerPage() {
                 })}
               </ul>
             )}
+
+            <DescribeOrder
+              catalog={catalog}
+              onApply={(items, extras) => {
+                setQty(Object.fromEntries(items.map((l) => [l.id, l.qty])));
+                setWish(extras.join(", "));
+              }}
+            />
 
             <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
             <div className="grid grid-cols-2 gap-3 px-4 pt-3">
