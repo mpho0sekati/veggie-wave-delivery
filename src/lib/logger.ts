@@ -9,9 +9,10 @@ interface LogOptions {
   level?: LogLevel;
   timestamp?: boolean;
   prefix?: string;
+  [key: string]: unknown;
 }
 
-const DEFAULT_OPTIONS: Required<LogOptions> = {
+const DEFAULT_OPTIONS: { level: LogLevel; timestamp: boolean; prefix: string } = {
   level: "info",
   timestamp: true,
   prefix: "",
@@ -73,7 +74,7 @@ function getTimestamp(): string {
 /**
  * Format a log message with colors and prefix
  */
-function formatMessage(message: unknown, level: LogLevel, options: Required<LogOptions>): string {
+function formatMessage(message: unknown, level: LogLevel, options: typeof DEFAULT_OPTIONS): string {
   const timestamp = options.timestamp ? `[${getTimestamp()}]` : "";
   const prefix = options.prefix ? `[${options.prefix}]` : "";
   const levelLabel = LEVEL_LABELS[level];
@@ -91,7 +92,7 @@ function formatMessage(message: unknown, level: LogLevel, options: Required<LogO
  * log("Invalid input", { level: "error" })
  */
 export function log(message: unknown, options: LogOptions = {}): void {
-  const mergedOptions: Required<LogOptions> = { ...DEFAULT_OPTIONS, ...options };
+  const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
 
   // Only log debug messages in development
   if (mergedOptions.level === "debug" && process.env.NODE_ENV === "production") {
