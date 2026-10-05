@@ -326,9 +326,9 @@ button:focus-visible {
   font-family: var(--font-sans) !important;
 }
 
-/* Map container rounded corners clip */
+/* Map container — remove border-radius for full-screen mode */
 .leaflet-container {
-  border-radius: inherit;
+  border-radius: 0;
 }
 
 /* Trader marker pulse when a wave is incoming */

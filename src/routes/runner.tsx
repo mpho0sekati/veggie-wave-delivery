@@ -272,7 +272,7 @@ function RunnerPage() {
   return (
     <main className="relative h-screen w-full overflow-hidden bg-background">
       {/* Full screen edge-to-edge Leaflet map */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 overflow-hidden">
         <ClientOnly fallback={<MapSkeleton />}>
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
