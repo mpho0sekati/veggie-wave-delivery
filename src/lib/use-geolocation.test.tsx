@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useGeolocation } from "./use-geolocation";
 
@@ -17,6 +17,7 @@ describe("device location", () => {
     vi.stubGlobal("navigator", { geolocation: { watchPosition, clearWatch } });
   });
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
