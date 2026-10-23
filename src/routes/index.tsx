@@ -72,9 +72,15 @@ import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
-function greeting() {
-  const h = new Date().getHours();
+function greetingFor(h: number) {
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+/** Uses the phone's local time only after load, so server and browser always agree first. */
+function Greeting() {
+  const [text, setText] = useState("Hello");
+  useEffect(() => setText(greetingFor(new Date().getHours())), []);
+  return <>{text}</>;
 }
 
 const WAVE_TIMEOUT_MS = 120_000;
@@ -523,7 +529,7 @@ function BuyerPage() {
         {!request && (
           <>
             <p className="mt-2 border-b pb-3 text-center text-lg font-semibold">
-              {greeting()}
+              <Greeting />
               {session.name ? `, ${session.name.split(" ")[0]}` : ""}
             </p>
             <button
