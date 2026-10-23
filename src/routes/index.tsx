@@ -146,50 +146,6 @@ function BuyerPage() {
     isDisconnected,
   } = useCourierPositions(liveOrder?.id ?? null);
 
-  const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
-
-  // Navigation steps for tracking overlay
-  const navigationSteps = useMemo(() => {
-    if (!request) return undefined;
-    const isAccepted =
-      request.status === "accepted" || request.status === "delivered" || request.status === "paid";
-    const isDelivered = request.status === "delivered" || request.status === "paid";
-    const isPaid = request.status === "paid";
-
-    return [
-      {
-        id: "s1",
-        label: "Wave Raised",
-        sublabel: "Looking for nearby traders",
-        completed: isAccepted,
-        active: request.status === "waving",
-      },
-      {
-        id: "s2",
-        label: "Trader Matched",
-        sublabel: assigned ? `${assigned.name} accepted` : "Trader assigned",
-        completed: isAccepted,
-        active: request.status === "accepted" && !courierPosition,
-      },
-      {
-        id: "s3",
-        label: "En Route to You",
-        sublabel: courierPosition
-          ? `${formatDistance(courierPosition.distanceKm)} away`
-          : "On the way",
-        completed: isDelivered,
-        active: request.status === "accepted" && Boolean(courierPosition),
-      },
-      {
-        id: "s4",
-        label: "Delivered & Paid",
-        sublabel: isPaid ? "Payment complete" : "Awaiting payment",
-        completed: isPaid,
-        active: request.status === "delivered",
-      },
-    ];
-  }, [request, assigned, courierPosition]);
-
   // Weather warning for active delivery orders
   const { warning: weatherWarning } = useWeatherWarning(liveOrder?.id ?? null);
 
@@ -267,9 +223,11 @@ function BuyerPage() {
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
+  // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
+  // so the map stays the hero; it expands again when the wave needs a decision.
   useEffect(() => {
-    setIsCollapsed(hasRequest);
-  }, [hasRequest]);
+    setIsCollapsed(hasRequest && request?.status === "accepted");
+  }, [hasRequest, request?.status]);
 
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
