@@ -17,7 +17,15 @@ import {
   ChevronUp,
   Loader2,
   LogOut,
+  Menu,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -58,6 +66,11 @@ import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
 
 const WAVE_TIMEOUT_MS = 120_000;
 
@@ -380,7 +393,7 @@ function BuyerPage() {
       </header>
 
       {/* Floating map controls */}
-      <div className="absolute top-20 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 flex flex-col gap-2">
         <Button
           size="icon"
           variant="secondary"
@@ -396,7 +409,7 @@ function BuyerPage() {
       </div>
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[80vh] overflow-y-auto rounded-t-3xl border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
+      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[55vh] overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)] border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
         {request && isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -570,6 +583,7 @@ function BuyerPage() {
               </ul>
             )}
 
+            <div id="describe-order" />
             <DescribeOrder
               catalog={catalog}
               onApply={(items, extras) => {
