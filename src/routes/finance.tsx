@@ -1,22 +1,42 @@
+/**
+ * Mdeko Finance — My Money page
+ *
+ * Design principles:
+ * - No emojis. Lucide icons only.
+ * - Youth-first language: "Clock it", "Stack it", "You're winning"
+ * - Dark hero score card — feels like a bank card, not a form
+ * - High contrast, large touch targets, mobile-first
+ * - Multilingual: EN / Zulu / Sesotho
+ * - Every section has a purpose a Grade 9 student understands instantly
+ */
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ArrowLeft,
-  Wallet,
   TrendingUp,
   Calendar,
   CheckCircle2,
-  Sparkles,
   Share2,
   Pencil,
   X,
   Brain,
   Zap,
   Users,
-  DollarSign,
+  Banknote,
+  PiggyBank,
+  ShieldCheck,
+  Flame,
+  Trophy,
+  Sprout,
+  Rocket,
+  ChevronDown,
+  ChevronUp,
+  Globe,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,187 +49,221 @@ import BrandMark from "@/components/BrandMark";
 export const Route = createFileRoute("/finance")({
   head: () => ({
     meta: [
-      { title: "My Money — Mdeko Finance" },
-      {
-        name: "description",
-        content:
-          "Your financial identity on Mdeko. See your Trust Score, Savings Jar, and Money Story — built from every trade you make.",
-      },
+      { title: "My Money — Mdeko" },
+      { name: "description", content: "Your financial identity on Mdeko." },
     ],
   }),
   component: FinancePage,
 });
 
-function formatRand(amount: number) {
-  return `R${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+/* ─── helpers ─── */
+function formatRand(n: number) {
+  return `R${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }
-
 function formatMonthYear(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-ZA", { month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-ZA", { month: "long", year: "numeric" });
 }
 
-/* ─────────── Language support (Usability +) ─────────── */
-type Lang = "en" | "zu" | "st";
+/* ─── tier config — icons, slogans, colours ─── */
+type Tier = "Just Starting" | "Getting Going" | "Trusted" | "Champion";
 
-const LABELS: Record<Lang, Record<string, string>> = {
-  en: {
-    tagline: "23 million South Africans have no proof of income.",
-    sub: "Every trade on Mdeko builds your financial history — your first step to credit and banking.",
-    trustScore: "Trust Score",
-    howMadeUp: "How your score is made up",
-    traded: "How much you've traded",
-    paid: "Did you pay or get paid?",
-    active: "Have you been active?",
-    saving: "Are you saving?",
-    banksNote: "Banks look at records like this. Every trade on Mdeko builds yours.",
-    aiTipLabel: "Your personal AI money tip",
-    savingsJar: "Savings Jar",
-    savedSoFar: "saved so far",
-    goal: "Goal",
-    editGoal: "Edit goal",
-    pctOfGoal: "% of your goal",
-    autoSaveTrader: "Every time you get paid, we put 5% away for you. No effort needed. 💚",
-    autoSaveBuyer: "Every completed order earns you community credit in your jar. 💚",
-    moneyStory: "Your Money Story",
-    ordersCompleted: "orders completed",
-    totalTraded: "total traded on Mdeko",
-    memberSince: "Member since",
-    shareBtn: "Share my profile 📤",
-    whyTitle: "Why does this matter?",
-    whyBody:
-      "Millions of South Africans cannot get a loan or open a business account because they have no proof of income. Your Mdeko profile is that proof.",
-    howTitle: "How Mdeko makes money",
-    emptyTitle: "Start building your money profile",
-    emptyBody:
-      "Every order you complete on Mdeko builds your financial history. Start trading to see your Trust Score, Savings Jar, and Money Story.",
-    findTrader: "Find a trader near me",
-    shareCardTitle: "Your Mdeko Profile",
-    shareCardSub: "Screenshot this card to share your financial story.",
-    totalTradedLabel: "Your total traded",
-    platformFee: "Mdeko's 5% platform fee",
+const TIER_CONFIG: Record<
+  Tier,
+  { icon: React.ElementType; slogan: string; color: string; bg: string; ring: string }
+> = {
+  "Just Starting": {
+    icon: Sprout,
+    slogan: "Every legend started here.",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
   },
-  zu: {
-    tagline: "Izigidi ezi-23 zabantu baseNingizimu Afrika azinazo izincwadi zemali.",
-    sub: "Kuhweba kwakho konke ku-Mdeko kwakha umlando wakho wezezimali.",
-    trustScore: "Isikalo Sokwethenjwa",
-    howMadeUp: "Indlela isikalo sakho esakhiwa ngayo",
-    traded: "Ukhwebe kangakanani",
-    paid: "Ukhokhe noma ukhokhelwe?",
-    active: "Ukhwebe kuleli nyanga?",
-    saving: "Uyasindisa imali?",
-    banksNote: "Amabhange akhangela amarekhodi anje. Kuhweba kwakho kwakha owakho.",
-    aiTipLabel: "Icebo lakho lemali le-AI",
-    savingsJar: "Imbodlela Yokonga",
-    savedSoFar: "okongwe kuze kube manje",
-    goal: "Inhloso",
-    editGoal: "Shintsha inhloso",
-    pctOfGoal: "% yenhloso yakho",
-    autoSaveTrader: "Njalo lapho ukhokhwa, sibeka i-5% ngawe. Akudingeki wenze lutho. 💚",
-    autoSaveBuyer: "Njalo lapho uqeda umyalo, uhola i-akhredithi yomphakathi. 💚",
-    moneyStory: "Indaba Yakho Yemali",
-    ordersCompleted: "imiyalo eqediwe",
-    totalTraded: "okukhwebiwe konke ku-Mdeko",
-    memberSince: "Ilungu kusukela",
-    shareBtn: "Yabelana ngephrofayili yami 📤",
-    whyTitle: "Kungani kubalulekile?",
-    whyBody:
-      "Izigidi zabantu baseNingizimu Afrika azikwazi ukuthola isilingo noma ukuvula i-akhawunti ngenxa yokungabi nangubufakazi bemali. Iphrofayili yakho ye-Mdeko ubufakazi obu.",
-    howTitle: "Indlela u-Mdeko akha ngayo imali",
-    emptyTitle: "Qala ukwakha iphrofayili yakho yemali",
-    emptyBody:
-      "Yonke imiyalo oyiqedayo ku-Mdeko yakha umlando wakho wezezimali.",
-    findTrader: "Thola umthengisi eduze kwami",
-    shareCardTitle: "Iphrofayili Yakho ye-Mdeko",
-    shareCardSub: "Thatha isithombe sale khadi ukuze wabelane ngomlando wakho wezezimali.",
-    totalTradedLabel: "Okukhwebiwe kwakho konke",
-    platformFee: "Imali ye-5% ye-Mdeko",
+  "Getting Going": {
+    icon: Rocket,
+    slogan: "You're building. Keep going.",
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+    ring: "ring-blue-200",
   },
-  st: {
-    tagline: "Dimilione tse 23 tsa batho ba Afrika Borwa ha ba na bopaki ba chelete.",
-    sub: "Kgwebo e nngwe le e nngwe ho Mdeko e haha nalane ya hao ya ditjhelete.",
-    trustScore: "Monyetla wa Tumello",
-    howMadeUp: "Monyetla wa hao o hahilwe joang",
-    traded: "O rekisitse hakae",
-    paid: "Na o lefile kapa o lefuwa?",
-    active: "Na o sebetse kgweding ena?",
-    saving: "Na o boloka chelete?",
-    banksNote: "Dibanka di sheba direkoto tse joalo. Kgwebo e nngwe le e nngwe e haha ya hao.",
-    aiTipLabel: "Keletso ya hao ya chelete ya AI",
-    savingsJar: "Botelo ya Poloko",
-    savedSoFar: "e bolokilweng ho fihlela hona joale",
-    goal: "Sepheo",
-    editGoal: "Fetola sepheo",
-    pctOfGoal: "% ya sepheo sa hao",
-    autoSaveTrader: "Kamehla ha o lefuwa, re bea 5% bakeng sa hao. Ha ho hlokeha ho etsa letho. 💚",
-    autoSaveBuyer: "Oda e nngwe le e nngwe e felletseng e o lehela kreteri ya setjhaba. 💚",
-    moneyStory: "Pale ya Hao ya Chelete",
-    ordersCompleted: "dioda tse felletseng",
-    totalTraded: "tsohle tse rekisitsweng ho Mdeko",
-    memberSince: "Setho ho tloha",
-    shareBtn: "Arolelana phrofaele ya ka 📤",
-    whyTitle: "Ke hobaneng ha ho bohlokwa?",
-    whyBody:
-      "Dimilione tsa batho ba Afrika Borwa ha ba kgone ho fumana mokoloto hobane ha ba na bopaki ba chelete. Phrofaele ya hao ya Mdeko ke bopaki boo.",
-    howTitle: "Mdeko e etsa chelete joang",
-    emptyTitle: "Qala ho haha phrofaele ya hao ya chelete",
-    emptyBody:
-      "Oda e nngwe le e nngwe e etswang ho Mdeko e haha nalane ya hao ya ditjhelete.",
-    findTrader: "Fumana mochabi haufi le nna",
-    shareCardTitle: "Phrofaele ya Hao ya Mdeko",
-    shareCardSub: "Nka setshwantsho sa karete ena ho arolelana le ba bang.",
-    totalTradedLabel: "Tsohle tse rekisitsweng",
-    platformFee: "Tefo ya 5% ya Mdeko",
+  Trusted: {
+    icon: ShieldCheck,
+    slogan: "Clock it — you're trusted.",
+    color: "text-primary",
+    bg: "bg-primary/5",
+    ring: "ring-primary/30",
+  },
+  Champion: {
+    icon: Trophy,
+    slogan: "You're winning. Stack more.",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    ring: "ring-amber-200",
   },
 };
 
-/* ─────────── Share Card ─────────── */
+function getTierKey(tier: string): Tier {
+  if (tier.includes("Champion")) return "Champion";
+  if (tier.includes("Trusted")) return "Trusted";
+  if (tier.includes("Going")) return "Getting Going";
+  return "Just Starting";
+}
+
+/* ─── language ─── */
+type Lang = "en" | "zu" | "st";
+
+const L: Record<Lang, Record<string, string>> = {
+  en: {
+    tagline: "23 million South Africans have no proof of income.",
+    sub: "Every trade on Mdeko builds your financial history.",
+    score: "Your Score",
+    factorTrade: "How much you've sold",
+    factorPaid: "Payments came through",
+    factorActive: "You've been active",
+    factorSaving: "You're stacking savings",
+    scoreNote: "Banks look at records like this. Yours is growing.",
+    aiLabel: "AI Money Tip",
+    stackTitle: "Stack it",
+    stackSaved: "saved",
+    stackGoal: "Goal",
+    stackEdit: "Change goal",
+    stackTrader: "We save 5% for you every time you get paid.",
+    stackBuyer: "Every order you complete adds to your stack.",
+    storyTitle: "Your Record",
+    storyOrders: "orders done",
+    storyTraded: "traded on Mdeko",
+    storyMember: "Member since",
+    shareBtn: "Share my record",
+    shareTitle: "My Mdeko Record",
+    shareSub: "Screenshot and share your financial story.",
+    bizTitle: "How Mdeko works",
+    empty: "Start trading to build your financial record.",
+    emptyBtn: "Find a trader",
+    pctGoal: "% to goal",
+  },
+  zu: {
+    tagline: "Izigidi ezi-23 azinazo izincwadi zemali.",
+    sub: "Kuhweba kwakho ku-Mdeko kwakha umlando wakho.",
+    score: "Isikalo Sakho",
+    factorTrade: "Ukuthengisa kwakho",
+    factorPaid: "Izikhokhelo zaze",
+    factorActive: "Ukhwebe enyangeni",
+    factorSaving: "Uyonga imali",
+    scoreNote: "Amabhange akhangela amarekhodi anje.",
+    aiLabel: "Icebo le-AI",
+    stackTitle: "Buyisela",
+    stackSaved: "okongwe",
+    stackGoal: "Inhloso",
+    stackEdit: "Shintsha inhloso",
+    stackTrader: "Sibeka i-5% ngawe njalo lapho ukhokhwa.",
+    stackBuyer: "Yonke imiyalo yakho iyengeza esifumleni sakho.",
+    storyTitle: "Irekhodi Lakho",
+    storyOrders: "imiyalo eqediwe",
+    storyTraded: "okukhwebiwe ku-Mdeko",
+    storyMember: "Ilungu kusukela",
+    shareBtn: "Yabelana ngehrekhodi lami",
+    shareTitle: "Ihrekhodi Lami le-Mdeko",
+    shareSub: "Thatha isithombe wabelane.",
+    bizTitle: "Indlela u-Mdeko asebenza ngayo",
+    empty: "Qala ukuhweba ukwakha irekhodi lakho.",
+    emptyBtn: "Thola umthengisi",
+    pctGoal: "% yenhloso",
+  },
+  st: {
+    tagline: "Dimilione tse 23 ha ba na bopaki ba chelete.",
+    sub: "Kgwebo e nngwe le e nngwe ho Mdeko e haha nalane ya hao.",
+    score: "Monyetla wa Hao",
+    factorTrade: "O rekisitse hakae",
+    factorPaid: "Ditefelo di fihletse",
+    factorActive: "O sebetse kgweding",
+    factorSaving: "O boloka chelete",
+    scoreNote: "Dibanka di sheba direkoto tse joalo.",
+    aiLabel: "Keletso ya AI",
+    stackTitle: "Builetsa",
+    stackSaved: "e bolokilweng",
+    stackGoal: "Sepheo",
+    stackEdit: "Fetola sepheo",
+    stackTrader: "Re bea 5% bakeng sa hao kamehla ha o lefuwa.",
+    stackBuyer: "Oda e nngwe le e nngwe e etswang e eketsa ya hao.",
+    storyTitle: "Rekoto ya Hao",
+    storyOrders: "dioda tse felletseng",
+    storyTraded: "tse rekisitsweng ho Mdeko",
+    storyMember: "Setho ho tloha",
+    shareBtn: "Arolelana le rekoto ya ka",
+    shareTitle: "Rekoto ya Ka ya Mdeko",
+    shareSub: "Nka setshwantsho o arolelane.",
+    bizTitle: "Mdeko e sebetsa jwang",
+    empty: "Qala ho rekisa ho haha rekoto ya hao.",
+    emptyBtn: "Fumana mochabi",
+    pctGoal: "% ya sepheo",
+  },
+};
+
+/* ════════════════ SHARE MODAL ════════════════ */
 function ShareModal({
   name, score, tier, totalTraded, memberSince, onClose, t,
 }: {
   name: string; score: number; tier: string; totalTraded: number;
   memberSince: string; onClose: () => void; t: Record<string, string>;
 }) {
+  const tk = getTierKey(tier);
+  const cfg = TIER_CONFIG[tk];
+  const TierIcon = cfg.icon;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
+        className="w-full max-w-sm animate-slide-up rounded-3xl bg-background p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <p className="font-bold text-lg text-gray-900">{t.shareCardTitle}</p>
-          <Button size="icon" variant="ghost" onClick={onClose}><X className="size-5" /></Button>
+        <div className="mb-5 flex items-center justify-between">
+          <p className="font-display font-bold text-lg">{t.shareTitle}</p>
+          <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close">
+            <X className="size-5" />
+          </Button>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-700 p-5 text-white">
-          <div className="mb-1 text-xs font-medium opacity-80">MDEKO FINANCE</div>
-          <p className="text-xl font-bold">{name || "Mdeko Member"}</p>
-          <div className="mt-4 flex items-end gap-2">
-            <span className="text-5xl font-black">{score}</span>
-            <span className="mb-1 text-lg opacity-80">/ 100</span>
+
+        {/* The card itself — screenshot-ready */}
+        <div className="rounded-2xl bg-foreground p-5 text-background shadow-glow">
+          <div className="flex items-center justify-between mb-5">
+            <span className="text-xs font-bold tracking-widest text-background/50 uppercase">
+              Mdeko Finance
+            </span>
+            <ShieldCheck className="size-5 text-primary" />
           </div>
-          <p className="mt-1 text-sm font-medium opacity-90">{tier}</p>
-          <div className="mt-4 border-t border-white/30 pt-4 flex justify-between text-sm">
+          <p className="font-display text-2xl font-black">{name || "Mdeko Member"}</p>
+          <div className="mt-4 flex items-end gap-3">
+            <span className="font-display text-6xl font-black leading-none">{score}</span>
+            <div className="mb-1">
+              <p className="text-xs text-background/50">/ 100</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <TierIcon className="size-4 text-primary" />
+                <span className="text-sm font-bold text-primary">{cfg.slogan}</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 border-t border-background/20 pt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="opacity-70">{t.totalTradedLabel}</p>
+              <p className="text-background/50 text-xs">{t.storyTraded}</p>
               <p className="font-bold">{formatRand(totalTraded)}</p>
             </div>
-            <div className="text-right">
-              <p className="opacity-70">{t.memberSince}</p>
+            <div>
+              <p className="text-background/50 text-xs">{t.storyMember}</p>
               <p className="font-bold">{formatMonthYear(memberSince)}</p>
             </div>
           </div>
-          <p className="mt-4 text-center text-xs opacity-60">Built on Mdeko · mdeko.app</p>
+          <p className="mt-4 text-center text-xs text-background/30">mdeko.app</p>
         </div>
-        <p className="mt-3 text-center text-sm text-gray-500">{t.shareCardSub}</p>
+
+        <p className="mt-3 text-center text-sm text-muted-foreground">{t.shareSub}</p>
       </div>
     </div>
   );
 }
 
-/* ─────────── Score Card ─────────── */
+/* ════════════════ SCORE HERO CARD ════════════════ */
 function ScoreCard({
   score, totalTraded, totalCommission, isLoading, t,
 }: {
@@ -219,100 +273,136 @@ function ScoreCard({
 }) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-2"><Skeleton className="h-5 w-32" /></CardHeader>
-        <CardContent className="space-y-3">
-          <Skeleton className="h-12 w-20" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-4 w-48" />
-        </CardContent>
-      </Card>
+      <div className="rounded-3xl bg-foreground p-6 animate-pulse">
+        <Skeleton className="h-4 w-24 bg-background/20 mb-4" />
+        <Skeleton className="h-16 w-32 bg-background/20 mb-3" />
+        <Skeleton className="h-3 w-full bg-background/20" />
+      </div>
     );
   }
   if (!score) return null;
 
+  const tk = getTierKey(score.tier);
+  const cfg = TIER_CONFIG[tk];
+  const TierIcon = cfg.icon;
+
   const factors = [
-    { label: t.traded, pts: score.orderVolumePts, max: 30 },
-    { label: t.paid, pts: score.paymentReliabilityPts, max: 30 },
-    { label: t.active, pts: score.activityConsistencyPts, max: 20 },
-    { label: t.saving, pts: score.savingsBehaviourPts, max: 20 },
+    { label: t.factorTrade, pts: score.orderVolumePts, max: 30, icon: TrendingUp },
+    { label: t.factorPaid, pts: score.paymentReliabilityPts, max: 30, icon: Banknote },
+    { label: t.factorActive, pts: score.activityConsistencyPts, max: 20, icon: Flame },
+    { label: t.factorSaving, pts: score.savingsBehaviourPts, max: 20, icon: PiggyBank },
   ];
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20">
-      <div className="bg-gradient-to-r from-primary/10 to-emerald-50 px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">⭐ {t.trustScore}</p>
-            <div className="flex items-end gap-2">
-              <span className="text-5xl font-black text-primary">{score.total}</span>
-              <span className="text-lg text-muted-foreground mb-1">/ 100</span>
-            </div>
+    <div className="animate-slide-up rounded-3xl bg-foreground text-background overflow-hidden shadow-glow">
+      {/* Hero section */}
+      <div className="px-6 pt-6 pb-5">
+        <div className="flex items-start justify-between mb-1">
+          <p className="text-xs font-bold tracking-widest text-background/50 uppercase">
+            {t.score}
+          </p>
+          <div className="flex items-center gap-1.5 rounded-full bg-background/10 px-3 py-1">
+            <TierIcon className="size-3.5 text-primary" />
+            <span className="text-xs font-bold text-primary">{cfg.slogan}</span>
           </div>
-          <Badge className="text-sm px-3 py-1 bg-primary text-white">{score.tier}</Badge>
         </div>
-        <Progress value={score.total} className="mt-3 h-3" />
-        <p className="mt-2 text-sm text-primary font-medium">{score.tip}</p>
+
+        <div className="flex items-end gap-3 mt-2">
+          <span className="font-display text-7xl font-black leading-none">{score.total}</span>
+          <div className="mb-2">
+            <span className="text-2xl text-background/40 font-bold">/ 100</span>
+          </div>
+        </div>
+
+        {/* Score bar */}
+        <div className="mt-4 h-2 w-full rounded-full bg-background/20 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-700"
+            style={{ width: `${score.total}%` }}
+          />
+        </div>
+
+        {/* Next step tip */}
+        <p className="mt-3 text-sm text-background/70 leading-snug">{score.tip}</p>
       </div>
-      <CardContent className="pt-4 pb-5">
-        {totalTraded > 0 && (
-          <div className="mb-2 rounded-xl bg-secondary px-3 py-2 flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">{t.totalTradedLabel}</span>
-            <span className="font-bold text-sm">{formatRand(totalTraded)}</span>
+
+      {/* Business model strip */}
+      {totalTraded > 0 && (
+        <div className="border-t border-background/10 px-6 py-3 flex justify-between text-sm">
+          <div>
+            <p className="text-background/40 text-xs">Total traded</p>
+            <p className="font-bold">{formatRand(totalTraded)}</p>
           </div>
-        )}
-        {totalCommission > 0 && (
-          <div className="mb-4 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2 flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">{t.platformFee}</span>
-            <span className="font-bold text-sm text-primary">{formatRand(totalCommission)}</span>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wide">
-          {t.howMadeUp}
-        </p>
-        <div className="space-y-2.5">
-          {factors.map((f) => (
-            <div key={f.label}>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-foreground">{f.label}</span>
-                <span className="font-semibold text-primary">{f.pts}/{f.max}</span>
-              </div>
-              <Progress value={(f.pts / f.max) * 100} className="h-1.5" />
+          {totalCommission > 0 && (
+            <div className="text-right">
+              <p className="text-background/40 text-xs">Platform fee (5%)</p>
+              <p className="font-bold text-primary">{formatRand(totalCommission)}</p>
             </div>
-          ))}
+          )}
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">{t.banksNote}</p>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Factor breakdown */}
+      <div className="border-t border-background/10 px-6 py-4 space-y-3">
+        <p className="text-xs font-bold tracking-widest text-background/40 uppercase mb-2">
+          How it's calculated
+        </p>
+        {factors.map((f) => {
+          const Icon = f.icon;
+          return (
+            <div key={f.label} className="flex items-center gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-background/10">
+                <Icon className="size-4 text-background/70" />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-background/70">{f.label}</span>
+                  <span className="font-bold text-background">{f.pts}/{f.max}</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-background/20 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${(f.pts / f.max) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        <p className="pt-1 text-xs text-background/40">{t.scoreNote}</p>
+      </div>
+    </div>
   );
 }
 
-/* ─────────── AI Smart Tip Card (Intelligence criterion) ─────────── */
-function SmartTipCard({ tip, isLoading, t }: { tip: string | null; isLoading: boolean; t: Record<string, string> }) {
+/* ════════════════ AI TIP CARD ════════════════ */
+function SmartTipCard({ tip, isLoading, t }: {
+  tip: string | null; isLoading: boolean; t: Record<string, string>;
+}) {
   return (
-    <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50">
+    <Card className="animate-slide-up border-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background ring-1 ring-primary/20">
       <CardContent className="pt-4 pb-4">
         <div className="flex items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-md">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary shadow-glow">
             <Brain className="size-5 text-white" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
-                {t.aiTipLabel}
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-foreground">
+                {t.aiLabel}
               </p>
-              <Badge className="text-[10px] px-1.5 py-0 bg-emerald-500 text-white">
-                <Zap className="size-2.5 mr-0.5" />AI
+              <Badge className="gap-1 text-[10px] px-1.5 py-0 h-4 bg-primary text-white font-bold">
+                <Zap className="size-2.5" />AI
               </Badge>
             </div>
             {isLoading ? (
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-full bg-emerald-100" />
-                <Skeleton className="h-4 w-3/4 bg-emerald-100" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
             ) : (
-              <p className="text-sm text-emerald-900 leading-relaxed font-medium">
-                {tip ?? "Keep trading regularly — every order builds your financial history on Mdeko. 💚"}
+              <p className="text-base font-semibold text-foreground leading-snug">
+                {tip ?? "Keep trading — every order builds your financial record on Mdeko."}
               </p>
             )}
           </div>
@@ -322,28 +412,26 @@ function SmartTipCard({ tip, isLoading, t }: { tip: string | null; isLoading: bo
   );
 }
 
-/* ─────────── Savings Jar Card ─────────── */
-function SavingsJarCard({
-  role, isLoading, t,
-}: {
+/* ════════════════ STACK IT — SAVINGS CARD ════════════════ */
+function StackCard({ role, isLoading, t }: {
   role: "buyer" | "trader" | null; isLoading: boolean; t: Record<string, string>;
 }) {
   const { jar, updateTarget } = useSavingsJar();
-  const [editingTarget, setEditingTarget] = useState(false);
-  const [targetInput, setTargetInput] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState("");
 
-  const saveNewTarget = () => {
-    const val = Number(targetInput);
-    if (!val || val < 10) { toast.error("Please enter a goal of at least R10"); return; }
+  const save = () => {
+    const val = Number(input);
+    if (!val || val < 10) { toast.error("Minimum goal is R10"); return; }
     updateTarget.mutate(val, {
-      onSuccess: () => { toast.success("Savings goal updated!"); setEditingTarget(false); setTargetInput(""); },
+      onSuccess: () => { toast.success("Goal updated!"); setEditing(false); setInput(""); },
     });
   };
 
   if (isLoading) {
     return (
-      <Card><CardContent className="pt-4 space-y-3">
-        <Skeleton className="h-5 w-28" /><Skeleton className="h-10 w-36" /><Skeleton className="h-3 w-full" />
+      <Card className="animate-pulse"><CardContent className="pt-5 space-y-3">
+        <Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-28" /><Skeleton className="h-2 w-full" />
       </CardContent></Card>
     );
   }
@@ -353,167 +441,189 @@ function SavingsJarCard({
   const pct = Math.min((balance / target) * 100, 100);
 
   return (
-    <Card>
+    <Card className="animate-slide-up overflow-hidden">
+      {/* Coloured top strip */}
+      <div className="h-1.5 w-full bg-gradient-to-r from-primary via-emerald-400 to-primary" />
       <CardContent className="pt-5 pb-5">
-        <div className="flex items-start gap-3 mb-4">
-          <span className="text-3xl">🪣</span>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">{t.savingsJar}</p>
-            <p className="text-3xl font-black text-foreground">{formatRand(balance)}</p>
-            <p className="text-sm text-muted-foreground">{t.savedSoFar}</p>
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <PiggyBank className="size-5 text-primary" />
+            <p className="font-display font-bold text-lg">{t.stackTitle}</p>
           </div>
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            type="button"
+          >
+            <Pencil className="size-3" />{t.stackEdit}
+          </button>
         </div>
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-muted-foreground">{t.goal}: {formatRand(target)}</span>
-            <button
-              className="flex items-center gap-1 text-xs text-primary"
-              onClick={() => setEditingTarget(true)} type="button"
-            >
-              <Pencil className="size-3" /> {t.editGoal}
-            </button>
+
+        <div className="mt-3 mb-4">
+          <p className="font-display text-4xl font-black text-foreground">{formatRand(balance)}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{t.stackSaved}</p>
+        </div>
+
+        {/* Progress */}
+        <div className="space-y-1.5 mb-3">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{pct.toFixed(0)}{t.pctGoal}</span>
+            <span>{t.stackGoal}: {formatRand(target)}</span>
           </div>
-          <Progress value={pct} className="h-3" />
-          <p className="text-xs text-muted-foreground mt-1">{pct.toFixed(0)}{t.pctOfGoal}</p>
+          <Progress value={pct} className="h-2.5" />
         </div>
-        {editingTarget && (
-          <div className="mt-3 flex gap-2">
-            <Input type="number" placeholder="New goal (e.g. 1000)" value={targetInput}
-              onChange={(e) => setTargetInput(e.target.value)} className="flex-1" />
-            <Button size="sm" onClick={saveNewTarget} disabled={updateTarget.isPending}>Save</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditingTarget(false)}>Cancel</Button>
+
+        {editing && (
+          <div className="flex gap-2 mt-3 mb-2">
+            <Input
+              type="number"
+              placeholder={`New goal, e.g. 1000`}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="flex-1"
+              autoFocus
+            />
+            <Button size="sm" onClick={save} disabled={updateTarget.isPending}>Save</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
         )}
-        <p className="mt-3 text-sm text-muted-foreground">
-          {role === "trader" ? t.autoSaveTrader : t.autoSaveBuyer}
+
+        <p className="text-sm text-muted-foreground leading-snug">
+          {role === "trader" ? t.stackTrader : t.stackBuyer}
         </p>
       </CardContent>
     </Card>
   );
 }
 
-/* ─────────── Money Story Card ─────────── */
-function MoneyStoryCard({
-  profile, isLoading, onShare, t,
-}: {
+/* ════════════════ YOUR RECORD CARD ════════════════ */
+function RecordCard({ profile, isLoading, onShare, t }: {
   profile: ReturnType<typeof useFinanceProfile>["profile"];
   isLoading: boolean; onShare: () => void; t: Record<string, string>;
 }) {
   if (isLoading) {
     return (
-      <Card><CardContent className="pt-4 space-y-3">
-        <Skeleton className="h-5 w-40" /><Skeleton className="h-5 w-32" />
-        <Skeleton className="h-5 w-36" /><Skeleton className="h-10 w-full" />
+      <Card><CardContent className="pt-5 space-y-3">
+        <Skeleton className="h-4 w-28" /><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-32" /><Skeleton className="h-11 w-full mt-2" />
       </CardContent></Card>
     );
   }
   if (!profile) return null;
 
-  const stats = [
-    { icon: CheckCircle2, label: `${profile.totalOrders} ${t.ordersCompleted}`, color: "text-primary" },
-    { icon: TrendingUp, label: `${formatRand(profile.totalTraded)} ${t.totalTraded}`, color: "text-primary" },
-    { icon: Calendar, label: `${t.memberSince} ${formatMonthYear(profile.memberSince)}`, color: "text-primary" },
+  const rows = [
+    { Icon: CheckCircle2, value: `${profile.totalOrders}`, label: t.storyOrders },
+    { Icon: TrendingUp, value: formatRand(profile.totalTraded), label: t.storyTraded },
+    { Icon: Calendar, value: formatMonthYear(profile.memberSince), label: t.storyMember },
   ];
 
   return (
-    <Card>
+    <Card className="animate-slide-up">
       <CardContent className="pt-5 pb-5">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">📄</span>
-          <p className="font-bold text-lg">{t.moneyStory}</p>
+          <Star className="size-5 text-primary" />
+          <p className="font-display font-bold text-lg">{t.storyTitle}</p>
         </div>
-        <div className="space-y-3 mb-4">
-          {stats.map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.label} className="flex items-center gap-3">
-                <Icon className={`size-5 shrink-0 ${s.color}`} />
-                <span className="text-base">{s.label}</span>
+
+        <div className="space-y-3 mb-5">
+          {rows.map(({ Icon, value, label }) => (
+            <div key={label} className="flex items-center gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary">
+                <Icon className="size-4 text-primary" />
               </div>
-            );
-          })}
+              <div>
+                <p className="font-bold text-base leading-tight">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            </div>
+          ))}
         </div>
-        <Button onClick={onShare} className="w-full gap-2" size="lg">
-          <Share2 className="size-5" />{t.shareBtn}
+
+        <Button onClick={onShare} className="w-full gap-2 shadow-glow" size="lg">
+          <Share2 className="size-5" />
+          {t.shareBtn}
         </Button>
       </CardContent>
     </Card>
   );
 }
 
-/* ─────────── How Mdeko Makes Money Card (Sustainability criterion) ─────────── */
-function SustainabilityCard({ t }: { t: Record<string, string> }) {
+/* ════════════════ HOW MDEKO WORKS (SUSTAINABILITY) ════════════════ */
+function BizCard({ t }: { t: Record<string, string> }) {
   const [open, setOpen] = useState(false);
+
+  const streams = [
+    { Icon: TrendingUp, label: "5% per order", sub: "Commission on every sale" },
+    { Icon: Banknote, label: "R10–R40", sub: "Delivery fee per order" },
+    { Icon: Users, label: "R60–R150/mo", sub: "Trader subscription" },
+    { Icon: Brain, label: "R100–R300/mo", sub: "Analytics package" },
+  ];
+
   return (
     <Card className="border-primary/20">
       <CardContent className="pt-4 pb-4">
         <button
-          className="flex w-full items-center justify-between text-left"
+          className="flex w-full items-center justify-between"
           onClick={() => setOpen((v) => !v)}
           type="button"
         >
           <div className="flex items-center gap-2">
-            <DollarSign className="size-5 text-primary" />
-            <p className="font-semibold text-sm">{t.howTitle}</p>
+            <Banknote className="size-5 text-primary" />
+            <p className="font-bold text-sm">{t.bizTitle}</p>
           </div>
-          <span className="text-xs text-muted-foreground">{open ? "▲" : "▼"}</span>
+          {open
+            ? <ChevronUp className="size-4 text-muted-foreground" />
+            : <ChevronDown className="size-4 text-muted-foreground" />
+          }
         </button>
 
         {open && (
-          <div className="mt-4 space-y-3">
-            {/* Revenue streams */}
+          <div className="mt-4 space-y-3 animate-rise">
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { icon: "💸", label: "5% per order", sub: "Commission on every sale" },
-                { icon: "🚴", label: "R10–R40", sub: "Delivery fee per order" },
-                { icon: "📦", label: "R60–R150/mo", sub: "Trader subscription" },
-                { icon: "📊", label: "R100–R300/mo", sub: "Analytics package" },
-              ].map((r) => (
-                <div key={r.label} className="rounded-xl bg-secondary px-3 py-2">
-                  <p className="text-base">{r.icon}</p>
-                  <p className="font-bold text-sm mt-0.5">{r.label}</p>
-                  <p className="text-xs text-muted-foreground">{r.sub}</p>
+              {streams.map(({ Icon, label, sub }) => (
+                <div key={label} className="rounded-2xl bg-secondary px-3 py-3">
+                  <Icon className="size-5 text-primary mb-1.5" />
+                  <p className="font-bold text-sm">{label}</p>
+                  <p className="text-xs text-muted-foreground">{sub}</p>
                 </div>
               ))}
             </div>
 
-            {/* Break-even math */}
-            <div className="rounded-xl bg-primary/5 border border-primary/20 px-3 py-3">
-              <p className="text-xs font-bold text-primary uppercase tracking-wide mb-2">
+            <div className="rounded-2xl bg-foreground text-background px-4 py-3">
+              <p className="text-xs font-bold tracking-widest uppercase text-background/50 mb-2">
                 Break-even
               </p>
-              <div className="space-y-1 text-sm">
+              <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Monthly costs</span>
-                  <span className="font-semibold">~R15,000–R45,000</span>
+                  <span className="text-background/60">Monthly costs</span>
+                  <span className="font-bold">~R15,000–R45,000</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Orders needed</span>
-                  <span className="font-semibold">~5,000/month</span>
+                  <span className="text-background/60">Orders to break even</span>
+                  <span className="font-bold">5,000/month</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">200 traders × 25 orders</span>
-                  <span className="font-bold text-primary">= break-even ✅</span>
+                <div className="flex justify-between border-t border-background/20 pt-1.5 mt-1.5">
+                  <span className="text-background/60">200 traders × 25 orders</span>
+                  <span className="font-bold text-primary">Break-even</span>
                 </div>
               </div>
             </div>
 
-            {/* 6-month targets */}
-            <div className="rounded-xl bg-secondary px-3 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide mb-2">6-month targets</p>
-              <div className="flex gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <Users className="size-4 text-primary" />
-                  <span>1,000 buyers</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Users className="size-4 text-primary" />
-                  <span>200 traders</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-primary" />
-                  <span>5,000 orders</span>
-                </div>
+            <div className="rounded-2xl bg-secondary px-4 py-3">
+              <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-2">
+                6-month targets
+              </p>
+              <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                {[
+                  { Icon: Users, v: "1,000", l: "buyers" },
+                  { Icon: Users, v: "200", l: "traders" },
+                  { Icon: CheckCircle2, v: "5,000", l: "orders" },
+                ].map(({ Icon, v, l }) => (
+                  <div key={l}>
+                    <Icon className="size-4 text-primary mx-auto mb-1" />
+                    <p className="font-black">{v}</p>
+                    <p className="text-xs text-muted-foreground">{l}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -523,15 +633,15 @@ function SustainabilityCard({ t }: { t: Record<string, string> }) {
   );
 }
 
-/* ─────────── Main Page ─────────── */
+/* ════════════════ MAIN PAGE ════════════════ */
 function FinancePage() {
   const session = useSession();
   const { profile, score, isLoading } = useFinanceProfile();
   const tipQuery = useSmartTip(profile);
   const [showShare, setShowShare] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
+  const t = L[lang];
 
-  const t = LABELS[lang];
   const isNewUser = !isLoading && profile?.totalOrders === 0;
 
   const handleBack = () => {
@@ -541,57 +651,70 @@ function FinancePage() {
 
   return (
     <main className="min-h-dvh bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur-md">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-          <Button size="icon" variant="ghost" className="rounded-xl" onClick={handleBack} aria-label="Go back">
+          <Button
+            size="icon" variant="ghost" className="rounded-xl shrink-0"
+            onClick={handleBack} aria-label="Go back"
+          >
             <ArrowLeft className="size-5" />
           </Button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <BrandMark subtitle="My Money" />
           </div>
-          {/* Language switcher — Usability + multilingual support */}
-          <div className="flex items-center gap-1 rounded-xl border bg-secondary p-1">
+          {/* Language switcher */}
+          <div className="flex items-center gap-0.5 rounded-xl border bg-secondary p-1 shrink-0">
+            <Globe className="size-3.5 text-muted-foreground ml-1 mr-0.5" />
             {(["en", "zu", "st"] as Lang[]).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className={`rounded-lg px-2 py-0.5 text-xs font-bold transition-colors ${
-                  lang === l ? "bg-primary text-white" : "text-muted-foreground"
+                className={`rounded-lg px-2 py-0.5 text-xs font-bold transition-all ${
+                  lang === l
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 type="button"
+                aria-label={`Switch to ${l}`}
               >
-                {l === "en" ? "EN" : l === "zu" ? "ZU" : "ST"}
+                {l.toUpperCase()}
               </button>
             ))}
           </div>
         </div>
       </header>
 
-      {/* Impact banner — first thing judges see */}
-      <div className="bg-primary px-4 py-3">
-        <p className="mx-auto max-w-lg text-center text-sm font-semibold text-white leading-snug">
-          💚 {t.tagline}
+      {/* ── Impact strip ── */}
+      <div className="bg-foreground px-4 py-3">
+        <p className="mx-auto max-w-lg text-center text-sm font-bold text-background leading-snug">
+          {t.tagline}
         </p>
-        <p className="mx-auto max-w-lg text-center text-xs text-white/80 mt-0.5">{t.sub}</p>
+        <p className="mx-auto max-w-lg text-center text-xs text-background/60 mt-0.5">
+          {t.sub}
+        </p>
       </div>
 
-      <div className="mx-auto max-w-lg space-y-4 px-4 py-5 pb-10">
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-5 pb-12">
+        {/* ── Empty state ── */}
         {isNewUser ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-              <span className="text-5xl">🌱</span>
-              <div>
-                <p className="font-bold text-xl mb-2">{t.emptyTitle}</p>
-                <p className="text-muted-foreground">{t.emptyBody}</p>
+          <Card className="border-dashed animate-rise">
+            <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+              <div className="flex size-16 items-center justify-center rounded-3xl bg-primary/10">
+                <Sprout className="size-8 text-primary" />
               </div>
-              <Button asChild className="mt-2">
-                <Link to="/">{t.findTrader}</Link>
+              <div>
+                <p className="font-display font-bold text-xl mb-2">Every legend started here.</p>
+                <p className="text-muted-foreground text-sm">{t.empty}</p>
+              </div>
+              <Button asChild size="lg" className="mt-1 shadow-glow">
+                <Link to="/">{t.emptyBtn}</Link>
               </Button>
             </CardContent>
           </Card>
         ) : (
           <>
+            {/* Card 1 — Score hero */}
             <ScoreCard
               score={score}
               totalTraded={profile?.totalTraded ?? 0}
@@ -599,16 +722,28 @@ function FinancePage() {
               isLoading={isLoading}
               t={t}
             />
+
+            {/* Card 2 — AI tip */}
             <SmartTipCard tip={tipQuery.data ?? null} isLoading={tipQuery.isLoading} t={t} />
-            <SavingsJarCard role={profile?.role ?? session.role} isLoading={isLoading} t={t} />
-            <MoneyStoryCard profile={profile} isLoading={isLoading} onShare={() => setShowShare(true)} t={t} />
+
+            {/* Card 3 — Stack it (savings) */}
+            <StackCard role={profile?.role ?? session.role} isLoading={isLoading} t={t} />
+
+            {/* Card 4 — Your record */}
+            <RecordCard
+              profile={profile}
+              isLoading={isLoading}
+              onShare={() => setShowShare(true)}
+              t={t}
+            />
           </>
         )}
 
-        {/* Sustainability card — always visible, collapsed by default */}
-        <SustainabilityCard t={t} />
+        {/* Always visible — business model */}
+        <BizCard t={t} />
       </div>
 
+      {/* Share modal */}
       {showShare && profile && score && (
         <ShareModal
           name={session.name}
