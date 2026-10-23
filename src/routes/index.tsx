@@ -18,6 +18,8 @@ import {
   Loader2,
   LogOut,
   Menu,
+  WifiOff,
+  CloudUpload,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -64,6 +66,9 @@ import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
+import { addToOfflineQueue, type QueuedOrder } from "@/lib/offline-queue";
+import { useOnline } from "@/lib/use-online";
+import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
@@ -130,6 +135,8 @@ function BuyerPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
   const [payLoading, setPayLoading] = useState(false);
+  const isOnline = useOnline();
+  const queuedCount = useOfflineQueueCount();
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
@@ -144,6 +151,26 @@ function BuyerPage() {
   const actions = useMdekoActions();
   const { data: liveWave } = useMyWave(signedIn);
   const { data: liveOrders } = useMyOrders(signedIn);
+
+  // When a saved offline wave reaches the server, show it as a live wave on this phone.
+  const handleSynced = useCallback((order: QueuedOrder, waveId: string, createdAt: string) => {
+    updateState((prev) => ({
+      ...prev,
+      request: {
+        id: waveId,
+        waveId,
+        items: order.items,
+        wish: order.wish,
+        total: order.total ?? 0,
+        note: order.note,
+        status: "waving",
+        runnerId: null,
+        createdAt: new Date(createdAt).getTime(),
+      },
+    }));
+    toast.success("Back online — your saved wave was sent to traders");
+  }, []);
+  useOfflineSync(handleSynced);
 
   // Mirror the saved wave/order from the backend onto the card, so the buyer sees
   // the trader's progress on this phone without refreshing.
@@ -265,6 +292,29 @@ function BuyerPage() {
     }
 
     const items = picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 }));
+
+    // No connection: save the wave on the phone — it sends itself when we're back online.
+    if (!isOnline) {
+      addToOfflineQueue({
+        id: crypto.randomUUID(),
+        items,
+        wish: wish.trim(),
+        lat: buyer.located ? buyer.lat : null,
+        lng: buyer.located ? buyer.lng : null,
+        note: `${picked.length} items`,
+        total,
+        createdAt: Date.now(),
+      });
+      logDemand([
+        ...picked.map((p) => ({ itemId: p.id, label: p.name })),
+        ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
+      ]);
+      setQty({});
+      setWish("");
+      toast.success("You're offline — request saved. It sends itself when you're back online.");
+      return;
+    }
+
     try {
       const saved = await actions.createWave.mutateAsync({
         items,
@@ -296,7 +346,7 @@ function BuyerPage() {
       console.error("[mdeko] wave failed", err);
       toast.error("Could not send your wave — please try again");
     }
-  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer]);
+  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline]);
 
   const waveAgain = useCallback(
     () =>
@@ -407,6 +457,14 @@ function BuyerPage() {
           <Crosshair className="size-5" />
         </Button>
       </div>
+
+      {/* Offline notice — waves are saved on the phone and sent on reconnect */}
+      {!isOnline && (
+        <div className="absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border bg-background/95 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md">
+          <WifiOff className="size-4 text-destructive" />
+          You're offline — waves are saved and sent later
+        </div>
+      )}
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[55vh] overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)] border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
@@ -542,14 +600,14 @@ function BuyerPage() {
                         )}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-2 truncate font-semibold">
+                        <div className="flex items-center gap-2 truncate font-semibold">
                           {runner.name}
                           {bestMatch && (
                             <Badge className="shrink-0" variant="default">
                               best match
                             </Badge>
                           )}
-                        </p>
+                        </div>
                         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <MapPin className="size-3.5 text-primary" /> {formatDistance(km)} away
@@ -798,6 +856,13 @@ function BuyerPage() {
                 ? "The nearest trader who has your items sees the wave first."
                 : "Tap an item above, then raise your hand."}
             </p>
+            {queuedCount > 0 && (
+              <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
+                <CloudUpload className="size-3" /> {queuedCount} saved{" "}
+                {queuedCount === 1 ? "request" : "requests"} — sends automatically when you're
+                back online
+              </p>
+            )}
           </div>
         )}
 
