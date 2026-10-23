@@ -18,6 +18,8 @@ import {
   Loader2,
   LogOut,
   Menu,
+  WifiOff,
+  CloudUpload,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -64,6 +66,9 @@ import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
+import { addToOfflineQueue, type QueuedOrder } from "@/lib/offline-queue";
+import { useOnline } from "@/lib/use-online";
+import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
@@ -130,6 +135,8 @@ function BuyerPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
   const [payLoading, setPayLoading] = useState(false);
+  const isOnline = useOnline();
+  const queuedCount = useOfflineQueueCount();
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
@@ -144,6 +151,26 @@ function BuyerPage() {
   const actions = useMdekoActions();
   const { data: liveWave } = useMyWave(signedIn);
   const { data: liveOrders } = useMyOrders(signedIn);
+
+  // When a saved offline wave reaches the server, show it as a live wave on this phone.
+  const handleSynced = useCallback((order: QueuedOrder, waveId: string, createdAt: string) => {
+    updateState((prev) => ({
+      ...prev,
+      request: {
+        id: waveId,
+        waveId,
+        items: order.items,
+        wish: order.wish,
+        total: order.total ?? 0,
+        note: order.note,
+        status: "waving",
+        runnerId: null,
+        createdAt: new Date(createdAt).getTime(),
+      },
+    }));
+    toast.success("Back online — your saved wave was sent to traders");
+  }, []);
+  useOfflineSync(handleSynced);
 
   // Mirror the saved wave/order from the backend onto the card, so the buyer sees
   // the trader's progress on this phone without refreshing.
