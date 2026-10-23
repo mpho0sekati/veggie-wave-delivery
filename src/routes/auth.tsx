@@ -12,9 +12,15 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Mdeko · Veggie Wave" },
-      { name: "description", content: "Sign in to Mdeko to order fresh produce or manage your trader stall." },
+      {
+        name: "description",
+        content: "Sign in to Mdeko to order fresh produce or manage your trader stall.",
+      },
       { property: "og:title", content: "Sign in — Mdeko · Veggie Wave" },
-      { property: "og:description", content: "Sign in to Mdeko to order fresh produce or manage your trader stall." },
+      {
+        property: "og:description",
+        content: "Sign in to Mdeko to order fresh produce or manage your trader stall.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -23,7 +29,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthLayout() {
-  const path = useRouterState({ select: s => s.location.pathname });
+  const path = useRouterState({ select: (s) => s.location.pathname });
   return path === "/auth" ? <AuthPage /> : <Outlet />;
 }
 
@@ -35,7 +41,8 @@ function friendly(err: unknown): string {
   if (m.includes("password") && (m.includes("weak") || m.includes("at least")))
     return "Pick a stronger password: at least 8 characters with a number.";
   if (m.includes("email not confirmed")) return "Please confirm your email first, then sign in.";
-  if (m.includes("fetch") || m.includes("network")) return "No connection. Check your internet and try again.";
+  if (m.includes("fetch") || m.includes("network"))
+    return "No connection. Check your internet and try again.";
   return msg || "Something went wrong. Please try again.";
 }
 
@@ -73,8 +80,10 @@ function AuthPage() {
           return;
         }
         if (data.user) {
-          const { error: profileError } = await supabase
-            .rpc("setup_marketplace_profile", { _name: name.trim(), _role: role });
+          const { error: profileError } = await supabase.rpc("setup_marketplace_profile", {
+            _name: name.trim(),
+            _role: role,
+          });
           if (profileError) throw profileError;
         }
         toast.success("Account created! Welcome to Mdeko.");
@@ -95,7 +104,10 @@ function AuthPage() {
           .select("role")
           .eq("user_id", userId)
           .maybeSingle();
-        if (!profile) { navigate({ to: "/auth/onboarding" }); return; }
+        if (!profile) {
+          navigate({ to: "/auth/onboarding" });
+          return;
+        }
         if (profile.role === "trader") savedRole = "trader";
       }
       navigate({ to: savedRole === "trader" ? "/runner" : "/" });
@@ -193,7 +205,12 @@ function AuthPage() {
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  { id: "buyer", icon: ShoppingBasket, title: "Buy veggies", sub: "Wave a trader to me" },
+                  {
+                    id: "buyer",
+                    icon: ShoppingBasket,
+                    title: "Buy veggies",
+                    sub: "Wave a trader to me",
+                  },
                   { id: "trader", icon: Store, title: "Sell veggies", sub: "Get orders nearby" },
                 ] as const
               ).map((r) => (
@@ -204,7 +221,9 @@ function AuthPage() {
                   onClick={() => setRole(r.id)}
                   className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all ${role === r.id ? "border-primary bg-primary/10" : "border-transparent bg-secondary"}`}
                 >
-                  <r.icon className={`size-6 ${role === r.id ? "text-primary" : "text-muted-foreground"}`} />
+                  <r.icon
+                    className={`size-6 ${role === r.id ? "text-primary" : "text-muted-foreground"}`}
+                  />
                   <span className="text-sm font-semibold">{r.title}</span>
                   <span className="text-xs text-muted-foreground">{r.sub}</span>
                 </button>
@@ -214,7 +233,10 @@ function AuthPage() {
         )}
 
         {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {error}
           </p>
         )}
@@ -232,8 +254,9 @@ function AuthPage() {
           )}
         </Button>
 
-        <p className="text-center text-xs text-muted-foreground">Use your own account to buy or sell.</p>
-
+        <p className="text-center text-xs text-muted-foreground">
+          Use your own account to buy or sell.
+        </p>
       </Card>
     </main>
   );

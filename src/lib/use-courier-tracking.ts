@@ -116,7 +116,9 @@ export function useReportCourierPosition(
     [orderId, throttleMs, minDistanceMeters],
   );
 
-  useEffect(() => { lastPositionRef.current = null; }, [orderId]);
+  useEffect(() => {
+    lastPositionRef.current = null;
+  }, [orderId]);
 
   // Start/stop watching based on enabled state
   useEffect(() => {
@@ -137,8 +139,10 @@ export function useReportCourierPosition(
       setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
 
       void reportPosition({
-        lat: pos.coords.latitude, lng: pos.coords.longitude,
-        heading: pos.coords.heading ?? undefined, speed: pos.coords.speed ?? undefined,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        heading: pos.coords.heading ?? undefined,
+        speed: pos.coords.speed ?? undefined,
         accuracy: pos.coords.accuracy,
       });
     };

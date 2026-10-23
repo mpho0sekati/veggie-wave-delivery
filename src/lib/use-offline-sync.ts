@@ -45,7 +45,9 @@ export function useOfflineSync(
 
   const flush = useCallback(async () => {
     if (busy.current) return;
-    const pending = getOfflineQueue().filter((o) => o.status === "pending" || o.status === "syncing");
+    const pending = getOfflineQueue().filter(
+      (o) => o.status === "pending" || o.status === "syncing",
+    );
     if (!pending.length) return;
 
     busy.current = true;

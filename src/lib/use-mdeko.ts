@@ -3,7 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 
 import {
   acceptWave,
-  chooseCash, confirmCash, cancelWave,
+  chooseCash,
+  confirmCash,
+  cancelWave,
   advanceOrder,
   createWave,
   getMyWave,
@@ -113,9 +115,18 @@ export function useMdekoActions() {
     advanceOrder: advanceOrderMutation,
     startPayment: startPaymentMutation,
     verifyPayment: (orderId: string) => verify({ data: { orderId } }),
-    chooseCash: useMutation({ mutationFn: (orderId: string) => cash({ data: { orderId } }), onSuccess: refresh }),
-    confirmCash: useMutation({ mutationFn: (orderId: string) => confirmedCash({ data: { orderId } }), onSuccess: refresh }),
-    cancelWave: useMutation({ mutationFn: (waveId: string) => cancel({ data: { waveId } }), onSuccess: refresh }),
+    chooseCash: useMutation({
+      mutationFn: (orderId: string) => cash({ data: { orderId } }),
+      onSuccess: refresh,
+    }),
+    confirmCash: useMutation({
+      mutationFn: (orderId: string) => confirmedCash({ data: { orderId } }),
+      onSuccess: refresh,
+    }),
+    cancelWave: useMutation({
+      mutationFn: (waveId: string) => cancel({ data: { waveId } }),
+      onSuccess: refresh,
+    }),
     refresh,
   };
 }

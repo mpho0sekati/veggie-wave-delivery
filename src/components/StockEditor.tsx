@@ -16,21 +16,51 @@ type Props = {
   onSaved?: () => void;
 };
 
-export default function StockEditor({ runnerId, stock, customItems, highlightItemId, onSaved }: Props) {
+export default function StockEditor({
+  runnerId,
+  stock,
+  customItems,
+  highlightItemId,
+  onSaved,
+}: Props) {
   const catalog = catalogWith(customItems);
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   const lineFor = (id: string) => stock.find((s) => s.itemId === id) ?? null;
 
   const toggle = async (id: string, on: boolean, fallback: number) => {
-    try { await saveTraderStock(runnerId, id, lineFor(id)?.price ?? fallback, on, lineFor(id)?.quantity ?? 1); onSaved?.(); }
-    catch { toast.error("Could not save stock"); }
+    try {
+      await saveTraderStock(
+        runnerId,
+        id,
+        lineFor(id)?.price ?? fallback,
+        on,
+        lineFor(id)?.quantity ?? 1,
+      );
+      onSaved?.();
+    } catch {
+      toast.error("Could not save stock");
+    }
   };
   const commitPrice = async (id: string, raw: string) => {
     const value = Number(raw.trim());
-    if (!Number.isFinite(value) || value <= 0) { toast.error("Enter a valid price in Rands"); return; }
-    try { await saveTraderStock(runnerId, id, Math.round(value * 100) / 100, true, lineFor(id)?.quantity ?? 1); onSaved?.(); toast.success("Price saved"); }
-    catch { toast.error("Could not save price"); }
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("Enter a valid price in Rands");
+      return;
+    }
+    try {
+      await saveTraderStock(
+        runnerId,
+        id,
+        Math.round(value * 100) / 100,
+        true,
+        lineFor(id)?.quantity ?? 1,
+      );
+      onSaved?.();
+      toast.success("Price saved");
+    } catch {
+      toast.error("Could not save price");
+    }
   };
 
   return (
@@ -82,11 +112,35 @@ export default function StockEditor({ runnerId, stock, customItems, highlightIte
                   />
                 </div>
               )}
-              {on && <Input className="h-9 w-16" type="number" min="1" aria-label={`Quantity for ${item.name}`} defaultValue={line?.quantity ?? 1} key={`${item.id}-${line?.quantity}`} onBlur={async e => {
-                const quantity=Number(e.target.value);
-                if (!Number.isInteger(quantity) || quantity < 1) { toast.error("Enter a quantity of at least 1"); return; }
-                try { await saveTraderStock(runnerId,item.id,line?.price ?? item.price,true,quantity);onSaved?.(); } catch {toast.error("Could not save quantity");}
-              }} />}
+              {on && (
+                <Input
+                  className="h-9 w-16"
+                  type="number"
+                  min="1"
+                  aria-label={`Quantity for ${item.name}`}
+                  defaultValue={line?.quantity ?? 1}
+                  key={`${item.id}-${line?.quantity}`}
+                  onBlur={async (e) => {
+                    const quantity = Number(e.target.value);
+                    if (!Number.isInteger(quantity) || quantity < 1) {
+                      toast.error("Enter a quantity of at least 1");
+                      return;
+                    }
+                    try {
+                      await saveTraderStock(
+                        runnerId,
+                        item.id,
+                        line?.price ?? item.price,
+                        true,
+                        quantity,
+                      );
+                      onSaved?.();
+                    } catch {
+                      toast.error("Could not save quantity");
+                    }
+                  }}
+                />
+              )}
               <Switch
                 aria-label={`I sell ${item.name}`}
                 checked={on}

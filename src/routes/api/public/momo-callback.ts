@@ -65,55 +65,6 @@ export const Route = createFileRoute("/api/public/momo-callback")({
             return Response.json({ error: "finalize-failed" }, { status: 500 });
           }
 
-          // Mdeko Finance: auto-save 5% of the settlement into the trader's savings jar
-          if (finalizeStatus === "successful" && payment.order_id) {
-            try {
-              // Look up the settlement to get the net amount and trader_id
-              const { data: settlement } = await supabaseAdmin
-                .from("settlements")
-                .select("net, trader_id")
-                .eq("order_id", payment.order_id)
-                .maybeSingle();
-
-              if (settlement && settlement.trader_id && Number(settlement.net) > 0) {
-                const saveAmount = Number(settlement.net) * 0.05;
-
-                // Upsert the trader's savings jar — increment balance by 5% of net
-                const { data: existingJar } = await supabaseAdmin
-                  .from("savings_pots")
-                  .select("balance")
-                  .eq("user_id", settlement.trader_id)
-                  .maybeSingle();
-
-                if (existingJar) {
-                  await supabaseAdmin
-                    .from("savings_pots")
-                    .update({
-                      balance: Number(existingJar.balance) + saveAmount,
-                      updated_at: new Date().toISOString(),
-                    })
-                    .eq("user_id", settlement.trader_id);
-                } else {
-                  await supabaseAdmin
-                    .from("savings_pots")
-                    .insert({
-                      user_id: settlement.trader_id,
-                      balance: saveAmount,
-                      target_amount: 500,
-                      name: "My Savings Jar",
-                    });
-                }
-
-                console.log(
-                  `[finance] auto-saved R${saveAmount.toFixed(2)} for trader ${settlement.trader_id}`,
-                );
-              }
-            } catch (saveErr) {
-              // Non-fatal — never block the payment webhook for savings errors
-              console.error("[finance] auto-save failed (non-fatal):", saveErr);
-            }
-          }
-
           return Response.json({ ok: true });
         } catch (err) {
           console.error("momo-callback: unhandled error", err);
