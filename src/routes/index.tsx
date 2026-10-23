@@ -270,6 +270,7 @@ function BuyerPage() {
 
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
   // so the map stays the hero; it expands again when the wave needs a decision.
@@ -473,7 +474,11 @@ function BuyerPage() {
       )}
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 flex max-h-[62dvh] flex-col rounded-t-3xl border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur-xl transition-transform duration-300">
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex w-full max-w-lg flex-col rounded-t-3xl border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur-xl transition-[max-height] duration-300 ease-out sm:bottom-4 sm:rounded-3xl sm:border ${
+          sheetExpanded ? "max-h-[88dvh]" : "max-h-[50dvh] min-h-[min(20rem,60dvh)]"
+        }`}
+      >
         {request && isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
