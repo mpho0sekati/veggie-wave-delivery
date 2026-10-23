@@ -286,7 +286,7 @@ export default function VeggieMap({
     if (!bounds.isValid()) return;
     const first = route.polyline[0];
     const last = route.polyline[route.polyline.length - 1];
-    const signature = `${first?.[0]},${first?.[1]}|${last?.[0]},${last?.[1]}`;
+    const signature = `${first?.lat},${first?.lng}|${last?.lat},${last?.lng}`;
     if (signature === fittedRouteSigRef.current) return;
     fittedRouteSigRef.current = signature;
 

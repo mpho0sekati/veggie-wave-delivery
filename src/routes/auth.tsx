@@ -10,7 +10,14 @@ import BrandMark from "@/components/BrandMark";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
-    meta: [{ title: "Sign in — Mdeko · Veggie Wave" }],
+    meta: [
+      { title: "Sign in — Mdeko · Veggie Wave" },
+      { name: "description", content: "Sign in to Mdeko to order fresh produce or manage your trader stall." },
+      { property: "og:title", content: "Sign in — Mdeko · Veggie Wave" },
+      { property: "og:description", content: "Sign in to Mdeko to order fresh produce or manage your trader stall." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: AuthPage,
 });
