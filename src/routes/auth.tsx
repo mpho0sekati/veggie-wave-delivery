@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye, EyeOff, Loader2, ShoppingBasket, Store } from "lucide-react";
 import { toast } from "sonner";
@@ -19,8 +19,13 @@ export const Route = createFileRoute("/auth")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: AuthPage,
+  component: AuthLayout,
 });
+
+function AuthLayout() {
+  const path = useRouterState({ select: s => s.location.pathname });
+  return path === "/auth" ? <AuthPage /> : <Outlet />;
+}
 
 function friendly(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err ?? "");
