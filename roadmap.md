@@ -6,6 +6,7 @@
 
 ## Active / Backlog
 
+- Fix tested buyer/seller journey: shared profiles/stock, real wave acceptance, independent GPS, durable status/payment/cancellation, sign-in feedback; verify across accounts.
 - Wire frontend fully to new backend server functions.
 - Add real-time order status updates across buyer and trader phones.
 - Implement trader notifications for new nearby waves.
