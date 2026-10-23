@@ -149,7 +149,7 @@ function BuyerPage() {
     setBuyerLocation(pos);
     setRecenterTrigger((prev) => prev + 1);
   }, []);
-  const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
+  const { status: geoStatus, locate, stop, message: geoMessage } = useGeolocation(onPosition);
 
   const navigate = useNavigate();
   const session = useSession();
@@ -405,6 +405,7 @@ function BuyerPage() {
               isGpsDisconnected={isDisconnected}
               recenterTrigger={recenterTrigger}
               onPickPosition={(pos) => {
+                stop();
                 onPosition(pos);
                 toast.success("Map pin updated");
               }}
