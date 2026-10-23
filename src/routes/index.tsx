@@ -375,7 +375,7 @@ function BuyerPage() {
     request?.status === "waving" && Date.now() - (request?.createdAt ?? 0) > WAVE_TIMEOUT_MS;
 
   return (
-    <main className="relative h-screen w-full overflow-hidden bg-background">
+    <main className="relative h-dvh w-full overflow-hidden bg-background">
       {/* Full screen edge-to-edge Leaflet map */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <ClientOnly fallback={<MapSkeleton />}>
@@ -467,7 +467,7 @@ function BuyerPage() {
       )}
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[55vh] overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)] border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
+      <div className="absolute bottom-0 left-0 right-0 z-10 flex max-h-[62dvh] flex-col rounded-t-3xl border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur-xl transition-transform duration-300">
         {request && isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -508,7 +508,8 @@ function BuyerPage() {
           </button>
         ) : (
           <>
-            <div className="p-5">
+            <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
+              <div className="p-5">
               <button
                 onClick={() => request && setIsCollapsed(true)}
                 className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-muted"
@@ -845,27 +846,6 @@ function BuyerPage() {
           </Card>
         )}
 
-        {!request && (
-          <div className="sticky bottom-0 z-500 mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
-            <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
-              <Hand className="animate-wave" /> Raise my hand
-              {total > 0 ? ` · ${formatRand(total)}` : ""}
-            </Button>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              {picked.length || wish.trim()
-                ? "The nearest trader who has your items sees the wave first."
-                : "Tap an item above, then raise your hand."}
-            </p>
-            {queuedCount > 0 && (
-              <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
-                <CloudUpload className="size-3" /> {queuedCount} saved{" "}
-                {queuedCount === 1 ? "request" : "requests"} — sends automatically when you're
-                back online
-              </p>
-            )}
-          </div>
-        )}
-
         {!request && orders.length > 0 && (
           <section className="px-4 pb-8">
             <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
@@ -917,7 +897,30 @@ function BuyerPage() {
             </ul>
           </section>
         )}
+              </div>
             </div>
+
+            {/* Fixed footer — the wave button is always reachable, never covering content */}
+            {!request && (
+              <div className="shrink-0 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
+                <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
+                  <Hand className="animate-wave" /> Raise my hand
+                  {total > 0 ? ` · ${formatRand(total)}` : ""}
+                </Button>
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  {picked.length || wish.trim()
+                    ? "The nearest trader who has your items sees the wave first."
+                    : "Tap an item above, then raise your hand."}
+                </p>
+                {queuedCount > 0 && (
+                  <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
+                    <CloudUpload className="size-3" /> {queuedCount} saved{" "}
+                    {queuedCount === 1 ? "request" : "requests"} — sends automatically when you're
+                    back online
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
