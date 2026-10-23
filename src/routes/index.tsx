@@ -600,14 +600,14 @@ function BuyerPage() {
                         )}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-2 truncate font-semibold">
+                        <div className="flex items-center gap-2 truncate font-semibold">
                           {runner.name}
                           {bestMatch && (
                             <Badge className="shrink-0" variant="default">
                               best match
                             </Badge>
                           )}
-                        </p>
+                        </div>
                         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <MapPin className="size-3.5 text-primary" /> {formatDistance(km)} away
