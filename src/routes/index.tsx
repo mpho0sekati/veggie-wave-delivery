@@ -146,6 +146,8 @@ function BuyerPage() {
     isDisconnected,
   } = useCourierPositions(liveOrder?.id ?? null);
 
+  const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
+
   // Weather warning for active delivery orders
   const { warning: weatherWarning } = useWeatherWarning(liveOrder?.id ?? null);
 
