@@ -458,6 +458,14 @@ function BuyerPage() {
         </Button>
       </div>
 
+      {/* Offline notice — waves are saved on the phone and sent on reconnect */}
+      {!isOnline && (
+        <div className="absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border bg-background/95 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md">
+          <WifiOff className="size-4 text-destructive" />
+          You're offline — waves are saved and sent later
+        </div>
+      )}
+
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[55vh] overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)] border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
         {request && isCollapsed ? (
@@ -848,6 +856,13 @@ function BuyerPage() {
                 ? "The nearest trader who has your items sees the wave first."
                 : "Tap an item above, then raise your hand."}
             </p>
+            {queuedCount > 0 && (
+              <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
+                <CloudUpload className="size-3" /> {queuedCount} saved{" "}
+                {queuedCount === 1 ? "request" : "requests"} — sends automatically when you're
+                back online
+              </p>
+            )}
           </div>
         )}
 
