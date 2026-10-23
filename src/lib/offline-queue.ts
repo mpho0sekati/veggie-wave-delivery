@@ -11,6 +11,8 @@ export type QueuedOrder = {
   lat: number | null;
   lng: number | null;
   note: string;
+  /** Estimated total at queue time, so the wave card can show a price before the server answers. */
+  total?: number;
   createdAt: number;
   retries: number;
   status: "pending" | "syncing" | "synced" | "failed";
