@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import WelcomeGuide from "@/components/WelcomeGuide";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -383,6 +384,15 @@ function BuyerPage() {
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
+      <WelcomeGuide
+        storageKey="mdeko-guide-buyer"
+        steps={[
+          { icon: MapPin, title: "See traders near you", body: "The map shows veggie traders around you and how far they are." },
+          { icon: Hand, title: "Pick and raise your hand", body: "Choose what you need, or just type it, then tap \"Raise my hand\"." },
+          { icon: Clock, title: "Watch them come", body: "The closest trader accepts and you can follow them on the map." },
+          { icon: Wallet, title: "Pay safely", body: "Pay with MoMo or cash when your veggies arrive." },
+        ]}
+      />
       {/* Full screen edge-to-edge Leaflet map */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <ClientOnly fallback={<MapSkeleton />}>
