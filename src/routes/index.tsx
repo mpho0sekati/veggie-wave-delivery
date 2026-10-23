@@ -846,27 +846,6 @@ function BuyerPage() {
           </Card>
         )}
 
-        {!request && (
-          <div className="sticky bottom-0 z-500 mt-6 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
-            <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
-              <Hand className="animate-wave" /> Raise my hand
-              {total > 0 ? ` · ${formatRand(total)}` : ""}
-            </Button>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              {picked.length || wish.trim()
-                ? "The nearest trader who has your items sees the wave first."
-                : "Tap an item above, then raise your hand."}
-            </p>
-            {queuedCount > 0 && (
-              <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
-                <CloudUpload className="size-3" /> {queuedCount} saved{" "}
-                {queuedCount === 1 ? "request" : "requests"} — sends automatically when you're
-                back online
-              </p>
-            )}
-          </div>
-        )}
-
         {!request && orders.length > 0 && (
           <section className="px-4 pb-8">
             <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
