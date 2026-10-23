@@ -628,7 +628,21 @@ function BuyerPage() {
               {request.status === "accepted" && (
                 <>
                   <MapPin className="size-5 text-primary" />
-                  <p className="font-semibold">{assigned?.name ?? "Your trader"} is on the way</p>
+                  <div>
+                    <p className="font-semibold">
+                      {assigned?.name ?? "Your trader"} is on the way
+                    </p>
+                    {courierPosition ? (
+                      <p className="text-xs text-muted-foreground">
+                        ~{courierPosition.etaMinutes} min ·{" "}
+                        {formatDistance(courierPosition.distanceKm)} away
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Waiting for their live location…
+                      </p>
+                    )}
+                  </div>
                 </>
               )}
               {request.status === "delivered" && (
@@ -800,6 +814,9 @@ function BuyerPage() {
               })}
             </ul>
           </section>
+        )}
+            </div>
+          </>
         )}
       </div>
 
