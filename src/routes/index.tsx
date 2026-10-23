@@ -292,6 +292,29 @@ function BuyerPage() {
     }
 
     const items = picked.map((p) => ({ id: p.id, qty: qty[p.id] ?? 0 }));
+
+    // No connection: save the wave on the phone — it sends itself when we're back online.
+    if (!isOnline) {
+      addToOfflineQueue({
+        id: crypto.randomUUID(),
+        items,
+        wish: wish.trim(),
+        lat: buyer.located ? buyer.lat : null,
+        lng: buyer.located ? buyer.lng : null,
+        note: `${picked.length} items`,
+        total,
+        createdAt: Date.now(),
+      });
+      logDemand([
+        ...picked.map((p) => ({ itemId: p.id, label: p.name })),
+        ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
+      ]);
+      setQty({});
+      setWish("");
+      toast.success("You're offline — request saved. It sends itself when you're back online.");
+      return;
+    }
+
     try {
       const saved = await actions.createWave.mutateAsync({
         items,
@@ -323,7 +346,7 @@ function BuyerPage() {
       console.error("[mdeko] wave failed", err);
       toast.error("Could not send your wave — please try again");
     }
-  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer]);
+  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline]);
 
   const waveAgain = useCallback(
     () =>
