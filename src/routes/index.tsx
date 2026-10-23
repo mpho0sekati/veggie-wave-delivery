@@ -386,13 +386,58 @@ function BuyerPage() {
         </Button>
       </div>
 
-      {/* Floating bottom drawer card */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[80vh] overflow-y-auto rounded-t-3xl border-t bg-background/95 p-5 shadow-2xl backdrop-blur-xl transition-transform duration-300">
-        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted" />
+      {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[80vh] overflow-y-auto rounded-t-3xl border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
+        {request && isCollapsed ? (
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/50"
+            aria-expanded="false"
+            aria-label="Show order details"
+          >
+            <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
+              {request.status === "waving" ? "👋" : "🚴"}
+              {request.status === "waving" && (
+                <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">
+                {request.status === "waving"
+                  ? "Waving… waiting for a trader"
+                  : courierPosition
+                    ? `${assigned?.name ?? "Your trader"} is on the way`
+                    : "Waiting for your trader's location…"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formatRand(request.total)} · tap for details
+              </p>
+            </div>
+            {courierPosition && (
+              <div className="shrink-0 text-right">
+                <p className="font-display text-2xl font-bold leading-none text-primary">
+                  {courierPosition.etaMinutes}
+                  <span className="text-xs font-medium text-muted-foreground"> min</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistance(courierPosition.distanceKm)}
+                </p>
+              </div>
+            )}
+            <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+          </button>
+        ) : (
+          <>
+            <div className="p-5">
+              <button
+                onClick={() => request && setIsCollapsed(true)}
+                className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-muted"
+                aria-label={request ? "Minimize order details" : undefined}
+              />
 
-        <p className="mx-5 mt-3 text-sm text-muted-foreground">
-          {geoMessage ? `${geoMessage} ` : ""}Tap the map to drop your pin.
-        </p>
+              <p className="mx-5 mt-3 text-sm text-muted-foreground">
+                {geoMessage ? `${geoMessage} ` : ""}Tap the map to drop your pin.
+              </p>
 
         {!request && (
           <>
