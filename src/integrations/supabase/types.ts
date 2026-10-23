@@ -401,33 +401,6 @@ export type Database = {
           },
         ]
       }
-      savings_pots: {
-        Row: {
-          balance: number
-          created_at: string
-          name: string
-          target_amount: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          balance?: number
-          created_at?: string
-          name?: string
-          target_amount?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          balance?: number
-          created_at?: string
-          name?: string
-          target_amount?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       stock: {
         Row: {
           available: boolean
