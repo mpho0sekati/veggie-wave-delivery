@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useRef, useState, useCallback, useMemo, useEffect } from "react";
-import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet, Crosshair } from "lucide-react";
-import { toast } from "sonner";
+import { ClientOnly } from "@tanstack/react-router";import { lazy, Suspense, useRef, useState, useCallback, useMemo, useEffect } from "react";
+import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet, Crosshair } from "lucide-react";import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -327,6 +325,12 @@ function RunnerPage() {
         </div>
         <div className="flex items-center gap-3">
           <Switch id="online" checked={me.online} onCheckedChange={setOnline} />
+          <Button asChild size="sm" variant="outline" className="rounded-xl gap-1.5 text-primary border-primary/40">
+            <Link to="/finance">
+              <Wallet className="size-4" />
+              <span className="font-semibold">My Money</span>
+            </Link>
+          </Button>
         </div>
       </header>
 

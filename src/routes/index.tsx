@@ -440,6 +440,11 @@ function BuyerPage() {
                 <Store /> I'm a trader
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/finance">
+                <Wallet /> My Money
+              </Link>
+            </DropdownMenuItem>
             {signedIn ? (
               <DropdownMenuItem
                 onClick={async () => {
