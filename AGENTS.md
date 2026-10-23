@@ -7,3 +7,4 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 - **Runtime & Package Manager:** Use `bun` (`bun run build`, `bun run dev`, `bun run lint`).
 - **Code Standards:** Ensure all TypeScript, React Hook, and Prettier checks pass cleanly (`bun run lint`).
 - **Testing:** Perform end-to-end testing with Playwright scripts before submitting changes.
+- **Location:** Keep buyer and trader coordinates independent; accept valid device coordinates and label low-accuracy fixes as approximate so GPS limitations never silently leave a default pin.

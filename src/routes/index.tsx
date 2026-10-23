@@ -148,7 +148,6 @@ function BuyerPage() {
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
     setRecenterTrigger((prev) => prev + 1);
-    toast.success("Location updated on map");
   }, []);
   const { status: geoStatus, locate, message: geoMessage } = useGeolocation(onPosition);
 
@@ -405,7 +404,10 @@ function BuyerPage() {
               courierPosition={courierPosition}
               isGpsDisconnected={isDisconnected}
               recenterTrigger={recenterTrigger}
-              onPickPosition={onPosition}
+              onPickPosition={(pos) => {
+                onPosition(pos);
+                toast.success("Map pin updated");
+              }}
             />
           </Suspense>
         </ClientOnly>
@@ -553,7 +555,7 @@ function BuyerPage() {
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               <div className="px-1 pb-5">
               <p className="mx-5 text-xs text-muted-foreground">
-                {geoMessage ? `${geoMessage} ` : ""}Tap the map to drop your pin.
+                {geoMessage || (buyer.located ? "Tap the map to correct your pin." : "Location not set — tap the crosshair or drop your pin on the map.")}
               </p>
 
         {!request && (
