@@ -50,13 +50,9 @@ import {
   archiveRequest,
   cancelRequest,
   logDemand,
-  payCash,
-  refundOrder,
   setBuyerLocation,
   updateState,
   useAppState,
-  type WaveRequest,
-  type AppState,
 } from "@/lib/veggie-store";
 import { useMarketplace } from "@/lib/use-marketplace";
 import { waveView } from "@/lib/wave-view";
@@ -208,13 +204,22 @@ function BuyerPage() {
   }, [buyer.lat, buyer.lng, buyer.located, setBuyerPosition]);
 
   const [closedWave, setClosedWave] = useState<string | null>(null);
+  useEffect(() => setClosedWave(localStorage.getItem("mdeko-closed-wave")), []);
   useEffect(() => {
-    if (!signedIn || !liveWave || liveWave.id === closedWave) return;
-    if (liveWave.status === "expired" || liveWave.status === "declined" || liveOrder?.cancelled_at) {
-      updateState(prev => ({ ...prev, request: null }));
+    if (!signedIn || !liveWave) return;
+    if (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id) {
+      updateState((prev) => ({ ...prev, request: null }));
       return;
     }
-    updateState(prev => ({ ...prev, request: waveView(liveWave, liveOrder) }));
+    if (
+      liveWave.status === "expired" ||
+      liveWave.status === "declined" ||
+      liveOrder?.cancelled_at
+    ) {
+      updateState((prev) => ({ ...prev, request: null }));
+      return;
+    }
+    updateState((prev) => ({ ...prev, request: waveView(liveWave, liveOrder) }));
   }, [signedIn, liveWave, liveOrder, closedWave]);
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
@@ -255,7 +260,9 @@ function BuyerPage() {
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
   // so the map stays the hero; it expands again when the wave needs a decision.
   useEffect(() => {
-    setIsCollapsed(hasRequest && (request?.status === "accepted" || request?.status === "delivering"));
+    setIsCollapsed(
+      hasRequest && (request?.status === "accepted" || request?.status === "delivering"),
+    );
   }, [hasRequest, request?.status]);
 
   const best = ranked[0] ?? null;
@@ -338,22 +345,37 @@ function BuyerPage() {
   const waveAgain = useCallback(async () => {
     if (!request) return;
     try {
-      await actions.createWave.mutateAsync({ items: request.items, wish: request.wish, note: request.note, lat: buyer.lat, lng: buyer.lng });
+      await actions.createWave.mutateAsync({
+        items: request.items,
+        wish: request.wish,
+        note: request.note,
+        lat: buyer.lat,
+        lng: buyer.lng,
+      });
       toast.success("New wave sent");
-    } catch { toast.error("Could not send another wave"); }
+    } catch {
+      toast.error("Could not send another wave");
+    }
   }, [request, actions.createWave, buyer]);
   const cancel = useCallback(async () => {
     if (!request?.waveId) return;
     try {
       await actions.cancelWave.mutateAsync(request.waveId);
       setClosedWave(request.waveId);
-      cancelRequest(); setQty({}); setWish("");
+      cancelRequest();
+      setQty({});
+      setWish("");
       toast.info("Request cancelled");
-    } catch { toast.error("This order has payment or delivery in progress and cannot be cancelled"); }
+    } catch {
+      toast.error("This order has payment or delivery in progress and cannot be cancelled");
+    }
   }, [request, actions.cancelWave]);
   const finish = useCallback(() => {
     setClosedWave(request?.waveId ?? null);
-    archiveRequest(); setQty({}); setWish("");
+    if (request?.waveId) localStorage.setItem("mdeko-closed-wave", request.waveId);
+    archiveRequest();
+    setQty({});
+    setWish("");
   }, [request]);
   const timedOut =
     request?.status === "waving" && Date.now() - (request?.createdAt ?? 0) > WAVE_TIMEOUT_MS;
@@ -363,10 +385,26 @@ function BuyerPage() {
       <WelcomeGuide
         storageKey="mdeko-guide-buyer"
         steps={[
-          { icon: MapPin, title: "See traders near you", body: "The map shows veggie traders around you and how far they are." },
-          { icon: Hand, title: "Pick and raise your hand", body: "Choose what you need, or just type it, then tap \"Raise my hand\"." },
-          { icon: Clock, title: "Watch them come", body: "The closest trader accepts and you can follow them on the map." },
-          { icon: Wallet, title: "Pay safely", body: "Pay with MoMo or cash when your veggies arrive." },
+          {
+            icon: MapPin,
+            title: "See traders near you",
+            body: "The map shows veggie traders around you and how far they are.",
+          },
+          {
+            icon: Hand,
+            title: "Pick and raise your hand",
+            body: 'Choose what you need, or just type it, then tap "Raise my hand".',
+          },
+          {
+            icon: Clock,
+            title: "Watch them come",
+            body: "The closest trader accepts and you can follow them on the map.",
+          },
+          {
+            icon: Wallet,
+            title: "Pay safely",
+            body: "Pay with MoMo or cash when your veggies arrive.",
+          },
         ]}
       />
       {/* Full screen edge-to-edge Leaflet map */}
@@ -532,417 +570,454 @@ function BuyerPage() {
             </button>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               <div className="px-1 pb-5">
-              <p className="mx-5 text-xs text-muted-foreground">
-                {geoMessage || (buyer.located ? "Tap the map to correct your pin." : "Location not set — tap the crosshair or drop your pin on the map.")}
-              </p>
-
-        {!request && (
-          <>
-            <p className="mt-2 border-b pb-3 text-center text-lg font-semibold">
-              <Greeting />
-              {session.name ? `, ${session.name.split(" ")[0]}` : ""}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setSheetExpanded(true);
-                setTimeout(
-                  () =>
-                    document
-                      .getElementById("describe-order")
-                      ?.scrollIntoView({ behavior: "smooth" }),
-                  320,
-                );
-              }}
-              className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
-            >
-              What veggies do you need?
-              <Hand className="size-5 text-primary" />
-            </button>
-            <div className="mx-4 mt-4 rounded-2xl bg-secondary px-4 py-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  <Wallet className="size-4 text-primary" /> Mdeko Pay balance
-                </span>
-                <span className="font-display font-semibold">{formatRand(walletBalance)}</span>
-              </div>
-              {communityCredit > 0 && (
-                <div className="flex items-center justify-between border-t pt-2">
-                  <span className="flex items-center gap-2 text-xs text-primary font-medium">
-                    Community Credit
-                  </span>
-                  <span className="font-display text-sm font-semibold text-primary">
-                    {formatRand(communityCredit)}
-                  </span>
-                </div>
-              )}
-              {communityCredit === 0 && (
-                <p className="text-xs text-muted-foreground border-t pt-2">
-                  Earn <strong>R0.50 Mdeko Community Credit</strong> every time you pay with MoMo
+                <p className="mx-5 text-xs text-muted-foreground">
+                  {geoMessage ||
+                    (buyer.located
+                      ? "Tap the map to correct your pin."
+                      : "Location not set — tap the crosshair or drop your pin on the map.")}
                 </p>
-              )}
-            </div>
 
-            <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
-            {ranked.length === 0 ? (
-              <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
-                <Store className="size-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  No Mdeko trader is online around you yet. Pick what you need anyway.
-                </p>
-              </Card>
-            ) : (
-              <ul className="mx-4 mt-2 space-y-2">
-                {ranked.map(({ runner, km, have, total: runnerTotal, etaMin }, index) => {
-                  const partial = picked.length > 0 && have < picked.length;
-                  const bestMatch = index === 0 && picked.length > 0 && !partial;
-                  const isSelected = selectedRunnerId === runner.id;
-                  return (
-                    <li
-                      key={runner.id}
+                {!request && (
+                  <>
+                    <p className="mt-2 border-b pb-3 text-center text-lg font-semibold">
+                      <Greeting />
+                      {session.name ? `, ${session.name.split(" ")[0]}` : ""}
+                    </p>
+                    <button
+                      type="button"
                       onClick={() => {
-                        setSelectedRunnerId((p) => (p === runner.id ? null : runner.id));
-                        if (isCollapsed) setIsCollapsed(false);
+                        setSheetExpanded(true);
+                        setTimeout(
+                          () =>
+                            document
+                              .getElementById("describe-order")
+                              ?.scrollIntoView({ behavior: "smooth" }),
+                          320,
+                        );
                       }}
-                      className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/10 shadow-glow ring-2 ring-primary/30"
-                          : index === 0
-                            ? "border-primary bg-secondary shadow-glow"
-                            : "bg-card hover:bg-secondary/50"
-                      }`}
+                      className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
                     >
-                      <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
-                        {runner.avatar ? (
-                          <img
-                            src={runner.avatar}
-                            alt={runner.name}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          runner.name.charAt(0)
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 truncate font-semibold">
-                          {runner.name}
-                          {bestMatch && (
-                            <Badge className="shrink-0" variant="default">
-                              best match
-                            </Badge>
-                          )}
+                      What veggies do you need?
+                      <Hand className="size-5 text-primary" />
+                    </button>
+                    <div className="mx-4 mt-4 rounded-2xl bg-secondary px-4 py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          <Wallet className="size-4 text-primary" /> Mdeko Pay balance
+                        </span>
+                        <span className="font-display font-semibold">
+                          {formatRand(walletBalance)}
+                        </span>
+                      </div>
+                      {communityCredit > 0 && (
+                        <div className="flex items-center justify-between border-t pt-2">
+                          <span className="flex items-center gap-2 text-xs text-primary font-medium">
+                            Community Credit
+                          </span>
+                          <span className="font-display text-sm font-semibold text-primary">
+                            {formatRand(communityCredit)}
+                          </span>
                         </div>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="size-3.5 text-primary" /> {formatDistance(km)} away
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="size-3.5" /> {etaMin} min ETA
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Star className="size-3.5 text-amber-500" /> {runner.rating.toFixed(1)}
-                          </span>
+                      )}
+                      {communityCredit === 0 && (
+                        <p className="text-xs text-muted-foreground border-t pt-2">
+                          Earn <strong>R0.50 Mdeko Community Credit</strong> every time you pay with
+                          MoMo
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Delivery fee: {formatRand(calculateDeliveryFee(km))}
+                      )}
+                    </div>
+
+                    <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
+                    {ranked.length === 0 ? (
+                      <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
+                        <Store className="size-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          No Mdeko trader is online around you yet. Pick what you need anyway.
                         </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        {picked.length > 0 && (
-                          <p className="font-display text-sm font-semibold">
-                            {formatRand(runnerTotal)}
-                          </p>
-                        )}
-                        <Badge variant={partial ? "outline" : "secondary"}>
-                          {picked.length
-                            ? `has ${have}/${picked.length}`
-                            : `${runner.stock.length} items`}
-                        </Badge>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            <div id="describe-order" />
-            <DescribeOrder
-              catalog={catalog}
-              onApply={(items, extras) => {
-                setQty(Object.fromEntries(items.map((l) => [l.id, l.qty])));
-                setWish(extras.join(", "));
-              }}
-            />
-
-            <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
-            <div className="grid grid-cols-2 gap-3 px-4 pt-3">
-              {catalog.map((item) => {
-                const Icon = item.icon;
-                const count = qty[item.id] ?? 0;
-                const sellers = online.filter((r) => priceFor(r, item.id) !== null).length;
-                return (
-                  <Card
-                    key={item.id}
-                    className={`gap-2 p-4 transition-colors ${count ? "border-primary bg-secondary" : ""}`}
-                  >
-                    <Icon className="size-7 text-primary" />
-                    <div>
-                      <p className="font-semibold leading-tight">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.unit} ·{" "}
-                        {sellers
-                          ? `from ${formatRand(Math.min(...online.map((r) => priceFor(r, item.id)).filter((p): p is number => p !== null)))}`
-                          : "nobody stocked"}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        aria-label={`Remove one ${item.name}`}
-                        onClick={() => bump(item.id, -1)}
-                      >
-                        <Minus />
-                      </Button>
-                      <span className="font-display text-base font-semibold">{count}</span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        aria-label={`Add one ${item.name}`}
-                        onClick={() => bump(item.id, 1)}
-                      >
-                        <Plus />
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-
-            <div className="mx-4 mt-4 space-y-2">
-              <Label htmlFor="wish">Something else?</Label>
-              <Input
-                id="wish"
-                placeholder="e.g. blueberries"
-                value={wish}
-                onChange={(e) => setWish(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Even if nobody has it yet, we tell traders people are asking.
-              </p>
-            </div>
-          </>
-        )}
-
-        {request && (
-          <Card className="animate-rise animate-slide-up mx-4 mt-4 gap-4 p-5">
-            <OrderStepper status={request.status} />
-            <div className="flex items-center gap-2">
-              {request.status === "waving" && (
-                <>
-                  <Hand className="size-5 animate-wave text-accent" />
-                  <p className="font-semibold">Waving… waiting for a trader</p>
-                </>
-              )}
-              {(request.status === "accepted" || request.status === "delivering") && (
-                <>
-                  <MapPin className="size-5 text-primary" />
-                  <div>
-                    <p className="font-semibold">
-                      {assigned?.name ?? "Your trader"} is on the way
-                    </p>
-                    {courierPosition ? (
-                      <p className="text-xs text-muted-foreground">
-                        ~{courierPosition.etaMinutes} min ·{" "}
-                        {formatDistance(courierPosition.distanceKm)} away
-                      </p>
+                      </Card>
                     ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Waiting for their live location…
-                      </p>
+                      <ul className="mx-4 mt-2 space-y-2">
+                        {ranked.map(({ runner, km, have, total: runnerTotal, etaMin }, index) => {
+                          const partial = picked.length > 0 && have < picked.length;
+                          const bestMatch = index === 0 && picked.length > 0 && !partial;
+                          const isSelected = selectedRunnerId === runner.id;
+                          return (
+                            <li
+                              key={runner.id}
+                              onClick={() => {
+                                setSelectedRunnerId((p) => (p === runner.id ? null : runner.id));
+                                if (isCollapsed) setIsCollapsed(false);
+                              }}
+                              className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/10 shadow-glow ring-2 ring-primary/30"
+                                  : index === 0
+                                    ? "border-primary bg-secondary shadow-glow"
+                                    : "bg-card hover:bg-secondary/50"
+                              }`}
+                            >
+                              <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
+                                {runner.avatar ? (
+                                  <img
+                                    src={runner.avatar}
+                                    alt={runner.name}
+                                    className="size-full object-cover"
+                                  />
+                                ) : (
+                                  runner.name.charAt(0)
+                                )}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 truncate font-semibold">
+                                  {runner.name}
+                                  {bestMatch && (
+                                    <Badge className="shrink-0" variant="default">
+                                      best match
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="size-3.5 text-primary" />{" "}
+                                    {formatDistance(km)} away
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="size-3.5" /> {etaMin} min ETA
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Star className="size-3.5 text-amber-500" />{" "}
+                                    {runner.rating.toFixed(1)}
+                                  </span>
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Delivery fee: {formatRand(calculateDeliveryFee(km))}
+                                </p>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                {picked.length > 0 && (
+                                  <p className="font-display text-sm font-semibold">
+                                    {formatRand(runnerTotal)}
+                                  </p>
+                                )}
+                                <Badge variant={partial ? "outline" : "secondary"}>
+                                  {picked.length
+                                    ? `has ${have}/${picked.length}`
+                                    : `${runner.stock.length} items`}
+                                </Badge>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     )}
-                  </div>
-                </>
-              )}
-              {liveOrder && liveOrder.status === "accepted" && liveOrder.payment_method !== "cash" && (
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => setPayOpen(true)}>Pay with MTN MoMo</Button>
-                <Button variant="outline" className="w-full" onClick={async () => {
-                  try { await actions.chooseCash.mutateAsync(liveOrder.id); toast.success("Cash on delivery selected"); }
-                  catch { toast.error("Could not change payment method"); }
-                }}>Cash on delivery</Button>
-              </div>
-            )}
-            {liveOrder?.payment_method === "cash" && request.status !== "paid" && <p className="text-sm text-muted-foreground">Cash on delivery selected</p>}
-            {request.status === "delivered" && (
-                <>
-                  <CheckCircle2 className="size-5 text-primary" />
-                  <p className="font-semibold">Delivered — time to pay</p>
-                </>
-              )}
-              {request.status === "paid" && (
-                <>
-                  <CheckCircle2 className="size-5 text-primary" />
-                  <p className="font-semibold">
-                    Paid {request.paidWith === "cash" ? "in cash" : "with MTN MoMo"}. Enjoy!
-                  </p>
-                </>
-              )}
-            </div>
 
-            {request.status === "waving" && <WaveClock createdAt={request.createdAt} />}
+                    <div id="describe-order" />
+                    <DescribeOrder
+                      catalog={catalog}
+                      onApply={(items, extras) => {
+                        setQty(Object.fromEntries(items.map((l) => [l.id, l.qty])));
+                        setWish(extras.join(", "));
+                      }}
+                    />
 
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              {request.items.map((line) => {
-                const item = catalog.find((c) => c.id === line.id);
-                if (!item) return null;
-                const Icon = item.icon;
-                return (
-                  <li key={line.id} className="flex items-center gap-2">
-                    <Icon className="size-4 text-primary" />
-                    {line.qty} × {item.name} ({item.unit})
-                  </li>
-                );
-              })}
-              {request.wish && <li className="italic">also asked for: {request.wish}</li>}
-            </ul>
-            <p className="font-display text-xl font-bold">{formatRand(request.total)}</p>
+                    <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
+                    <div className="grid grid-cols-2 gap-3 px-4 pt-3">
+                      {catalog.map((item) => {
+                        const Icon = item.icon;
+                        const count = qty[item.id] ?? 0;
+                        const sellers = online.filter((r) => priceFor(r, item.id) !== null).length;
+                        return (
+                          <Card
+                            key={item.id}
+                            className={`gap-2 p-4 transition-colors ${count ? "border-primary bg-secondary" : ""}`}
+                          >
+                            <Icon className="size-7 text-primary" />
+                            <div>
+                              <p className="font-semibold leading-tight">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.unit} ·{" "}
+                                {sellers
+                                  ? `from ${formatRand(Math.min(...online.map((r) => priceFor(r, item.id)).filter((p): p is number => p !== null)))}`
+                                  : "nobody stocked"}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                aria-label={`Remove one ${item.name}`}
+                                onClick={() => bump(item.id, -1)}
+                              >
+                                <Minus />
+                              </Button>
+                              <span className="font-display text-base font-semibold">{count}</span>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                aria-label={`Add one ${item.name}`}
+                                onClick={() => bump(item.id, 1)}
+                              >
+                                <Plus />
+                              </Button>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
 
-            {timedOut && (
-              <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
-                <p>Nobody has answered yet.</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={waveAgain}>
-                    <Hand /> Wave again
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={cancel}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {liveOrder && liveOrder.status === "accepted" && liveOrder.payment_method !== "cash" && (
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => setPayOpen(true)}>Pay with MTN MoMo</Button>
-                <Button variant="outline" className="w-full" onClick={async () => {
-                  try { await actions.chooseCash.mutateAsync(liveOrder.id); toast.success("Cash on delivery selected"); }
-                  catch { toast.error("Could not change payment method"); }
-                }}>Cash on delivery</Button>
-              </div>
-            )}
-            {liveOrder?.payment_method === "cash" && request.status !== "paid" && <p className="text-sm text-muted-foreground">Cash on delivery selected</p>}
-            {request.status === "delivered" && (
-              <>
-                <Button
-                  variant="wave"
-                  size="lg"
-                  onClick={() => setPayOpen(true)}
-                  disabled={payLoading}
-                  className={payLoading ? "animate-pulse-glow" : ""}
-                >
-                  {payLoading ? (
-                    <>
-                      <Loader2 className="animate-spin" /> Processing…
-                    </>
-                  ) : (
-                    <>
-                      <Wallet /> Pay {formatRand(request.total)} with MTN MoMo
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (!request.orderId) return;
-                    try {
-                      if (liveOrder?.payment_method === "cash") await actions.confirmCash.mutateAsync(request.orderId);
-                      else await actions.advanceOrder.mutateAsync({ orderId: request.orderId, status: "completed" });
-                      toast.success("Order completed");
-                    } catch { toast.error("Could not complete this order"); }
-                  }}
-                >
-                  {liveOrder?.payment_method === "cash" ? "I paid cash" : "Confirm received"}
-                </Button>
-              </>
-            )}
-
-            {request.status !== "paid" ? (
-              <Button variant="ghost" onClick={cancel}>
-                Cancel request
-              </Button>
-            ) : (
-              <div className="space-y-3">
-                {request.paidWith === "wave-pay" && (
-                  <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-center space-y-0.5">
-                    <p className="font-semibold text-primary">Community Credit earned</p>
-                    <p className="text-xs text-muted-foreground">
-                      +R0.50 added · Total: {formatRand(communityCredit)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Use toward future purchases</p>
-                  </div>
+                    <div className="mx-4 mt-4 space-y-2">
+                      <Label htmlFor="wish">Something else?</Label>
+                      <Input
+                        id="wish"
+                        placeholder="e.g. blueberries"
+                        value={wish}
+                        onChange={(e) => setWish(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Even if nobody has it yet, we tell traders people are asking.
+                      </p>
+                    </div>
+                  </>
                 )}
-                <Button size="lg" variant="wave" className="w-full shadow-glow" onClick={finish}>
-                  <Hand className="animate-wave" /> Wave Again
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Need something else? The market is waiting.
-                </p>
-              </div>
-            )}
-          </Card>
-        )}
 
-        {!request && orders.length > 0 && (
-          <section className="px-4 pb-8">
-            <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
-              <History className="size-5 text-primary" /> Past waves
-            </h2>
-            <ul className="space-y-2">
-              {orders.map((order) => {
-                const trader = runners.find((r) => r.id === order.runnerId);
-                return (
-                  <li key={order.id} className="rounded-2xl border px-4 py-3 text-sm space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium">{trader?.name ?? "No trader"}</p>
-                      <p className="font-display font-semibold">{formatRand(order.total)}</p>
+                {request && (
+                  <Card className="animate-rise animate-slide-up mx-4 mt-4 gap-4 p-5">
+                    <OrderStepper status={request.status} />
+                    <div className="flex items-center gap-2">
+                      {request.status === "waving" && (
+                        <>
+                          <Hand className="size-5 animate-wave text-accent" />
+                          <p className="font-semibold">Waving… waiting for a trader</p>
+                        </>
+                      )}
+                      {(request.status === "accepted" || request.status === "delivering") && (
+                        <>
+                          <MapPin className="size-5 text-primary" />
+                          <div>
+                            <p className="font-semibold">
+                              {assigned?.name ?? "Your trader"} is on the way
+                            </p>
+                            {courierPosition ? (
+                              <p className="text-xs text-muted-foreground">
+                                ~{courierPosition.etaMinutes} min ·{" "}
+                                {formatDistance(courierPosition.distanceKm)} away
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Waiting for their live location…
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      {request.status === "delivered" && (
+                        <>
+                          <CheckCircle2 className="size-5 text-primary" />
+                          <p className="font-semibold">Delivered — time to pay</p>
+                        </>
+                      )}
+                      {request.status === "paid" && (
+                        <>
+                          <CheckCircle2 className="size-5 text-primary" />
+                          <p className="font-semibold">
+                            Paid {request.paidWith === "cash" ? "in cash" : "with MTN MoMo"}. Enjoy!
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>
-                        {order.items.length} items ·{" "}
-                        {order.status === "paid"
-                          ? order.paidWith === "cash"
-                            ? "paid cash"
-                            : "paid MoMo"
-                          : order.status}
-                      </span>
-                      <Badge
-                        variant={order.status === "paid" ? "default" : "outline"}
-                        className="capitalize text-[0.65rem]"
-                      >
-                        {order.status}
-                      </Badge>
-                    </div>
-                    {order.status === "paid" && order.paidWith === "wave-pay" && (
-                      <div className="pt-1 border-t flex justify-end">
+
+                    {request.status === "waving" && <WaveClock createdAt={request.createdAt} />}
+
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      {request.items.map((line) => {
+                        const item = catalog.find((c) => c.id === line.id);
+                        if (!item) return null;
+                        const Icon = item.icon;
+                        return (
+                          <li key={line.id} className="flex items-center gap-2">
+                            <Icon className="size-4 text-primary" />
+                            {line.qty} × {item.name} ({item.unit})
+                          </li>
+                        );
+                      })}
+                      {request.wish && <li className="italic">also asked for: {request.wish}</li>}
+                    </ul>
+                    <p className="font-display text-xl font-bold">{formatRand(request.total)}</p>
+
+                    {timedOut && (
+                      <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
+                        <p>Nobody has answered yet.</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={waveAgain}>
+                            <Hand /> Wave again
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={cancel}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {liveOrder &&
+                      liveOrder.status === "accepted" &&
+                      liveOrder.payment_method !== "cash" && (
+                        <div className="space-y-2">
+                          <Button className="w-full" onClick={() => setPayOpen(true)}>
+                            Pay with MTN MoMo
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={async () => {
+                              try {
+                                await actions.chooseCash.mutateAsync(liveOrder.id);
+                                toast.success("Cash on delivery selected");
+                              } catch {
+                                toast.error("Could not change payment method");
+                              }
+                            }}
+                          >
+                            Cash on delivery
+                          </Button>
+                        </div>
+                      )}
+                    {liveOrder?.payment_method === "cash" && request.status !== "paid" && (
+                      <p className="text-sm text-muted-foreground">Cash on delivery selected</p>
+                    )}
+                    {request.status === "delivered" && (
+                      <>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                          onClick={() => {
-                            toast.info("Refunds require a review with your trader; no money has been refunded");
+                          variant="wave"
+                          size="lg"
+                          onClick={() => setPayOpen(true)}
+                          disabled={payLoading}
+                          className={payLoading ? "animate-pulse-glow" : ""}
+                        >
+                          {payLoading ? (
+                            <>
+                              <Loader2 className="animate-spin" /> Processing…
+                            </>
+                          ) : (
+                            <>
+                              <Wallet /> Pay {formatRand(request.total)} with MTN MoMo
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            if (!request.orderId) return;
+                            try {
+                              if (liveOrder?.payment_method === "cash")
+                                await actions.confirmCash.mutateAsync(request.orderId);
+                              else
+                                await actions.advanceOrder.mutateAsync({
+                                  orderId: request.orderId,
+                                  status: "completed",
+                                });
+                              toast.success("Order completed");
+                            } catch {
+                              toast.error("Could not complete this order");
+                            }
                           }}
                         >
-                          Request Refund
+                          {liveOrder?.payment_method === "cash"
+                            ? "I paid cash"
+                            : "Confirm received"}
                         </Button>
+                      </>
+                    )}
+
+                    {request.status !== "paid" ? (
+                      <Button variant="ghost" onClick={cancel}>
+                        Cancel request
+                      </Button>
+                    ) : (
+                      <div className="space-y-3">
+                        {request.paidWith === "wave-pay" && (
+                          <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-center space-y-0.5">
+                            <p className="font-semibold text-primary">Community Credit earned</p>
+                            <p className="text-xs text-muted-foreground">
+                              +R0.50 added · Total: {formatRand(communityCredit)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Use toward future purchases
+                            </p>
+                          </div>
+                        )}
+                        <Button
+                          size="lg"
+                          variant="wave"
+                          className="w-full shadow-glow"
+                          onClick={finish}
+                        >
+                          <Hand className="animate-wave" /> Wave Again
+                        </Button>
+                        <p className="text-center text-xs text-muted-foreground">
+                          Need something else? The market is waiting.
+                        </p>
                       </div>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        )}
+                  </Card>
+                )}
+
+                {!request && orders.length > 0 && (
+                  <section className="px-4 pb-8">
+                    <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
+                      <History className="size-5 text-primary" /> Past waves
+                    </h2>
+                    <ul className="space-y-2">
+                      {orders.map((order) => {
+                        const trader = runners.find((r) => r.id === order.runnerId);
+                        return (
+                          <li
+                            key={order.id}
+                            className="rounded-2xl border px-4 py-3 text-sm space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium">{trader?.name ?? "No trader"}</p>
+                              <p className="font-display font-semibold">
+                                {formatRand(order.total)}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>
+                                {order.items.length} items ·{" "}
+                                {order.status === "paid"
+                                  ? order.paidWith === "cash"
+                                    ? "paid cash"
+                                    : "paid MoMo"
+                                  : order.status}
+                              </span>
+                              <Badge
+                                variant={order.status === "paid" ? "default" : "outline"}
+                                className="capitalize text-[0.65rem]"
+                              >
+                                {order.status}
+                              </Badge>
+                            </div>
+                            {order.status === "paid" && order.paidWith === "wave-pay" && (
+                              <div className="pt-1 border-t flex justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                                  onClick={() => {
+                                    toast.info(
+                                      "Refunds require a review with your trader; no money has been refunded",
+                                    );
+                                  }}
+                                >
+                                  Request Refund
+                                </Button>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                )}
               </div>
             </div>
 
@@ -1005,7 +1080,6 @@ function BuyerPage() {
                   return {
                     ...prev,
                     request: { ...prev.request, status: "paid", paidWith: "wave-pay" },
-
                   };
                 });
                 actions.refresh();
@@ -1023,7 +1097,11 @@ function BuyerPage() {
             toast.error("Payment timeout — check your MoMo app and try again");
           } catch (err) {
             console.error("[momo] payment error", err);
-            toast.error(err instanceof Error && err.message.includes("momo-not-configured") ? "MTN MoMo is not connected yet. Choose cash on delivery." : "Payment failed — please try again");
+            toast.error(
+              err instanceof Error && err.message.includes("momo-not-configured")
+                ? "MTN MoMo is not connected yet. Choose cash on delivery."
+                : "Payment failed — please try again",
+            );
             throw err;
           }
           setPayLoading(false);

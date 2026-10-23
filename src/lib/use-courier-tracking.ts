@@ -97,6 +97,7 @@ export function useReportCourierPosition(
           .single();
 
         if (error) {
+          console.error("courier-insert", error.message);
           trackingLogger.error("Failed to report position", { error });
         } else {
           trackingLogger.debug("Position reported successfully", { data });
@@ -114,6 +115,10 @@ export function useReportCourierPosition(
     },
     [orderId, throttleMs, minDistanceMeters],
   );
+
+  useEffect(() => {
+    lastPositionRef.current = null;
+  }, [orderId]);
 
   // Start/stop watching based on enabled state
   useEffect(() => {
@@ -133,20 +138,13 @@ export function useReportCourierPosition(
       // Update current position immediately for UI
       setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
 
-      // Throttle client-side as well
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        void reportPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          heading: pos.coords.heading ?? undefined,
-          speed: pos.coords.speed ?? undefined,
-          accuracy: pos.coords.accuracy,
-        });
-      }, 1000); // Debounce rapid updates
+      void reportPosition({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        heading: pos.coords.heading ?? undefined,
+        speed: pos.coords.speed ?? undefined,
+        accuracy: pos.coords.accuracy,
+      });
     };
 
     const handleError = (err: GeolocationPositionError) => {
@@ -358,23 +356,13 @@ export function useCourierPositions(orderId: string | null) {
     };
   }, [orderId, buyerPosition]);
 
-  // Update latest position when buyer position changes
   useEffect(() => {
-    if (latestPosition && buyerPosition) {
-      trackingLogger.debug("Buyer position changed, recalculating ETA");
-      const dist = distanceKm(latestPosition, buyerPosition);
-      const eta = walkMinutes(dist);
-      trackingLogger.debug("New ETA calculation", { distanceKm: dist, etaMinutes: eta });
-      setLatestPosition((prev) =>
-        prev
-          ? {
-              ...prev,
-              distanceKm: dist,
-              etaMinutes: eta,
-            }
-          : null,
-      );
-    }
+    if (!buyerPosition) return;
+    setLatestPosition((prev) => {
+      if (!prev) return prev;
+      const dist = distanceKm(prev, buyerPosition);
+      return { ...prev, distanceKm: dist, etaMinutes: walkMinutes(dist) };
+    });
   }, [buyerPosition]);
 
   trackingLogger.info("useCourierPositions returning", {

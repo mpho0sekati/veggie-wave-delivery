@@ -105,7 +105,7 @@ export function catalogWith(custom: CustomItem[] = []): VeggieItem[] {
   return [...CATALOG, ...custom.map(buildItem)];
 }
 
-export type StockLine = { itemId: string; price: number };
+export type StockLine = { itemId: string; price: number; quantity?: number };
 
 export type Runner = {
   id: string;

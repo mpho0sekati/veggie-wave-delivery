@@ -34,14 +34,27 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
   const add = async (itemId: string) => {
     if (!me) return;
     const price = suggestedPrice(state as unknown as LegacyAppState, itemId);
-    try { await saveTraderStock(runnerId, itemId, price, true, 99); } catch { toast.error("Could not save stock"); return; }
+    try {
+      await saveTraderStock(runnerId, itemId, price, true, 99);
+    } catch {
+      toast.error("Could not save stock");
+      return;
+    }
     onAdded?.(itemId);
     toast.success(`Added at ${formatRand(price)} — change the price if you want`);
   };
 
-  const promote = (key: string, label: string) => {
-    promoteToCatalog(key, 25);
-    toast.success(`${label} is now in the catalog — switch it on in your stock`);
+  const promote = async (key: string, label: string) => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const id = `custom-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    const { error } = await supabase
+      .from("catalog_items")
+      .insert({ id, name: label, price: 25, unit: "each", icon_key: iconKeyFromName(label) });
+    if (error && error.code !== "23505") {
+      toast.error("Could not add catalog item");
+      return;
+    }
+    toast.success(`${label} added to catalog`);
   };
 
   return (
@@ -77,7 +90,13 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
                 row.iHaveIt ? (
                   <Badge variant="secondary">You&apos;re stocked</Badge>
                 ) : (
-                  <Button size="sm" variant="secondary" onClick={() => { if (row.item) void add(row.item.id); }}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (row.item) void add(row.item.id);
+                    }}
+                  >
                     <Sparkles /> Add
                   </Button>
                 )

@@ -13,7 +13,10 @@ export const Route = createFileRoute("/auth/onboarding")({
       { title: "Welcome — Mdeko · Veggie Wave" },
       { name: "description", content: "Set up your Mdeko buyer profile or produce trader stall." },
       { property: "og:title", content: "Welcome — Mdeko · Veggie Wave" },
-      { property: "og:description", content: "Set up your Mdeko buyer profile or produce trader stall." },
+      {
+        property: "og:description",
+        content: "Set up your Mdeko buyer profile or produce trader stall.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -43,10 +46,15 @@ function OnboardingPage() {
         navigate({ to: "/auth" });
         return;
       }
-      const { error } = await supabase.rpc("setup_marketplace_profile", { _name: name.trim(), _role: role });
+      const { error } = await supabase.rpc("setup_marketplace_profile", {
+        _name: name.trim(),
+        _role: role,
+      });
       if (error) throw error;
       setUserRole(role);
-      toast.success(role === "buyer" ? "Welcome! You're all set." : "Welcome trader! Set up your stock next.");
+      toast.success(
+        role === "buyer" ? "Welcome! You're all set." : "Welcome trader! Set up your stock next.",
+      );
       navigate({ to: role === "buyer" ? "/" : "/runner" });
     } catch {
       toast.error("Couldn't save your details — please try again");
@@ -63,7 +71,9 @@ function OnboardingPage() {
         <Card className="w-full gap-6 p-8 text-center">
           <div>
             <h1 className="text-2xl font-bold">Welcome to Mdeko</h1>
-            <p className="mt-2 text-sm text-muted-foreground">How would you like to use Veggie Wave?</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              How would you like to use Veggie Wave?
+            </p>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -97,7 +107,9 @@ function OnboardingPage() {
         <Card className="w-full gap-4 p-8">
           <div>
             <h2 className="text-xl font-bold">What's your name?</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Traders will see this when you raise your hand</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Traders will see this when you raise your hand
+            </p>
           </div>
 
           <div className="space-y-2">

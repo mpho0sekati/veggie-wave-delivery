@@ -37,7 +37,11 @@ export function useSession(): Session {
         .select("name")
         .eq("id", user.id)
         .maybeSingle();
-      const { data: savedRole } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+      const { data: savedRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
       if (cancelled) return;
       setSession({
         loading: false,
@@ -51,7 +55,8 @@ export function useSession(): Session {
     void load();
 
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") setTimeout(() => void load(), 0);
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED")
+        setTimeout(() => void load(), 0);
     });
 
     return () => {

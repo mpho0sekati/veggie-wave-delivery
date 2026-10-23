@@ -4,11 +4,14 @@
 
 - Fix typecheck build errors (auth.tsx pin field, runner.tsx missing userId).
 
+- Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
+- Courier position persistence verified.
+
 ## Active / Backlog
 
-- Fix tested buyer/seller journey: shared profiles/stock, real wave acceptance, independent GPS, durable status/payment/cancellation, sign-in feedback; verify across accounts.
-- Wire frontend fully to new backend server functions.
-- Add real-time order status updates across buyer and trader phones.
+- Live MoMo payment and settlement verification waits for a payer-approved test transaction.
+- Verify remaining finance screens against real MoMo settlements.
+- Order status updates now poll every four seconds across phones.
 - Implement trader notifications for new nearby waves.
 - Add automated settlement/payout logic for traders.
 - Improve location-based matching (distance + stock match).
