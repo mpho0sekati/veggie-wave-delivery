@@ -111,7 +111,7 @@ function AuthPage() {
         {/* Mode toggle */}
         <div className="flex rounded-xl bg-secondary p-1">
           <button
-            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signin" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signin" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
             onClick={() => {
               setMode("signin");
               setError("");
@@ -120,7 +120,7 @@ function AuthPage() {
             Sign in
           </button>
           <button
-            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signup" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signup" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
             onClick={() => {
               setMode("signup");
               setError("");
