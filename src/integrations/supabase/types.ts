@@ -344,6 +344,41 @@ export type Database = {
         }
         Relationships: []
       }
+      savings_pots: {
+        Row: {
+          balance: number
+          created_at: string
+          name: string
+          target_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          name?: string
+          target_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          name?: string
+          target_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_pots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settlements: {
         Row: {
           commission: number
@@ -400,33 +435,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      savings_pots: {
-        Row: {
-          balance: number
-          created_at: string
-          name: string
-          target_amount: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          balance?: number
-          created_at?: string
-          name?: string
-          target_amount?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          balance?: number
-          created_at?: string
-          name?: string
-          target_amount?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       stock: {
         Row: {

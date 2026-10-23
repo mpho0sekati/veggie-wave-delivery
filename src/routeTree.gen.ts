@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as RunnerRouteImport } from './routes/runner'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as RunnerRouteImport } from './routes/runner'
 import { Route as AuthOnboardingRouteImport } from './routes/auth/onboarding'
 import { Route as ApiPublicMomoCallbackRouteImport } from './routes/api/public/momo-callback'
 
@@ -26,14 +26,14 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RunnerRoute = RunnerRouteImport.update({
-  id: '/runner',
-  path: '/runner',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunnerRoute = RunnerRouteImport.update({
+  id: '/runner',
+  path: '/runner',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
@@ -50,16 +50,16 @@ const ApiPublicMomoCallbackRoute = ApiPublicMomoCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/runner': typeof RunnerRoute
   '/finance': typeof FinanceRoute
+  '/runner': typeof RunnerRoute
   '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/runner': typeof RunnerRoute
   '/finance': typeof FinanceRoute
+  '/runner': typeof RunnerRoute
   '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
@@ -67,24 +67,34 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/runner': typeof RunnerRoute
   '/finance': typeof FinanceRoute
+  '/runner': typeof RunnerRoute
   '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/runner' | '/finance' | '/auth/onboarding' | '/api/public/momo-callback'
+    | '/'
+    | '/auth'
+    | '/finance'
+    | '/runner'
+    | '/auth/onboarding'
+    | '/api/public/momo-callback'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/auth' | '/runner' | '/finance' | '/auth/onboarding' | '/api/public/momo-callback'
+    | '/'
+    | '/auth'
+    | '/finance'
+    | '/runner'
+    | '/auth/onboarding'
+    | '/api/public/momo-callback'
   id:
     | '__root__'
     | '/'
     | '/auth'
-    | '/runner'
     | '/finance'
+    | '/runner'
     | '/auth/onboarding'
     | '/api/public/momo-callback'
   fileRoutesById: FileRoutesById
@@ -92,8 +102,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
-  RunnerRoute: typeof RunnerRoute
   FinanceRoute: typeof FinanceRoute
+  RunnerRoute: typeof RunnerRoute
   ApiPublicMomoCallbackRoute: typeof ApiPublicMomoCallbackRoute
 }
 
@@ -113,18 +123,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/runner': {
-      id: '/runner'
-      path: '/runner'
-      fullPath: '/runner'
-      preLoaderRoute: typeof RunnerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/finance': {
       id: '/finance'
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runner': {
+      id: '/runner'
+      path: '/runner'
+      fullPath: '/runner'
+      preLoaderRoute: typeof RunnerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/onboarding': {
@@ -157,8 +167,8 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
-  RunnerRoute: RunnerRoute,
   FinanceRoute: FinanceRoute,
+  RunnerRoute: RunnerRoute,
   ApiPublicMomoCallbackRoute: ApiPublicMomoCallbackRoute,
 }
 export const routeTree = rootRouteImport
