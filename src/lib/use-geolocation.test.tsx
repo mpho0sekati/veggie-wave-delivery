@@ -24,8 +24,9 @@ describe("device location", () => {
 
   const position = (accuracy: number): GeolocationPosition => ({
     coords: { latitude: -26.2041, longitude: 28.0473, accuracy, altitude: null,
-      altitudeAccuracy: null, heading: null, speed: null },
+      altitudeAccuracy: null, heading: null, speed: null, toJSON: () => ({}) },
     timestamp: Date.now(),
+    toJSON: () => ({}),
   });
 
   it("uses approximate device coordinates instead of leaving the default pin", () => {
