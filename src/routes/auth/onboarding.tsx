@@ -8,6 +8,16 @@ import { setUserRole, getUserRole } from "@/lib/auth-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/onboarding")({
+  head: () => ({
+    meta: [
+      { title: "Welcome — Mdeko · Veggie Wave" },
+      { name: "description", content: "Set up your Mdeko buyer profile or produce trader stall." },
+      { property: "og:title", content: "Welcome — Mdeko · Veggie Wave" },
+      { property: "og:description", content: "Set up your Mdeko buyer profile or produce trader stall." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: OnboardingPage,
 });
 
