@@ -51,6 +51,10 @@ export const Route = createFileRoute("/finance")({
     meta: [
       { title: "My Money — Mdeko" },
       { name: "description", content: "Your financial identity on Mdeko." },
+      { property: "og:title", content: "My Money — Mdeko" },
+      { property: "og:description", content: "Your trading history and savings on Mdeko." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: FinancePage,
