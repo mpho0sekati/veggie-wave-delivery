@@ -549,9 +549,16 @@ function BuyerPage() {
             </p>
             <button
               type="button"
-              onClick={() =>
-                document.getElementById("describe-order")?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => {
+                setSheetExpanded(true);
+                setTimeout(
+                  () =>
+                    document
+                      .getElementById("describe-order")
+                      ?.scrollIntoView({ behavior: "smooth" }),
+                  320,
+                );
+              }}
               className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
             >
               What veggies do you need?
@@ -923,7 +930,7 @@ function BuyerPage() {
 
             {/* Fixed footer — the wave button is always reachable, never covering content */}
             {!request && (
-              <div className="shrink-0 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
+              <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
                 <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
                   <Hand className="animate-wave" /> Raise my hand
                   {total > 0 ? ` · ${formatRand(total)}` : ""}
