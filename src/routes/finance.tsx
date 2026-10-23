@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -110,9 +110,13 @@ function ShareModal({
 /* ────────── Score Card ────────── */
 function ScoreCard({
   score,
+  totalTraded,
+  totalCommission,
   isLoading,
 }: {
   score: ReturnType<typeof useFinanceProfile>["score"];
+  totalTraded: number;
+  totalCommission: number;
   isLoading: boolean;
 }) {
   if (isLoading) {
@@ -157,6 +161,19 @@ function ScoreCard({
       </div>
 
       <CardContent className="pt-4 pb-5">
+        {/* FIX 2 — commission visible here so judges see the business model */}
+        {totalTraded > 0 && (
+          <div className="mb-4 rounded-xl bg-secondary px-3 py-2 flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Your total traded</span>
+            <span className="font-bold text-sm">{formatRand(totalTraded)}</span>
+          </div>
+        )}
+        {totalCommission > 0 && (
+          <div className="mb-4 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2 flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Mdeko's 5% platform fee</span>
+            <span className="font-bold text-sm text-primary">{formatRand(totalCommission)}</span>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wide">
           How your score is made up
         </p>
@@ -389,12 +406,21 @@ function MoneyStoryCard({
 /* ────────── Main Page ────────── */
 function FinancePage() {
   const session = useSession();
-  const navigate = useNavigate();
   const { profile, score, isLoading } = useFinanceProfile();
   const tipQuery = useSmartTip(profile);
   const [showShare, setShowShare] = useState(false);
 
   const isNewUser = !isLoading && profile?.totalOrders === 0;
+
+  // FIX 1 — back button goes to where the user came from,
+  // so traders return to /runner and buyers return to /
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
+  };
 
   return (
     <main className="min-h-dvh bg-background">
@@ -405,7 +431,7 @@ function FinancePage() {
             size="icon"
             variant="ghost"
             className="rounded-xl"
-            onClick={() => navigate({ to: "/" })}
+            onClick={handleBack}
             aria-label="Go back"
           >
             <ArrowLeft className="size-5" />
@@ -417,10 +443,13 @@ function FinancePage() {
         </div>
       </header>
 
-      {/* Financial inclusion banner */}
-      <div className="bg-primary px-4 py-2.5">
-        <p className="mx-auto max-w-lg text-center text-sm font-medium text-white">
-          💚 No bank account? Every trade on Mdeko builds your financial history.
+      {/* FIX 3 — Impact statement moved to TOP so judges see it in first 3 seconds */}
+      <div className="bg-primary px-4 py-3">
+        <p className="mx-auto max-w-lg text-center text-sm font-semibold text-white leading-snug">
+          💚 23 million South Africans have no proof of income.
+        </p>
+        <p className="mx-auto max-w-lg text-center text-xs text-white/80 mt-0.5">
+          Every trade on Mdeko builds your financial history — your first step to credit and banking.
         </p>
       </div>
 
@@ -445,7 +474,7 @@ function FinancePage() {
         ) : (
           <>
             {/* Card 1: Trust Score */}
-            <ScoreCard score={score} isLoading={isLoading} />
+            <ScoreCard score={score} totalTraded={profile?.totalTraded ?? 0} totalCommission={profile?.totalCommission ?? 0} isLoading={isLoading} />
 
             {/* Card 2: Smart Tip (AI) */}
             <SmartTipCard tip={tipQuery.data ?? null} isLoading={tipQuery.isLoading} />
@@ -461,16 +490,6 @@ function FinancePage() {
             />
           </>
         )}
-
-        {/* Why this matters */}
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4">
-          <p className="text-sm font-semibold text-primary mb-1">Why does this matter?</p>
-          <p className="text-sm text-muted-foreground">
-            Millions of South Africans cannot get a loan or open a business account because they
-            have no proof of income. Your Mdeko profile is that proof. Every order is a step
-            closer to financial freedom.
-          </p>
-        </div>
       </div>
 
       {/* Share modal */}
