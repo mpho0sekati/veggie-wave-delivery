@@ -270,6 +270,7 @@ function BuyerPage() {
 
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
   // so the map stays the hero; it expands again when the wave needs a decision.
@@ -473,7 +474,11 @@ function BuyerPage() {
       )}
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 flex max-h-[62dvh] flex-col rounded-t-3xl border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur-xl transition-transform duration-300">
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex w-full max-w-lg flex-col rounded-t-3xl border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur-xl transition-[max-height] duration-300 ease-out sm:bottom-4 sm:rounded-3xl sm:border ${
+          sheetExpanded ? "max-h-[88dvh]" : "max-h-[50dvh] min-h-[min(20rem,60dvh)]"
+        }`}
+      >
         {request && isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -514,15 +519,25 @@ function BuyerPage() {
           </button>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
-              <div className="p-5">
-              <button
-                onClick={() => request && setIsCollapsed(true)}
-                className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-muted"
-                aria-label={request ? "Minimize order details" : undefined}
-              />
-
-              <p className="mx-5 mt-3 text-sm text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => (request ? setIsCollapsed(true) : setSheetExpanded((v) => !v))}
+              className="flex w-full shrink-0 flex-col items-center gap-1 pt-2 pb-1"
+              aria-expanded={request ? true : sheetExpanded}
+              aria-label={
+                request ? "Minimize order details" : sheetExpanded ? "Show less" : "Show more"
+              }
+            >
+              <span className="block h-1.5 w-12 rounded-full bg-muted" />
+              {!request && (
+                <ChevronUp
+                  className={`size-4 text-muted-foreground transition-transform duration-300 ${sheetExpanded ? "rotate-180" : ""}`}
+                />
+              )}
+            </button>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
+              <div className="px-1 pb-5">
+              <p className="mx-5 text-xs text-muted-foreground">
                 {geoMessage ? `${geoMessage} ` : ""}Tap the map to drop your pin.
               </p>
 
@@ -534,9 +549,16 @@ function BuyerPage() {
             </p>
             <button
               type="button"
-              onClick={() =>
-                document.getElementById("describe-order")?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => {
+                setSheetExpanded(true);
+                setTimeout(
+                  () =>
+                    document
+                      .getElementById("describe-order")
+                      ?.scrollIntoView({ behavior: "smooth" }),
+                  320,
+                );
+              }}
               className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
             >
               What veggies do you need?
@@ -908,7 +930,7 @@ function BuyerPage() {
 
             {/* Fixed footer — the wave button is always reachable, never covering content */}
             {!request && (
-              <div className="shrink-0 border-t bg-background/85 px-4 pt-3 pb-4 backdrop-blur-md">
+              <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
                 <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
                   <Hand className="animate-wave" /> Raise my hand
                   {total > 0 ? ` · ${formatRand(total)}` : ""}
