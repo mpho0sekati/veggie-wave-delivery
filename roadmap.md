@@ -4,10 +4,11 @@
 
 - Fix typecheck build errors (auth.tsx pin field, runner.tsx missing userId).
 
-## Active / Backlog
-
 - Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
 - Courier position persistence verified.
+
+## Active / Backlog
+
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
 - Order status updates now poll every four seconds across phones.

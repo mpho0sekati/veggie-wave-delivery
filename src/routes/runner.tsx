@@ -47,10 +47,15 @@ function RunnerPage() {
   const active = orders.find(
     (o) => o.trader_id === session.userId && !o.cancelled_at && o.status !== "completed",
   );
+  const activeWaveId = active?.wave_id;
+  const activeId = active?.id;
+  const activeStatus = active?.status;
+  const meLat = me?.lat;
+  const meLng = me?.lng;
   const [activeWave, setActiveWave] = useState<(typeof waves)[number] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    if (!active) {
+    if (!activeWaveId) {
       setActiveWave(null);
       return;
     }
@@ -58,14 +63,14 @@ function RunnerPage() {
       const { data } = await supabase
         .from("waves")
         .select("*")
-        .eq("id", active.wave_id)
+        .eq("id", activeWaveId)
         .maybeSingle();
       if (!cancelled) setActiveWave(data);
     });
     return () => {
       cancelled = true;
     };
-  }, [active?.wave_id]);
+  }, [activeWaveId]);
   const onPosition = useCallback(
     (pos: { lat: number; lng: number }) => {
       setPosition(pos);
@@ -87,20 +92,18 @@ function RunnerPage() {
     active?.status === "delivering",
   );
   useEffect(() => {
-    const fix = position ?? (me ? { lat: me.lat, lng: me.lng } : null);
-    if (active?.status !== "delivering" || !fix || !session.userId) return;
+    const fix = position ?? (meLat != null && meLng != null ? { lat: meLat, lng: meLng } : null);
+    if (activeStatus !== "delivering" || !activeId || !fix || !session.userId) return;
     let cancelled = false;
     const report = async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       if (cancelled) return;
-      const { error } = await supabase
-        .from("courier_positions")
-        .insert({
-          order_id: active.id,
-          trader_id: session.userId ?? "",
-          lat: fix.lat,
-          lng: fix.lng,
-        });
+      const { error } = await supabase.from("courier_positions").insert({
+        order_id: activeId,
+        trader_id: session.userId ?? "",
+        lat: fix.lat,
+        lng: fix.lng,
+      });
       if (error) toast.error("Could not share delivery location");
     };
     void report();
@@ -109,7 +112,7 @@ function RunnerPage() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [active?.id, active?.status, position, me?.lat, me?.lng, session.userId]);
+  }, [activeId, activeStatus, position, meLat, meLng, session.userId]);
   const catalog = catalogWith(state.customItems);
   const nearby = useMemo(
     () =>

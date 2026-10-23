@@ -356,23 +356,13 @@ export function useCourierPositions(orderId: string | null) {
     };
   }, [orderId, buyerPosition]);
 
-  // Update latest position when buyer position changes
   useEffect(() => {
-    if (latestPosition && buyerPosition) {
-      trackingLogger.debug("Buyer position changed, recalculating ETA");
-      const dist = distanceKm(latestPosition, buyerPosition);
-      const eta = walkMinutes(dist);
-      trackingLogger.debug("New ETA calculation", { distanceKm: dist, etaMinutes: eta });
-      setLatestPosition((prev) =>
-        prev
-          ? {
-              ...prev,
-              distanceKm: dist,
-              etaMinutes: eta,
-            }
-          : null,
-      );
-    }
+    if (!buyerPosition) return;
+    setLatestPosition((prev) => {
+      if (!prev) return prev;
+      const dist = distanceKm(prev, buyerPosition);
+      return { ...prev, distanceKm: dist, etaMinutes: walkMinutes(dist) };
+    });
   }, [buyerPosition]);
 
   trackingLogger.info("useCourierPositions returning", {
