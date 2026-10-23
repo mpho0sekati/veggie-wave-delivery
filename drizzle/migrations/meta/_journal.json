@@ -15,6 +15,13 @@
       "when": 1792794834866,
       "tag": "0001_guard_stock_and_delivery_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792795703294,
+      "tag": "0002_durable_demand_and_idempotent_savings",
+      "breakpoints": true
     }
   ]
 }
