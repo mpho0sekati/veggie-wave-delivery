@@ -136,20 +136,11 @@ export function useReportCourierPosition(
       // Update current position immediately for UI
       setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
 
-      // Throttle client-side as well
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        void reportPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          heading: pos.coords.heading ?? undefined,
-          speed: pos.coords.speed ?? undefined,
-          accuracy: pos.coords.accuracy,
-        });
-      }, 1000); // Debounce rapid updates
+      void reportPosition({
+        lat: pos.coords.latitude, lng: pos.coords.longitude,
+        heading: pos.coords.heading ?? undefined, speed: pos.coords.speed ?? undefined,
+        accuracy: pos.coords.accuracy,
+      });
     };
 
     const handleError = (err: GeolocationPositionError) => {
