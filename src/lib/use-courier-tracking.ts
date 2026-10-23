@@ -97,6 +97,7 @@ export function useReportCourierPosition(
           .single();
 
         if (error) {
+          console.error("courier-insert", error.message);
           trackingLogger.error("Failed to report position", { error });
         } else {
           trackingLogger.debug("Position reported successfully", { data });
@@ -114,6 +115,8 @@ export function useReportCourierPosition(
     },
     [orderId, throttleMs, minDistanceMeters],
   );
+
+  useEffect(() => { lastPositionRef.current = null; }, [orderId]);
 
   // Start/stop watching based on enabled state
   useEffect(() => {

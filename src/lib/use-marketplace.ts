@@ -27,7 +27,7 @@ export function useMarketplace() {
     const data = query.data;
     const runners: Runner[] = data.profiles.filter(p => p.lat != null && p.lng != null).map(p => ({
       id: p.id, name: p.name, avatar: p.avatar, online: p.online, lat: p.lat ?? 0, lng: p.lng ?? 0, rating: Number(p.rating), earnings: 0,
-      stock: data.stock.filter(s => s.trader_id === p.id && s.available && s.quantity > 0).map(s => ({ itemId: s.item_id, price: Number(s.price) })),
+      stock: data.stock.filter(s => s.trader_id === p.id && s.available && s.quantity > 0).map(s => ({ itemId: s.item_id, price: Number(s.price), quantity: s.quantity })),
     }));
     updateState(prev => ({ ...prev, runners, userId: session.userId,
       customItems: data.catalog.map(c => ({ id: c.id, name: c.name, unit: c.unit, price: Number(c.price), iconKey: c.icon_key })),

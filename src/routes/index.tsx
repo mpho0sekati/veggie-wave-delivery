@@ -50,13 +50,9 @@ import {
   archiveRequest,
   cancelRequest,
   logDemand,
-  payCash,
-  refundOrder,
   setBuyerLocation,
   updateState,
   useAppState,
-  type WaveRequest,
-  type AppState,
 } from "@/lib/veggie-store";
 import { useMarketplace } from "@/lib/use-marketplace";
 import { waveView } from "@/lib/wave-view";
@@ -208,8 +204,10 @@ function BuyerPage() {
   }, [buyer.lat, buyer.lng, buyer.located, setBuyerPosition]);
 
   const [closedWave, setClosedWave] = useState<string | null>(null);
+  useEffect(() => setClosedWave(localStorage.getItem("mdeko-closed-wave")), []);
   useEffect(() => {
-    if (!signedIn || !liveWave || liveWave.id === closedWave) return;
+    if (!signedIn || !liveWave) return;
+    if (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id) { updateState(prev => ({...prev, request:null})); return; }
     if (liveWave.status === "expired" || liveWave.status === "declined" || liveOrder?.cancelled_at) {
       updateState(prev => ({ ...prev, request: null }));
       return;
@@ -353,6 +351,7 @@ function BuyerPage() {
   }, [request, actions.cancelWave]);
   const finish = useCallback(() => {
     setClosedWave(request?.waveId ?? null);
+    if (request?.waveId) localStorage.setItem("mdeko-closed-wave", request.waveId);
     archiveRequest(); setQty({}); setWish("");
   }, [request]);
   const timedOut =
@@ -764,17 +763,7 @@ function BuyerPage() {
                   </div>
                 </>
               )}
-              {liveOrder && liveOrder.status === "accepted" && liveOrder.payment_method !== "cash" && (
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => setPayOpen(true)}>Pay with MTN MoMo</Button>
-                <Button variant="outline" className="w-full" onClick={async () => {
-                  try { await actions.chooseCash.mutateAsync(liveOrder.id); toast.success("Cash on delivery selected"); }
-                  catch { toast.error("Could not change payment method"); }
-                }}>Cash on delivery</Button>
-              </div>
-            )}
-            {liveOrder?.payment_method === "cash" && request.status !== "paid" && <p className="text-sm text-muted-foreground">Cash on delivery selected</p>}
-            {request.status === "delivered" && (
+              {request.status === "delivered" && (
                 <>
                   <CheckCircle2 className="size-5 text-primary" />
                   <p className="font-semibold">Delivered — time to pay</p>
