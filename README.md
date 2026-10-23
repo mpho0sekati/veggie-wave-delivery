@@ -9,7 +9,324 @@ Built with React 19, TanStack Start, Leaflet, Tailwind CSS v4, and a Supabase ba
 ## The flow
 
 ```text
-Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery → Complete → Settlement
+Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery → Complete → Settlement → Finance profile updated
+```
+
+---
+
+## Architecture & UML
+
+> These diagrams are generated from the live codebase structure and update automatically as the system evolves. They represent the current state of the application at the time of the last commit.
+
+### System Architecture — Component Diagram
+
+```mermaid
+graph TB
+    subgraph Client["Client (PWA — React 19 + TanStack Router)"]
+        BuyerPage["/ — Buyer page\n(wave, map, order, pay)"]
+        TraderPage["/runner — Trader dashboard\n(stock, waves, deliver, earn)"]
+        FinancePage["/finance — My Money\n(score, savings, AI tip, record)"]
+        AuthPage["/auth — Sign in / Sign up"]
+    end
+
+    subgraph ServerFns["Server Functions (TanStack Start)"]
+        WaveFns["mdeko.functions.ts\ncreateWave · acceptWave\nadvanceOrder · listMyOrders"]
+        PayFns["momo.functions.ts\nstartMomoPayment\nverifyMomoPayment"]
+        FinanceFns["finance.functions.ts\ngetMoneyProfile · getSavingsJar\ndepositToJar · getSmartTip"]
+        AIFns["ai-order.functions.ts\nparseOrderDescription"]
+    end
+
+    subgraph External["External Services"]
+        MoMo["MTN MoMo Collections API\nproduction · ZAR · mtnsouthafrica"]
+        AIGateway["Lovable AI Gateway\nopenai/gpt-4o-mini\nOrder parsing · Smart tips"]
+        OSM["OpenStreetMap / OSRM\nMap tiles · Walking routes"]
+    end
+
+    subgraph DB["Supabase (Postgres + Realtime + Auth)"]
+        AuthDB["auth.users\nJWT · RLS"]
+        CoreTables["waves · wave_orders\npayments · settlements\nprofiles · stock · wallets"]
+        FinanceTable["savings_pots\nbalance · target · auto-save"]
+        DemandTable["demand\ncatalogue items requested"]
+    end
+
+    subgraph Webhook["Webhook Handler"]
+        MoMoCB["/api/public/momo-callback\nverify → finalize → settle\n→ auto-save 5%"]
+    end
+
+    BuyerPage -->|server fn calls| WaveFns
+    BuyerPage -->|server fn calls| PayFns
+    BuyerPage -->|server fn calls| AIFns
+    TraderPage -->|server fn calls| WaveFns
+    FinancePage -->|server fn calls| FinanceFns
+
+    WaveFns --> DB
+    PayFns --> MoMo
+    PayFns --> DB
+    FinanceFns --> DB
+    AIFns --> AIGateway
+
+    MoMo -->|webhook POST| MoMoCB
+    MoMoCB --> DB
+
+    BuyerPage --> OSM
+    TraderPage --> OSM
+```
+
+---
+
+### Core Order Flow — Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    actor Buyer
+    actor Trader
+    participant App as Mdeko PWA
+    participant Server as Server Functions
+    participant DB as Supabase
+    participant MoMo as MTN MoMo
+    participant Finance as Finance Module
+
+    Buyer->>App: Picks items / describes order
+    App->>Server: createWave(items, location)
+    Server->>DB: INSERT waves (status=created)
+    DB-->>Server: wave row
+    Server-->>App: wave created
+
+    Trader->>App: Sees wave on map
+    App->>Server: acceptWave(waveId)
+    Server->>DB: RPC accept_wave → INSERT wave_orders
+    DB-->>Server: order row (status=accepted)
+    Server-->>App: order accepted
+
+    Trader->>App: Marks delivering
+    App->>Server: advanceOrder(delivering)
+    Server->>DB: RPC advance_order
+    Note over App: Live GPS tracking starts
+
+    Trader->>App: Marks delivered
+    Buyer->>App: Pays with MTN MoMo
+    App->>Server: startMomoPayment(orderId, msisdn)
+    Server->>MoMo: POST /requesttopay
+    MoMo-->>Server: 202 Accepted
+    Server->>DB: INSERT payments (status=pending)
+
+    MoMo->>App: Webhook callback (status=SUCCESSFUL)
+    App->>Server: verifyMomoPayment (re-verify with MoMo)
+    Server->>MoMo: GET /requesttopay/{ref}
+    MoMo-->>Server: SUCCESSFUL
+    Server->>DB: RPC finalize_payment → INSERT settlements
+    Server->>Finance: depositToJar(net × 5%)
+    Finance->>DB: UPSERT savings_pots (balance += 5%)
+    DB-->>App: Realtime update → order completed
+
+    Buyer->>App: Views /finance
+    App->>Finance: getMoneyProfile()
+    Finance->>DB: Query orders + payments + savings
+    Finance-->>App: Profile + score + savings jar
+```
+
+---
+
+### Database Schema — Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    USERS {
+        uuid id PK
+        text email
+        timestamptz created_at
+    }
+
+    PROFILES {
+        uuid id PK
+        text name
+        app_role role
+        numeric lat
+        numeric lng
+        boolean online
+        numeric rating
+        text avatar
+        timestamptz created_at
+    }
+
+    WALLETS {
+        uuid user_id PK
+        numeric balance
+        text pin_hash
+    }
+
+    SAVINGS_POTS {
+        uuid user_id PK
+        numeric balance
+        numeric target_amount
+        text name
+        timestamptz updated_at
+    }
+
+    WAVES {
+        uuid id PK
+        uuid buyer_id FK
+        uuid trader_id FK
+        json items
+        text wish
+        wave_status status
+        timestamptz expires_at
+    }
+
+    WAVE_ORDERS {
+        uuid id PK
+        uuid wave_id FK
+        uuid buyer_id FK
+        uuid trader_id FK
+        json items
+        numeric amount
+        order_status status
+        timestamptz completed_at
+    }
+
+    PAYMENTS {
+        uuid id PK
+        uuid order_id FK
+        uuid buyer_id FK
+        text reference
+        numeric amount
+        text currency
+        payment_status status
+        text payer_msisdn
+        timestamptz verified_at
+    }
+
+    SETTLEMENTS {
+        uuid id PK
+        uuid order_id FK
+        uuid payment_id FK
+        uuid trader_id FK
+        numeric gross
+        numeric net
+        numeric commission
+        settlement_status status
+        timestamptz settled_at
+    }
+
+    STOCK {
+        uuid id PK
+        uuid trader_id FK
+        text item_id
+        numeric price
+        numeric quantity
+        boolean available
+    }
+
+    DEMAND {
+        text key PK
+        text item_id
+        text label
+        integer requests
+        integer unfilled
+        timestamptz last_at
+    }
+
+    USERS ||--|| PROFILES : "has"
+    USERS ||--o| WALLETS : "has"
+    USERS ||--o| SAVINGS_POTS : "has"
+    PROFILES ||--o{ WAVES : "raises (buyer)"
+    PROFILES ||--o{ WAVES : "accepts (trader)"
+    WAVES ||--o| WAVE_ORDERS : "creates"
+    WAVE_ORDERS ||--o| PAYMENTS : "paid via"
+    WAVE_ORDERS ||--o| SETTLEMENTS : "settled into"
+    PROFILES ||--o{ STOCK : "stocks"
+```
+
+---
+
+### Mdeko Finance — State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> NewUser: Signs up
+
+    NewUser --> JustStarting: First order completed
+    JustStarting --> GettingGoing: 10+ orders OR savings > R50
+    GettingGoing --> Trusted: 20+ orders AND active AND MoMo rate > 70%
+    Trusted --> Champion: 30+ orders AND savings goal reached AND active
+
+    state JustStarting {
+        [*] --> Scoring
+        Scoring --> Score_0_25
+        Score_0_25: Score 0–25\nSlogan: Every legend started here
+    }
+
+    state GettingGoing {
+        [*] --> Scoring2
+        Scoring2 --> Score_26_50
+        Score_26_50: Score 26–50\nSlogan: You're building. Keep going.
+    }
+
+    state Trusted {
+        [*] --> Scoring3
+        Scoring3 --> Score_51_75
+        Score_51_75: Score 51–75\nSlogan: Clock it — you're trusted.
+    }
+
+    state Champion {
+        [*] --> Scoring4
+        Scoring4 --> Score_76_100
+        Score_76_100: Score 76–100\nSlogan: You're winning. Stack more.
+    }
+
+    state "5% Auto-Save" as AutoSave {
+        MoMoPayment --> FinalizePayment
+        FinalizePayment --> CreateSettlement
+        CreateSettlement --> DepositToSavingsJar
+        DepositToSavingsJar --> UpdateScore
+    }
+
+    Trusted --> AutoSave: MoMo payment received
+    GettingGoing --> AutoSave: MoMo payment received
+    Champion --> AutoSave: MoMo payment received
+```
+
+---
+
+### Finance Score Algorithm — Activity Diagram
+
+```mermaid
+flowchart TD
+    A([User opens My Money]) --> B[Fetch wave_orders\nwhere buyer_id OR trader_id = userId]
+    B --> C[Fetch payments\nwhere buyer_id = userId]
+    C --> D[Fetch savings_pots\nwhere user_id = userId]
+    D --> E{Savings pot\nexists?}
+    E -->|No| F[Auto-create\nsavings_pots row\nbalance=0, target=500]
+    E -->|Yes| G[Use existing row]
+    F --> G
+
+    G --> H[Compute score factors]
+
+    subgraph Score["Score Computation — browser-side, no API call"]
+        H --> I["orderVolumePts\n= min(completedOrders, 30)"]
+        I --> J["paymentReliabilityPts\n= round(momoSuccessRate × 30)"]
+        J --> K["activityConsistencyPts\n= anyOrderInLast30Days ? 20 : 0"]
+        K --> L["savingsBehaviourPts\n= min(round(balance ÷ target × 20), 20)"]
+        L --> M["total = sum of all four\n(max 100)"]
+    end
+
+    M --> N{total}
+    N -->|0–25| O[Tier: Just Starting\nEvery legend started here.]
+    N -->|26–50| P[Tier: Getting Going\nYou're building. Keep going.]
+    N -->|51–75| Q[Tier: Trusted\nClock it — you're trusted.]
+    N -->|76–100| R[Tier: Champion\nYou're winning. Stack more.]
+
+    O --> S[Generate next-step tip]
+    P --> S
+    Q --> S
+    R --> S
+
+    S --> T[Call AI gateway\ngetSmartTip — personalised tip\nbased on trading patterns]
+    T --> U{AI available?}
+    U -->|Yes| V[AI-generated tip\nmax 200 chars]
+    U -->|No| W[Static fallback tip]
+    V --> X([Render My Money page])
+    W --> X
 ```
 
 ---
@@ -19,26 +336,36 @@ Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery �
 ### Buyer experience (`/`)
 
 - Browse a produce catalogue with icons, quantities, and trader prices.
-- **Describe your order in words** — an AI assistant (via the AI gateway) converts a free-text description ("veg for a chakalaka for 6") into an itemized order; unrecognized items are logged as demand.
+- **Describe your order in words** — an AI assistant converts a free-text description into an itemised order; unrecognised items are logged as demand.
 - See nearby traders on a live OpenStreetMap, ranked by stock match and distance, with walking-time estimates.
-- Real browser geolocation with a manual pin-drop fallback (right-click / long-press the map).
+- Real browser geolocation with a manual pin-drop fallback.
 - Raise a wave and track it through a status stepper: waving → on the way → delivered → paid.
-- Pay with MTN MoMo (request-to-pay to the buyer's phone) or Mdeko Pay demo balance.
+- Pay with MTN MoMo (request-to-pay to the buyer's phone).
 
 ### Trader experience (`/runner`)
 
 - Stall dashboard with online/offline availability toggle.
 - Profile with photo upload.
-- Full stock management: per-item availability, price, and quantity — including adding new items (e.g. blueberries) to the catalogue.
+- Full stock management — per-item availability, price, and quantity.
 - Incoming waves with accept / deliver / request-payment actions.
-- **Demand insights**: see what buyers are asking for that nobody stocks, with a one-tap "add to my stock" shortcut.
+- **Demand insights** — see what buyers are asking for that nobody stocks.
 - Earnings and settlement tracking.
+
+### Mdeko Finance (`/finance`)
+
+- **Community Credit Score (0–100)** computed from real order and payment data — four factors: volume, reliability, activity, savings.
+- **Tiers** with youth-first slogans: Just Starting → Getting Going → Trusted ("Clock it") → Champion ("Stack more").
+- **Stack it** — savings jar that auto-grows by 5% of every MoMo settlement, no action needed.
+- **AI Smart Tip** — personalised weekly money advice generated from your actual trading patterns.
+- **Your Record** — a shareable financial identity card: orders done, total traded, member since.
+- **How Mdeko works** — transparent breakdown of revenue streams and break-even numbers.
+- Multilingual: English / Zulu / Sesotho — full page translates instantly.
 
 ### Backend & integrations
 
-- **Supabase (Lovable Cloud)**: auth (email/password + roles), profiles, wallets, catalogue, stock, waves, orders, payments, settlements, and demand logs — all protected by row-level security, with writes going through security-definer database functions.
-- **MTN MoMo Collections** (production, `mtnsouthafrica`, ZAR): server-side token management with caching and 401 retry, idempotent request-to-pay with unique UUID references, status polling, and a public webhook callback that re-verifies status with MTN before settling. Credentials live in server-side secrets only.
-- **AI order parsing**: server function calling the Lovable AI gateway to turn free-text into structured order lines.
+- **Supabase (Lovable Cloud)**: auth, profiles, wallets, savings_pots, catalogue, stock, waves, orders, payments, settlements, demand — all protected by row-level security.
+- **MTN MoMo Collections** (production, `mtnsouthafrica`, ZAR): server-side token management, idempotent request-to-pay, webhook re-verification before settlement. 5% auto-save fires in the webhook handler.
+- **AI order parsing + Smart Tips**: Lovable AI gateway → order parsing and personalised finance coaching.
 - Weather alerts and walking-route guidance during delivery.
 
 ---
@@ -71,26 +398,32 @@ Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery �
 │   │   ├── VeggieMap.tsx
 │   │   └── WavePayDialog.tsx
 │   ├── lib/
-│   │   ├── ai-order.functions.ts   # AI describe-to-order server fn
+│   │   ├── ai-order.functions.ts    # AI describe-to-order server fn
 │   │   ├── ai-order.server.ts
-│   │   ├── mdeko.functions.ts      # wave/order/payment server API
-│   │   ├── momo.server.ts          # MTN MoMo client (token, requesttopay, status)
+│   │   ├── finance.functions.ts     # Finance: savings jar, money profile, AI tip
+│   │   ├── finance-score.ts         # Community Credit Score algorithm
+│   │   ├── use-finance.ts           # React Query hooks for finance
+│   │   ├── mdeko.functions.ts       # wave/order/payment server API
+│   │   ├── momo.server.ts           # MTN MoMo client
 │   │   ├── momo.functions.ts
 │   │   ├── veggie-store-supabase.ts
-│   │   ├── veggie-store.ts         # legacy local demo store
-│   │   ├── veggie-data.ts          # catalogue, icons, distance helpers
-│   │   ├── use-geolocation.ts      # watchPosition-based GPS hook
-│   │   └── ...                     # weather, routing, tracking, session hooks
+│   │   ├── veggie-store.ts          # legacy local demo store
+│   │   ├── veggie-data.ts           # catalogue, icons, distance helpers
+│   │   ├── use-geolocation.ts       # watchPosition-based GPS hook
+│   │   └── ...                      # weather, routing, tracking, session hooks
 │   ├── routes/
 │   │   ├── __root.tsx
-│   │   ├── index.tsx               # buyer page
-│   │   ├── runner.tsx              # trader dashboard
-│   │   ├── auth.tsx                # sign in / sign up
-│   │   └── api/public/             # MoMo webhook callback
+│   │   ├── index.tsx                # buyer page
+│   │   ├── runner.tsx               # trader dashboard
+│   │   ├── finance.tsx              # My Money — financial inclusion feature
+│   │   ├── auth.tsx                 # sign in / sign up
+│   │   └── api/public/              # MoMo webhook callback (+ auto-save)
 │   ├── router.tsx
 │   ├── start.ts
 │   └── styles.css
-├── supabase/                       # migrations
+├── supabase/
+│   └── migrations/
+│       └── 20261023000000_add_savings_pots.sql
 ├── docs/screenshots/
 ├── .env.example
 └── README.md
@@ -109,8 +442,8 @@ Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery �
 ### Install & run
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ### Lint & build
@@ -133,6 +466,7 @@ Copy `.env.example` and fill in:
 | `MOMO_API_USER` / `MOMO_API_KEY` | Basic-auth credentials for token generation |
 | `MOMO_TARGET_ENVIRONMENT` | `mtnsouthafrica` |
 | `MOMO_CURRENCY` | `ZAR` |
+| `LOVABLE_API_KEY` | AI gateway — order parsing and Smart Tips |
 
 MoMo secrets are read inside server handlers only — never exposed to the browser.
 
@@ -141,8 +475,8 @@ MoMo secrets are read inside server handlers only — never exposed to the brows
 ## Payments: MTN MoMo flow
 
 1. **Token** — `POST /collection/token/` with Basic auth (base64 of `API_USER:API_KEY`) plus the subscription key and `X-Target-Environment`. Tokens are cached server-side and refreshed before expiry, with one automatic retry on 401.
-2. **Request to pay** — `POST /collection/v1_0/requesttopay` with a unique UUID `X-Reference-Id` per transaction (idempotent: re-paying an order reuses its pending payment), amount formatted to two decimals, and the payer MSISDN normalized to `27XXXXXXXXX` (no `+`).
-3. **Status** — `GET /collection/v1_0/requesttopay/{referenceId}`; the webhook callback re-verifies with MTN rather than trusting the payload, then settles the order and credits the trader.
+2. **Request to pay** — `POST /collection/v1_0/requesttopay` with a unique UUID `X-Reference-Id` per transaction, amount in ZAR, MSISDN normalised to `27XXXXXXXXX`.
+3. **Status** — `GET /collection/v1_0/requesttopay/{referenceId}`; the webhook re-verifies with MTN before settling. On success, 5% of the net settlement is automatically deposited into the trader's savings jar.
 
 ---
 
@@ -154,4 +488,4 @@ A GitHub Actions workflow (`.github/workflows/deploy.yml`) deploys to Netlify on
 
 ## License
 
-Provided as-is for demo and prototype use.
+Provided as-is for demo and prototype use. Built for the FNB AOTY Hackathon 2026 — Financial Inclusion challenge.
