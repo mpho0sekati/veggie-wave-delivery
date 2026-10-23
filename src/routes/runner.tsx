@@ -56,18 +56,19 @@ function RunnerPage() {
   const { currentPosition } = useReportCourierPosition(active?.id ?? null, active?.status === "delivering");
   const { route, isLoading: routeLoading } = useRoute(active?.id ?? null, currentPosition, active?.status === "delivering");
   useEffect(() => {
-    if (active?.status !== "delivering" || !position || !session.userId) return;
+    const fix = position ?? (me ? {lat:me.lat,lng:me.lng} : null);
+    if (active?.status !== "delivering" || !fix || !session.userId) return;
     let cancelled = false;
     const report = async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       if (cancelled) return;
-      const { error } = await supabase.from("courier_positions").insert({ order_id: active.id, trader_id: session.userId ?? "", lat: position.lat, lng: position.lng });
+      const { error } = await supabase.from("courier_positions").insert({ order_id: active.id, trader_id: session.userId ?? "", lat: fix.lat, lng: fix.lng });
       if (error) toast.error("Could not share delivery location");
     };
     void report();
     const timer = setInterval(() => void report(), 15000);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [active?.id, active?.status, position, session.userId]);
+  }, [active?.id, active?.status, position, me?.lat, me?.lng, session.userId]);
   const catalog = catalogWith(state.customItems);
   const nearby = useMemo(() => waves.filter(w => w.lat != null && w.lng != null && position && distanceKm(position, { lat: w.lat, lng: w.lng }) <= 5).sort((a,b) => {
     if (!position || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return 0;
