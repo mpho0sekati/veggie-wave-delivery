@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { setUserRole, getUserRole } from "@/lib/auth-guard";
+import { setUserRole } from "@/lib/auth-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/onboarding")({
@@ -28,41 +28,34 @@ function OnboardingPage() {
   const [traderName, setTraderName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleBuyerOnboard = async () => {
-    if (!buyerName.trim()) {
-      toast.error("Please enter your name");
+  const save = async (role: "buyer" | "trader", name: string) => {
+    if (!name.trim()) {
+      toast.error(role === "buyer" ? "Please enter your name" : "Please enter your stall name");
       return;
     }
     setLoading(true);
     try {
-      setUserRole("buyer");
-      localStorage.setItem("buyer-name", buyerName);
-      toast.success("Welcome! You're all set.");
-      navigate({ to: "/" });
-    } catch (err) {
-      toast.error("Onboarding failed");
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user.id;
+      if (!uid) {
+        toast.error("Please sign in first");
+        navigate({ to: "/auth" });
+        return;
+      }
+      const { error } = await supabase.from("profiles").upsert({ id: uid, name: name.trim(), role });
+      if (error) throw error;
+      setUserRole(role);
+      toast.success(role === "buyer" ? "Welcome! You're all set." : "Welcome trader! Set up your stock next.");
+      navigate({ to: role === "buyer" ? "/" : "/runner" });
+    } catch {
+      toast.error("Couldn't save your details — please try again");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleTraderOnboard = async () => {
-    if (!traderName.trim()) {
-      toast.error("Please enter your trader name");
-      return;
-    }
-    setLoading(true);
-    try {
-      setUserRole("trader");
-      localStorage.setItem("trader-name", traderName);
-      toast.success("Welcome trader! Set up your stock next.");
-      navigate({ to: "/runner" });
-    } catch (err) {
-      toast.error("Onboarding failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleBuyerOnboard = () => save("buyer", buyerName);
+  const handleTraderOnboard = () => save("trader", traderName);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 pb-8">

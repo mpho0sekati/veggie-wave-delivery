@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShoppingBasket, Store } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,11 +22,24 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+function friendly(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login")) return "That email and password don't match. Try again.";
+  if (m.includes("already registered")) return "You already have an account — please sign in.";
+  if (m.includes("password") && (m.includes("weak") || m.includes("at least")))
+    return "Pick a stronger password: at least 8 characters with a number.";
+  if (m.includes("email not confirmed")) return "Please confirm your email first, then sign in.";
+  if (m.includes("fetch") || m.includes("network")) return "No connection. Check your internet and try again.";
+  return msg || "Something went wrong. Please try again.";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<"buyer" | "trader">("buyer");
   const [loading, setLoading] = useState(false);
@@ -82,7 +95,7 @@ function AuthPage() {
       }
       navigate({ to: savedRole === "trader" ? "/runner" : "/" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(friendly(err));
     } finally {
       setLoading(false);
     }
@@ -98,7 +111,7 @@ function AuthPage() {
         {/* Mode toggle */}
         <div className="flex rounded-xl bg-secondary p-1">
           <button
-            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signin" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signin" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
             onClick={() => {
               setMode("signin");
               setError("");
@@ -107,7 +120,7 @@ function AuthPage() {
             Sign in
           </button>
           <button
-            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signup" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === "signup" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
             onClick={() => {
               setMode("signup");
               setError("");
@@ -146,39 +159,60 @@ function AuthPage() {
 
         <div className="space-y-2">
           <Label htmlFor="auth-password">Password</Label>
-          <Input
-            id="auth-password"
-            type="password"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-          />
+          <div className="relative">
+            <Input
+              id="auth-password"
+              type={showPw ? "text" : "password"}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              className="pr-10"
+              onKeyDown={(e) => e.key === "Enter" && submit()}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw((s) => !s)}
+              aria-label={showPw ? "Hide password" : "Show password"}
+              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground"
+            >
+              {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
         </div>
 
         {mode === "signup" && (
           <div className="space-y-2">
-            <Label>I am a…</Label>
+            <Label>I want to…</Label>
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setRole("buyer")}
-                className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${role === "buyer" ? "border-primary bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}
-              >
-                Buyer
-              </button>
-              <button
-                onClick={() => setRole("trader")}
-                className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${role === "trader" ? "border-primary bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}
-              >
-                Trader
-              </button>
+              {(
+                [
+                  { id: "buyer", icon: ShoppingBasket, title: "Buy veggies", sub: "Wave a trader to me" },
+                  { id: "trader", icon: Store, title: "Sell veggies", sub: "Get orders nearby" },
+                ] as const
+              ).map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={role === r.id}
+                  onClick={() => setRole(r.id)}
+                  className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all ${role === r.id ? "border-primary bg-primary/10" : "border-transparent bg-secondary"}`}
+                >
+                  <r.icon className={`size-6 ${role === r.id ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className="text-sm font-semibold">{r.title}</span>
+                  <span className="text-xs text-muted-foreground">{r.sub}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <Button variant="wave" className="w-full" onClick={submit} disabled={loading}>
           {loading ? (

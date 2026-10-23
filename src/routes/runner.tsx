@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import WelcomeGuide from "@/components/WelcomeGuide";
 import {
   SEED_RUNNERS,
   catalogWith,
@@ -270,7 +271,16 @@ function RunnerPage() {
   };
 
   return (
-    <main className="relative h-screen w-full overflow-hidden bg-background">
+    <main className="relative h-dvh w-full overflow-hidden bg-background">
+      <WelcomeGuide
+        storageKey="mdeko-guide-trader"
+        steps={[
+          { icon: Camera, title: "Add your photo", body: "Buyers trust a face. Upload a clear profile picture." },
+          { icon: CheckCircle2, title: "Set your stock", body: "Turn on what you're selling and set your prices." },
+          { icon: Crosshair, title: "Go available", body: "Switch on \"Available\" so nearby buyers can find you." },
+          { icon: Hand, title: "Accept waves", body: "When someone raises their hand, accept, deliver and get paid." },
+        ]}
+      />
       {/* Full screen edge-to-edge Leaflet map */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <ClientOnly fallback={<MapSkeleton />}>
