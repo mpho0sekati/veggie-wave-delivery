@@ -1,564 +1,98 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";import { lazy, Suspense, useRef, useState, useCallback, useMemo, useEffect } from "react";
-import { Hand, Camera, ArrowLeft, CheckCircle2, Wallet, Crosshair } from "lucide-react";import { toast } from "sonner";
+import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Camera, Crosshair, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import WelcomeGuide from "@/components/WelcomeGuide";
-import {
-  SEED_RUNNERS,
-  catalogWith,
-  distanceKm,
-  formatRand,
-  priceFor,
-  walkMinutes,
-} from "@/lib/veggie-data";
-import {
-  cancelRequest,
-  failRequest,
-  updateState,
-  useAppState,
-  setBuyerLocation,
-} from "@/lib/veggie-store";
+import { useMarketplace, saveTraderProfile } from "@/lib/use-marketplace";
 import { useGeolocation } from "@/lib/use-geolocation";
-import { useSession } from "@/lib/use-session";
-import { createLogger } from "@/lib/logger";
-
-const runnerLogger = createLogger("RunnerRoute");
-import { useMdekoActions, useMyOrders, useMySettlements, useOpenWaves } from "@/lib/use-mdeko";
+import { useMdekoActions, useMyOrders, useOpenWaves } from "@/lib/use-mdeko";
+import { useAppState } from "@/lib/veggie-store";
+import { waveView } from "@/lib/wave-view";
+import { catalogWith, distanceKm, formatRand } from "@/lib/veggie-data";
 import { useReportCourierPosition } from "@/lib/use-courier-tracking";
-import { useWeatherWarning } from "@/lib/use-weather";
 import { useRoute } from "@/lib/use-route";
-import { useCompass } from "@/lib/use-compass";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
-import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
-
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
-
 export const Route = createFileRoute("/runner")({
-  head: () => ({
-    meta: [
-      { title: "Trader stall — Mdeko · Veggie Wave" },
-      {
-        name: "description",
-        content:
-          "Go online as a township veggie trader on Mdeko, set your stock and prices, see who is waving nearby and get paid with MTN MoMo.",
-      },
-      { property: "og:title", content: "Trader stall — Mdeko · Veggie Wave" },
-      {
-        property: "og:description",
-        content: "Set your stock and prices, see waves nearby, deliver and get paid with MTN MoMo.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: RunnerPage,
+  head: () => ({ meta: [
+    { title: "Trader stall — Mdeko · Veggie Wave" },
+    { name: "description", content: "Set stock, accept nearby waves and deliver with Mdeko." },
+    { property: "og:title", content: "Trader stall — Mdeko · Veggie Wave" },
+    { property: "og:description", content: "Manage your produce stall, deliveries and payments." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }), component: RunnerPage,
 });
-
-function MapSkeleton() {
-  return <div className="h-full w-full animate-pulse bg-muted" />;
-}
-
-const MY_ID = "r1";
-
 function RunnerPage() {
-  runnerLogger.info("RunnerPage rendering");
+  const { session, refresh } = useMarketplace();
   const state = useAppState();
-  // Use targeted selectors so stock/runner changes trigger re-renders
-  const runners = useAppState((s) => s.runners);
-  const stateCustomItems = useAppState((s) => s.customItems);
-  const stateRequest = useAppState((s) => s.request);
-  const stateBuyer = useAppState((s) => s.buyer);
-  runnerLogger.debug("Runner state", {
-    runnersCount: runners.length,
-    hasRequest: !!stateRequest,
-    buyerLocated: stateBuyer.located,
-  });
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const [name, setName] = useState("");
-  const [highlight, setHighlight] = useState<string | null>(null);
-  const [recenterTrigger, setRecenterTrigger] = useState(0);
-
-  const session = useSession();
-  const signedIn = Boolean(session.userId);
-  const myId = state.me.id !== "" ? state.me.id : MY_ID;
-  const me =
-    runners.find((r) => r.id === myId) ??
-    runners.find((r) => r.id === MY_ID) ??
-    SEED_RUNNERS.find((r) => r.id === MY_ID) ??
-    SEED_RUNNERS[0];
-
-  // Get active delivery order for this trader
-  const { data: myOrders } = useMyOrders(signedIn);
-  const activeDeliveryOrder = useMemo(() => {
-    return (
-      myOrders?.find(
-        (o) =>
-          o.trader_id === (session.userId || myId) &&
-          ["accepted", "preparing", "ready", "delivering"].includes(o.status),
-      ) ?? null
-    );
-  }, [myOrders, session.userId, myId]);
-
-  // Start live position reporting when delivering
-  const { isReporting, currentPosition: courierCurrentPosition } = useReportCourierPosition(
-    activeDeliveryOrder?.id ?? null,
-    activeDeliveryOrder?.status === "delivering",
-    5000, // 5 seconds throttle
-    10, // 10 meters minimum movement
-  );
-
-  // Get route from courier position to buyer
-  const {
-    route,
-    shouldReroute,
-    isLoading: routeLoading,
-    recalculateRoute,
-  } = useRoute(
-    activeDeliveryOrder?.id ?? null,
-    courierCurrentPosition,
-    activeDeliveryOrder?.status === "delivering",
-  );
-
-  // Get compass bearing as fallback
-  const bearing = useCompass(courierCurrentPosition, stateBuyer);
-
-  // Weather warning for active delivery orders
-  const { warning: weatherWarning } = useWeatherWarning(activeDeliveryOrder?.id ?? null);
-
-  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
-    setBuyerLocation(pos);
-    setRecenterTrigger((p) => p + 1);
-    toast.success("Location updated");
-  }, []);
-  const { status: geoStatus, locate } = useGeolocation(onPosition);
   const actions = useMdekoActions();
-
-  if (!me) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3">
-        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground">Loading your stall…</p>
-      </main>
-    );
-  }
-
-  const request = stateRequest;
-  const km = distanceKm(stateBuyer, me);
-  const catalog = catalogWith(stateCustomItems);
-  const canFill = request
-    ? request.items.filter((line) => priceFor(me, line.id) !== null).length
-    : 0;
-  const myTotal = request
-    ? request.items.reduce((sum, line) => sum + (priceFor(me, line.id) ?? 0) * line.qty, 0)
-    : 0;
-
-  const onPickAvatar = (file?: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result);
-      updateState((prev) => ({
-        ...prev,
-        runners: prev.runners.map((r) => (r.id === me.id ? { ...r, avatar: dataUrl } : r)),
-      }));
-      toast.success("Profile picture saved");
-    };
-    reader.readAsDataURL(file);
+  const { data: waves = [] } = useOpenWaves(Boolean(session.userId && session.role === "trader"));
+  const { data: orders = [] } = useMyOrders(Boolean(session.userId));
+  const me = state.runners.find(r => r.id === session.userId);
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [name, setName] = useState("");
+  const file = useRef<HTMLInputElement | null>(null);
+  const active = orders.find(o => o.trader_id === session.userId && !o.cancelled_at && o.status !== "completed");
+  const [activeWave, setActiveWave] = useState<(typeof waves)[number] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!active) { setActiveWave(null); return; }
+    void import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      const { data } = await supabase.from("waves").select("*").eq("id", active.wave_id).maybeSingle();
+      if (!cancelled) setActiveWave(data);
+    });
+    return () => { cancelled = true; };
+  }, [active?.wave_id]);
+  const onPosition = useCallback((pos: { lat: number; lng: number }) => {
+    setPosition(pos);
+    if (session.userId && session.role === "trader") void saveTraderProfile(session.userId, pos).then(() => refresh()).catch(() => toast.error("Could not share your location"));
+  }, [session.userId, session.role, refresh]);
+  const { locate, message } = useGeolocation(onPosition);
+  const { currentPosition } = useReportCourierPosition(active?.id ?? null, active?.status === "delivering");
+  const { route, isLoading: routeLoading } = useRoute(active?.id ?? null, currentPosition, active?.status === "delivering");
+  const catalog = catalogWith(state.customItems);
+  const nearby = useMemo(() => waves.filter(w => w.lat != null && w.lng != null && position && distanceKm(position, { lat: w.lat, lng: w.lng }) <= 5).sort((a,b) => {
+    if (!position || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return 0;
+    return distanceKm(position, { lat:a.lat,lng:a.lng }) - distanceKm(position, {lat:b.lat,lng:b.lng});
+  }), [waves, position]);
+  const advance = async (status: "delivering" | "delivered") => {
+    if (!active) return;
+    try { await actions.advanceOrder.mutateAsync({ orderId: active.id, status }); toast.success(status === "delivering" ? "Delivery started" : "Delivery recorded"); }
+    catch (e) { toast.error(e instanceof Error && e.message.includes("payment-required") ? "Wait for payment or the buyer to choose cash on delivery" : "Could not update delivery"); }
   };
-
-  const setOnline = (online: boolean) => {
-    console.log(`\n  TRADER STATUS -> ${online ? "ONLINE" : "OFFLINE"}`);
-    console.log(`   Trader: ${me.name} (${me.id})`);
-    console.log(`   Time: ${new Date().toLocaleTimeString()}`);
-    updateState((prev) => ({
-      ...prev,
-      runners: prev.runners.map((r) => (r.id === me.id ? { ...r, online } : r)),
-    }));
-  };
-
-  const saveName = () => {
-    if (!name.trim()) return;
-    updateState((prev) => ({
-      ...prev,
-      runners: prev.runners.map((r) => (r.id === me.id ? { ...r, name: name.trim() } : r)),
-    }));
-    toast.success("Name updated");
-  };
-
-  const accept = () => {
-    console.log("\n╔══════════════════════════════════════════╗");
-    console.log("║         WAVE ACCEPTED BY TRADER          ║");
-    console.log("╚══════════════════════════════════════════╝");
-    console.log(`  Trader  : ${me.name} (${me.id})`);
-    console.log(`  Can fill: ${canFill}/${request?.items.length} items`);
-    console.log(`  Total   : R${myTotal.toFixed(2)}`);
-    console.log(`  Time    : ${new Date().toLocaleTimeString()}`);
-    updateState((prev) => ({
-      ...prev,
-      request: prev.request
-        ? { ...prev.request, status: "accepted", runnerId: me.id, total: myTotal }
-        : null,
-    }));
-  };
-
-  const deliver = async () => {
-    if (!request?.orderId) {
-      toast.error("No active order to mark as delivered");
-      return;
-    }
-
-    try {
-      // First mark as delivering to start position tracking
-      await actions.advanceOrder.mutateAsync({
-        orderId: request.orderId,
-        status: "delivering",
-      });
-
-      console.log("\n╔══════════════════════════════════════════╗");
-      console.log("║       TRADER DELIVERING — LIVE TRACKING STARTED     ║");
-      console.log("╚══════════════════════════════════════════╝");
-      console.log(`  Trader  : ${me.name}`);
-      console.log(`  Distance: ${km.toFixed(2)} km`);
-      console.log(`  Amount  : R${(request?.total ?? 0).toFixed(2)}`);
-      console.log(`  Time    : ${new Date().toLocaleTimeString()}`);
-      console.log("  Live tracking: ACTIVE");
-
-      toast.success("Live tracking started — buyer can see your location");
-    } catch (err) {
-      console.error("Failed to start delivering:", err);
-      toast.error("Could not start live tracking");
-    }
-  };
-
-  const markDelivered = async () => {
-    if (!request?.orderId) {
-      toast.error("No active order to mark as delivered");
-      return;
-    }
-
-    try {
-      await actions.advanceOrder.mutateAsync({
-        orderId: request.orderId,
-        status: "delivered",
-      });
-
-      console.log("\n╔══════════════════════════════════════════╗");
-      console.log("║       TRADER ARRIVED — DELIVERY DONE     ║");
-      console.log("╚══════════════════════════════════════════╝");
-      console.log(`  Trader  : ${me.name}`);
-      console.log(`  Distance: ${km.toFixed(2)} km`);
-      console.log(`  Amount  : R${(request?.total ?? 0).toFixed(2)}`);
-      console.log(`  Time    : ${new Date().toLocaleTimeString()}`);
-      console.log("  Waiting for buyer to pay via MTN MoMo...");
-
-      updateState((prev) => ({
-        ...prev,
-        request: prev.request ? { ...prev.request, status: "delivered" } : null,
-      }));
-      toast.success("Delivery marked as complete — live tracking stopped");
-    } catch (err) {
-      console.error("Failed to mark as delivered:", err);
-      toast.error("Could not mark delivery as complete");
-    }
-  };
-
-  return (
-    <main className="relative h-dvh w-full overflow-hidden bg-background">
-      <WelcomeGuide
-        storageKey="mdeko-guide-trader"
-        steps={[
-          { icon: Camera, title: "Add your photo", body: "Buyers trust a face. Upload a clear profile picture." },
-          { icon: CheckCircle2, title: "Set your stock", body: "Turn on what you're selling and set your prices." },
-          { icon: Crosshair, title: "Go available", body: "Switch on \"Available\" so nearby buyers can find you." },
-          { icon: Hand, title: "Accept waves", body: "When someone raises their hand, accept, deliver and get paid." },
-        ]}
-      />
-      {/* Full screen edge-to-edge Leaflet map */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <ClientOnly fallback={<MapSkeleton />}>
-          <Suspense fallback={<MapSkeleton />}>
-            <VeggieMap
-              runners={runners}
-              activeRunnerId={request?.runnerId ?? null}
-              waving={request?.status === "waving"}
-              buyerPosition={stateBuyer}
-              courierPosition={
-                courierCurrentPosition
-                  ? {
-                      lat: courierCurrentPosition.lat,
-                      lng: courierCurrentPosition.lng,
-                      distanceKm: km,
-                      etaMinutes: walkMinutes(km),
-                      recordedAt: new Date().toISOString(),
-                    }
-                  : null
-              }
-              routeLoading={routeLoading}
-              route={route}
-              bearing={bearing}
-              recenterTrigger={recenterTrigger}
-            />
-          </Suspense>
-        </ClientOnly>
+  if (!session.loading && (!session.userId || session.role !== "trader")) return <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-6"><h1 className="text-xl font-bold">Your Mdeko stall</h1><Button asChild><Link to={session.userId ? "/auth/onboarding" : "/auth"}>{session.userId ? "Set up your trader profile" : "Sign in to sell"}</Link></Button><Button asChild variant="outline"><Link to="/">Buy veggies</Link></Button></main>;
+  return <main className="relative h-dvh overflow-hidden bg-background">
+    <div className="absolute inset-0"><ClientOnly><Suspense fallback={<div className="h-full bg-muted" />}><VeggieMap runners={state.runners} activeRunnerId={session.userId} buyerPosition={activeWave?.lat != null && activeWave.lng != null ? {lat: activeWave.lat,lng:activeWave.lng} : position ?? undefined} route={route} routeLoading={routeLoading} /></Suspense></ClientOnly></div>
+    <header className="absolute inset-x-4 top-4 z-10 flex items-center justify-between gap-2 rounded-xl border bg-background p-3 shadow-lg">
+      <Button asChild size="icon" variant="ghost"><Link to="/" aria-label="Back to buyers"><ArrowLeft /></Link></Button>
+      <div className="min-w-0 flex-1"><p className="truncate font-semibold">{me?.name || session.name || "My stall"}</p><p className="text-xs text-muted-foreground">{me?.online ? "Available" : "Offline"}</p></div>
+      <Switch aria-label="Available for deliveries" checked={me?.online ?? false} onCheckedChange={async online => { if (!session.userId || !position) { toast.error("Set your location first"); return; } try { await saveTraderProfile(session.userId, {online,...position}); await refresh(); } catch { toast.error("Could not update availability"); } }} />
+      <Button asChild variant="outline" size="sm"><Link to="/finance"><Wallet /> My Money</Link></Button>
+    </header>
+    <Button aria-label="Recenter location" size="icon" className="absolute right-4 top-24 z-10 rounded-full" onClick={locate}><Crosshair /></Button>
+    <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[72dvh] max-w-lg overflow-y-auto rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]">
+      <div className="p-4 space-y-4">
+        {message && <p className="text-sm text-muted-foreground">{message}</p>}
+        <div className="flex gap-2"><Input aria-label="Stall name" placeholder={me?.name || "Stall name"} value={name} onChange={e=>setName(e.target.value)} /><Button onClick={async()=>{ if (!session.userId || !name.trim()) return; try { await saveTraderProfile(session.userId,{name:name.trim()});await refresh();toast.success("Name saved"); } catch {toast.error("Could not save name");}}}>Save</Button></div>
+        <input ref={file} type="file" accept="image/*" className="hidden" onChange={e=>{ const picked=e.target.files?.[0]; if (!picked || !session.userId) return; if (picked.size>500000) {toast.error("Choose a photo smaller than 500 KB");return;} const uid=session.userId;const reader=new FileReader();reader.onload=()=>{void saveTraderProfile(uid,{avatar:String(reader.result)}).then(()=>refresh()).then(()=>toast.success("Photo saved")).catch(()=>toast.error("Could not save photo"));};reader.readAsDataURL(picked); }} />
+        <Button variant="outline" onClick={()=>file.current?.click()}><Camera />{me?.avatar ? "Change photo" : "Add profile photo"}</Button>
+        <h2 className="font-semibold text-lg">Waves near you</h2>
+        {!active && !nearby.length && <p className="text-muted-foreground text-sm">{position ? "No nearby waves yet" : "Set your location to see nearby waves"}</p>}
+        {active && activeWave && <Card className="p-4 gap-3"><OrderStepper status={waveView(activeWave,active).status} /><p className="font-semibold">{active.status === "delivered" ? "Delivered — waiting for buyer confirmation" : active.status === "delivering" ? "Delivering" : "Order accepted"}</p><p>{formatRand(Number(active.amount))} · {active.payment_method === "cash" ? "Cash on delivery" : "MTN MoMo"}</p>
+          {["accepted","preparing","ready"].includes(active.status) && <Button disabled={actions.advanceOrder.isPending} onClick={()=>advance("delivering")}>Start delivering — share live location</Button>}
+          {active.status === "delivering" && <Button onClick={()=>advance("delivered")}>I've arrived — confirm delivery</Button>}
+          {["accepted","preparing","ready"].includes(active.status) && <Button variant="ghost" onClick={async()=>{try{await actions.cancelWave.mutateAsync(active.wave_id);}catch{toast.error("Cannot cancel an order with payment in progress");}}}>Cancel order</Button>}
+        </Card>}
+        {!active && nearby.map(w=>{const view=waveView(w);const canFill=view.items.length>0 && view.items.every(i=>me?.stock.some(s=>s.itemId===i.id));return <Card key={w.id} className="p-4 gap-3"><p className="font-semibold">Someone is waving</p><ul>{view.items.map(i=><li key={i.id}>{i.qty} × {catalog.find(c=>c.id===i.id)?.name ?? i.id}</li>)}</ul>{view.wish && <p>{view.wish}</p>}<Button disabled={!canFill || actions.acceptWave.isPending || !me?.online} onClick={async()=>{try{await actions.acceptWave.mutateAsync(w.id);toast.success("Wave accepted");}catch{toast.error("This wave expired, was accepted, or exceeds your stock");}}}>Accept this wave</Button></Card>;})}
       </div>
-
-      {/* Floating top status header */}
-      <header className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between rounded-2xl border bg-background/85 px-4 py-3 shadow-lg backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon" className="rounded-xl">
-            <Link to="/">
-              <ArrowLeft className="size-5" />
-            </Link>
-          </Button>
-          <div>
-            <p className="font-bold text-sm leading-none">{me.name || "Trader Stall"}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {me.online ? "Online · Available" : "Offline"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Switch id="online" checked={me.online} onCheckedChange={setOnline} />
-          <Button asChild size="sm" variant="outline" className="rounded-xl gap-1.5 text-primary border-primary/40">
-            <Link to="/finance">
-              <Wallet className="size-4" />
-              <span className="font-semibold">My Money</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
-
-      {/* Floating map control buttons */}
-      <div className="absolute top-20 right-4 z-10 flex flex-col gap-2">
-        <Button
-          size="icon"
-          variant="secondary"
-          className="size-10 rounded-full border shadow-lg backdrop-blur-md"
-          onClick={() => {
-            locate();
-            setRecenterTrigger((p) => p + 1);
-          }}
-        >
-          <Crosshair className="size-5" />
-        </Button>
-      </div>
-
-      {/* Floating bottom dispatch drawer */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[75vh] overflow-y-auto rounded-t-3xl border-t bg-background/95 p-5 shadow-2xl backdrop-blur-xl transition-transform duration-300">
-        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted" />
-
-        <h2 className="mt-6 px-5 text-lg font-semibold">Waves near you</h2>
-        <div className="px-4 pt-3">
-          {!request && (
-            <Card className="items-center gap-3 p-8 text-center border-dashed">
-              <div className="flex size-14 items-center justify-center rounded-full bg-secondary">
-                <Hand className="size-7 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold">No waves yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {me.online
-                    ? "You are live — buyers nearby will see you on the map."
-                    : "Toggle Available for deliveries above to go live."}
-                </p>
-              </div>
-              {!me.online && (
-                <p className="text-xs text-muted-foreground bg-secondary rounded-xl px-3 py-2">
-                  Switch on availability so nearby waves reach you
-                </p>
-              )}
-            </Card>
-          )}
-
-          {request && (
-            <Card className="animate-rise animate-slide-up gap-4 p-5">
-              <OrderStepper status={request.status} />
-              <div className="flex items-center gap-2">
-                <Hand
-                  className={`size-5 text-accent ${request.status === "waving" ? "animate-wave" : ""}`}
-                />
-                <p className="font-semibold">
-                  {request.status === "waving" && "Someone is waving"}
-                  {request.status === "accepted" && "You accepted — deliver now"}
-                  {request.status === "delivered" && "Waiting for payment"}
-                  {request.status === "paid" &&
-                    (request.paidWith === "cash" ? "Paid in cash" : "Paid with MTN MoMo")}
-                </p>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {km.toFixed(1)} km away · about {walkMinutes(km)} min walk · you can fill {canFill}/
-                {request.items.length}
-              </p>
-              <ul className="space-y-1 text-sm">
-                {request.items.map((line) => {
-                  const item = catalog.find((c) => c.id === line.id);
-                  if (!item) return null;
-                  const Icon = item.icon;
-                  const price = priceFor(me, line.id);
-                  return (
-                    <li key={line.id} className="flex items-center gap-2">
-                      <Icon className="size-4 text-primary" />
-                      <span className={price === null ? "text-muted-foreground line-through" : ""}>
-                        {line.qty} × {item.name} ({item.unit})
-                      </span>
-                      {price === null && (
-                        <span className="text-xs text-muted-foreground">not in your stock</span>
-                      )}
-                    </li>
-                  );
-                })}
-                {request.wish && (
-                  <li className="text-muted-foreground italic">also asked for: {request.wish}</li>
-                )}
-              </ul>
-              <p className="font-display text-xl font-bold">
-                {formatRand(request.status === "waving" ? myTotal : request.total)}
-              </p>
-
-              {request.status === "waving" && (
-                <Button size="lg" onClick={accept} disabled={canFill === 0}>
-                  {canFill === 0 ? "Nothing you stock" : "Accept this wave"}
-                </Button>
-              )}
-              {request.status === "accepted" && (
-                <div className="space-y-2">
-                  <Button
-                    size="lg"
-                    variant="wave"
-                    className="w-full"
-                    onClick={deliver}
-                    disabled={isReporting}
-                  >
-                    <CheckCircle2 />{" "}
-                    {isReporting
-                      ? "Starting tracking..."
-                      : "Start delivering — share live location"}
-                  </Button>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        console.log(
-                          `\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`,
-                        );
-                        failRequest("Trader marked delivery as failed");
-                        toast.error("Delivery marked as failed");
-                      }}
-                    >
-                      Mark Failed
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="flex-1"
-                      onClick={() => {
-                        console.log(
-                          `\n  WAVE DECLINED -- ${me.name} at ${new Date().toLocaleTimeString()}`,
-                        );
-                        cancelRequest("Trader cancelled");
-                        toast.info("Wave cancelled");
-                      }}
-                    >
-                      Decline
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {(request.status as string) === "delivering" && (
-                <div className="space-y-2">
-                  <Button size="lg" variant="wave" className="w-full" onClick={markDelivered}>
-                    <CheckCircle2 /> I&apos;ve arrived — request payment
-                  </Button>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        console.log(
-                          `\n  DELIVERY FAILED -- ${me.name} at ${new Date().toLocaleTimeString()}`,
-                        );
-                        failRequest("Trader marked delivery as failed");
-                        toast.error("Delivery marked as failed");
-                      }}
-                    >
-                      Mark Failed
-                    </Button>
-                  </div>
-                  {shouldReroute && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-full"
-                      onClick={recalculateRoute}
-                      disabled={routeLoading}
-                    >
-                      {routeLoading ? "Recalculating..." : "↻ Re-route"}
-                    </Button>
-                  )}
-                  {isReporting && (
-                    <p className="text-xs text-center text-muted-foreground bg-secondary rounded-xl px-3 py-2">
-                      📍 Live tracking active — buyer can see your location
-                    </p>
-                  )}
-                  {/* Route navigation info */}
-                  {route && !routeLoading && (
-                    <div className="bg-secondary/50 rounded-lg px-4 py-3 text-sm">
-                      <p className="font-semibold text-xs mb-1">Route to buyer:</p>
-                      <p className="font-medium">{Math.round(route.distanceM)}m total</p>
-                      <p className="text-muted-foreground text-xs">
-                        {route.steps.length} steps · {Math.round(route.durationS / 60)}min
-                      </p>
-                      {route.steps[0] && (
-                        <p className="text-muted-foreground text-xs mt-1 italic">
-                          Next: {route.steps[0].instruction}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              {request.status === "delivered" && (
-                <p className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm">
-                  <Wallet className="size-4 text-primary" /> Ask the customer to pay with MTN MoMo,
-                  or take cash.
-                </p>
-              )}
-            </Card>
-          )}
-        </div>
-
-        <StockEditor
-          runnerId={me.id}
-          stock={me.stock}
-          customItems={stateCustomItems}
-          highlightItemId={highlight}
-        />
-
-        <div className="mx-4 mt-4 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
-          <p className="text-xs font-semibold text-primary uppercase tracking-wide">
-            Demand Intelligence
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            See what buyers near you are asking for — restock before they wave.
-          </p>
-        </div>
-
-        <DemandInsights
-          state={{ ...state, runners, customItems: stateCustomItems }}
-          runnerId={me.id}
-          onAdded={setHighlight}
-        />
-        <div className="h-8" />
-      </div>
-    </main>
-  );
+      {session.userId && <StockEditor runnerId={session.userId} stock={me?.stock ?? []} customItems={state.customItems} onSaved={()=>void refresh()} />}
+      {session.userId && <DemandInsights state={state} runnerId={session.userId} />}
+      <div className="h-6" />
+    </div>
+  </main>;
 }

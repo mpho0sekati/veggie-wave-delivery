@@ -9,7 +9,8 @@ import {
   promoteToCatalog,
   type AppState as LegacyAppState,
 } from "@/lib/veggie-store";
-import { setStock, type AppState } from "@/lib/veggie-store-supabase";
+import { type AppState } from "@/lib/veggie-store";
+import { saveTraderStock } from "@/lib/use-marketplace";
 
 type Props = { state: AppState; runnerId: string; onAdded?: (itemId: string) => void };
 
@@ -30,10 +31,10 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
       return { ...d, item, stockedBy, iHaveIt };
     });
 
-  const add = (itemId: string) => {
+  const add = async (itemId: string) => {
     if (!me) return;
     const price = suggestedPrice(state as unknown as LegacyAppState, itemId);
-    setStock(runnerId, [...me.stock, { itemId, price }]);
+    try { await saveTraderStock(runnerId, itemId, price, true, 99); } catch { toast.error("Could not save stock"); return; }
     onAdded?.(itemId);
     toast.success(`Added at ${formatRand(price)} — change the price if you want`);
   };
@@ -76,7 +77,7 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
                 row.iHaveIt ? (
                   <Badge variant="secondary">You&apos;re stocked</Badge>
                 ) : (
-                  <Button size="sm" variant="secondary" onClick={() => add(row.item!.id)}>
+                  <Button size="sm" variant="secondary" onClick={() => { if (row.item) void add(row.item.id); }}>
                     <Sparkles /> Add
                   </Button>
                 )

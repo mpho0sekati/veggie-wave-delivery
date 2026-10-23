@@ -69,8 +69,7 @@ function AuthPage() {
         }
         if (data.user) {
           const { error: profileError } = await supabase
-            .from("profiles")
-            .upsert({ id: data.user.id, name: name.trim(), role });
+            .rpc("setup_marketplace_profile", { _name: name.trim(), _role: role });
           if (profileError) throw profileError;
         }
         toast.success("Account created! Welcome to Mdeko.");
@@ -87,11 +86,12 @@ function AuthPage() {
       let savedRole: "buyer" | "trader" = "buyer";
       if (userId) {
         const { data: profile } = await supabase
-          .from("profiles")
+          .from("user_roles")
           .select("role")
-          .eq("id", userId)
+          .eq("user_id", userId)
           .maybeSingle();
-        if (profile?.role === "trader") savedRole = "trader";
+        if (!profile) { navigate({ to: "/auth/onboarding" }); return; }
+        if (profile.role === "trader") savedRole = "trader";
       }
       navigate({ to: savedRole === "trader" ? "/runner" : "/" });
     } catch (err) {
@@ -227,112 +227,8 @@ function AuthPage() {
           )}
         </Button>
 
-        <div className="relative my-2">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or test with demo accounts</span>
-          </div>
-        </div>
+        <p className="text-center text-xs text-muted-foreground">Use your own account to buy or sell.</p>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loading}
-            onClick={async () => {
-              setLoading(true);
-              setError("");
-              try {
-                const { supabase } = await import("@/integrations/supabase/client");
-                // Try anonymous sign in or sign in with password fallback
-                const { data: anonData, error: anonErr } = await supabase.auth.signInAnonymously();
-                const user = anonData?.user;
-
-                if (user) {
-                  await supabase
-                    .from("profiles")
-                    .upsert({ id: user.id, name: "Demo Buyer", role: "buyer" });
-                  toast.success("Logged in as Demo Buyer");
-                  navigate({ to: "/" });
-                  return;
-                }
-
-                // Fallback to password sign in if anonymous auth is disabled
-                const demoEmail = "buyer.demo@mdeko.co.za";
-                const demoPass = "DemoPassword123!";
-                const { error: signInErr } = await supabase.auth.signInWithPassword({
-                  email: demoEmail,
-                  password: demoPass,
-                });
-
-                if (signInErr) {
-                  throw new Error(
-                    "Could not log in as Demo Buyer: " + (anonErr?.message || signInErr.message),
-                  );
-                }
-
-                toast.success("Logged in as Demo Buyer");
-                navigate({ to: "/" });
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Demo sign in failed");
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            Demo Buyer
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loading}
-            onClick={async () => {
-              setLoading(true);
-              setError("");
-              try {
-                const { supabase } = await import("@/integrations/supabase/client");
-                // Try anonymous sign in or sign in with password fallback
-                const { data: anonData, error: anonErr } = await supabase.auth.signInAnonymously();
-                const user = anonData?.user;
-
-                if (user) {
-                  await supabase
-                    .from("profiles")
-                    .upsert({ id: user.id, name: "Demo Trader", role: "trader" });
-                  toast.success("Logged in as Demo Trader");
-                  navigate({ to: "/runner" });
-                  return;
-                }
-
-                // Fallback to password sign in if anonymous auth is disabled
-                const demoEmail = "trader.demo@mdeko.co.za";
-                const demoPass = "DemoPassword123!";
-                const { error: signInErr } = await supabase.auth.signInWithPassword({
-                  email: demoEmail,
-                  password: demoPass,
-                });
-
-                if (signInErr) {
-                  throw new Error(
-                    "Could not log in as Demo Trader: " + (anonErr?.message || signInErr.message),
-                  );
-                }
-
-                toast.success("Logged in as Demo Trader");
-                navigate({ to: "/runner" });
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Demo sign in failed");
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            Demo Trader
-          </Button>
-        </div>
       </Card>
     </main>
   );

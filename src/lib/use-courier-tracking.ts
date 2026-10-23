@@ -67,7 +67,7 @@ export function useReportCourierPosition(
       // Skip if we haven't moved enough
       if (last) {
         const dist = distanceKm(last, position);
-        if (dist * 1000 < minDistanceMeters) {
+        if (dist * 1000 < minDistanceMeters && Date.now() - last.timestamp < 15000) {
           trackingLogger.debug("reportPosition: not moved enough, skipping", {
             distanceM: dist * 1000,
             minDistanceMeters,
@@ -128,9 +128,7 @@ export function useReportCourierPosition(
     let watchId: number | null = null;
 
     const handlePosition = (pos: GeolocationPosition) => {
-      if (pos.coords.accuracy > 100) {
-        return; // Skip inaccurate positions
-      }
+      if (!Number.isFinite(pos.coords.latitude) || !Number.isFinite(pos.coords.longitude)) return;
 
       // Update current position immediately for UI
       setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -215,7 +213,7 @@ export function useCourierPositions(orderId: string | null) {
     const interval = setInterval(() => {
       if (lastPingTimestampRef.current !== null) {
         const elapsed = Date.now() - lastPingTimestampRef.current;
-        if (elapsed > 4000) {
+        if (elapsed > 30000) {
           setIsDisconnected(true);
         } else {
           setIsDisconnected(false);
@@ -350,8 +348,10 @@ export function useCourierPositions(orderId: string | null) {
     };
 
     void loadInitialPositions();
+    const poll = setInterval(() => void loadInitialPositions(), 5000);
 
     return () => {
+      clearInterval(poll);
       trackingLogger.info("Cleaning up channel subscription");
       channelRef.current?.unsubscribe();
       channelRef.current = null;
@@ -375,7 +375,7 @@ export function useCourierPositions(orderId: string | null) {
           : null,
       );
     }
-  }, [buyerPosition, latestPosition]);
+  }, [buyerPosition]);
 
   trackingLogger.info("useCourierPositions returning", {
     positionsCount: positions.length,

@@ -484,6 +484,29 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           balance: number
@@ -509,6 +532,7 @@ export type Database = {
         Row: {
           amount: number
           buyer_id: string
+          cancelled_at: string | null
           completed_at: string | null
           created_at: string
           currency: string
@@ -516,6 +540,7 @@ export type Database = {
           id: string
           items: Json
           note: string
+          payment_method: string
           rating: number | null
           rating_comment: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -526,6 +551,7 @@ export type Database = {
         Insert: {
           amount?: number
           buyer_id: string
+          cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
           currency?: string
@@ -533,6 +559,7 @@ export type Database = {
           id?: string
           items?: Json
           note?: string
+          payment_method?: string
           rating?: number | null
           rating_comment?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -543,6 +570,7 @@ export type Database = {
         Update: {
           amount?: number
           buyer_id?: string
+          cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
           currency?: string
@@ -550,6 +578,7 @@ export type Database = {
           id?: string
           items?: Json
           note?: string
+          payment_method?: string
           rating?: number | null
           rating_comment?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -622,6 +651,7 @@ export type Database = {
         Returns: {
           amount: number
           buyer_id: string
+          cancelled_at: string | null
           completed_at: string | null
           created_at: string
           currency: string
@@ -629,6 +659,7 @@ export type Database = {
           id: string
           items: Json
           note: string
+          payment_method: string
           rating: number | null
           rating_comment: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -652,6 +683,7 @@ export type Database = {
         Returns: {
           amount: number
           buyer_id: string
+          cancelled_at: string | null
           completed_at: string | null
           created_at: string
           currency: string
@@ -659,6 +691,67 @@ export type Database = {
           id: string
           items: Json
           note: string
+          payment_method: string
+          rating: number | null
+          rating_comment: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          trader_id: string
+          updated_at: string
+          wave_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wave_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      cancel_marketplace_wave: {
+        Args: { _actor: string; _wave_id: string }
+        Returns: undefined
+      }
+      choose_cash: {
+        Args: { _buyer: string; _order_id: string }
+        Returns: {
+          amount: number
+          buyer_id: string
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          currency: string
+          delivered_at: string | null
+          id: string
+          items: Json
+          note: string
+          payment_method: string
+          rating: number | null
+          rating_comment: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          trader_id: string
+          updated_at: string
+          wave_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wave_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      confirm_cash: {
+        Args: { _buyer: string; _order_id: string }
+        Returns: {
+          amount: number
+          buyer_id: string
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          currency: string
+          delivered_at: string | null
+          id: string
+          items: Json
+          note: string
+          payment_method: string
           rating: number | null
           rating_comment: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -790,6 +883,10 @@ export type Database = {
           _start_cell: string
           _trader: string
         }
+        Returns: undefined
+      }
+      setup_marketplace_profile: {
+        Args: { _name: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
       start_payment: {

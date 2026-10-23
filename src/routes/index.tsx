@@ -58,6 +58,8 @@ import {
   type WaveRequest,
   type AppState,
 } from "@/lib/veggie-store";
+import { useMarketplace } from "@/lib/use-marketplace";
+import { waveView } from "@/lib/wave-view";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useSession, signOutEverywhere } from "@/lib/use-session";
 import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
@@ -129,6 +131,7 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 });
 
 function BuyerPage() {
+  useMarketplace();
   const walletBalance = useAppState((s) => s.wallet.balance);
   const communityCredit = useAppState((s) => s.wallet.stokvel_credit);
   const runners = useAppState((s) => s.runners);
@@ -190,7 +193,7 @@ function BuyerPage() {
     latestPosition: courierPosition,
     setBuyerPosition,
     isDisconnected,
-  } = useCourierPositions(liveOrder?.id ?? null);
+  } = useCourierPositions(liveOrder?.status === "delivering" ? liveOrder.id : null);
 
   const assigned: Runner | null = runners.find((r) => r.id === request?.runnerId) ?? null;
 
@@ -204,38 +207,15 @@ function BuyerPage() {
     }
   }, [buyer.lat, buyer.lng, buyer.located, setBuyerPosition]);
 
+  const [closedWave, setClosedWave] = useState<string | null>(null);
   useEffect(() => {
-    if (!signedIn || !liveWave) return;
-    const status: "waving" | "accepted" | "delivered" | "paid" = !liveOrder
-      ? "waving"
-      : liveOrder.status === "completed"
-        ? "paid"
-        : liveOrder.status === "delivered"
-          ? "delivered"
-          : "accepted";
-    updateState((prev): AppState => {
-      if (!prev.request || prev.request.waveId !== liveWave.id) return prev;
-      const total = liveOrder ? Number(liveOrder.amount) : prev.request.total;
-      const orderId = liveOrder?.id;
-      if (
-        prev.request.status === status &&
-        prev.request.orderId === orderId &&
-        prev.request.total === total
-      ) {
-        return prev;
-      }
-      const newRequest: WaveRequest = {
-        ...prev.request,
-        status,
-        total,
-        ...(orderId !== undefined ? { orderId } : {}),
-      };
-      return {
-        ...prev,
-        request: newRequest,
-      };
-    });
-  }, [signedIn, liveWave, liveOrder]);
+    if (!signedIn || !liveWave || liveWave.id === closedWave) return;
+    if (liveWave.status === "expired" || liveWave.status === "declined" || liveOrder?.cancelled_at) {
+      updateState(prev => ({ ...prev, request: null }));
+      return;
+    }
+    updateState(prev => ({ ...prev, request: waveView(liveWave, liveOrder) }));
+  }, [signedIn, liveWave, liveOrder, closedWave]);
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = runners.filter((r) => r.online);
@@ -275,7 +255,7 @@ function BuyerPage() {
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
   // so the map stays the hero; it expands again when the wave needs a decision.
   useEffect(() => {
-    setIsCollapsed(hasRequest && request?.status === "accepted");
+    setIsCollapsed(hasRequest && (request?.status === "accepted" || request?.status === "delivering"));
   }, [hasRequest, request?.status]);
 
   const best = ranked[0] ?? null;
@@ -355,29 +335,26 @@ function BuyerPage() {
     }
   }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline]);
 
-  const waveAgain = useCallback(
-    () =>
-      updateState((prev) => ({
-        ...prev,
-        request: prev.request ? { ...prev.request, createdAt: Date.now() } : null,
-      })),
-    [],
-  );
-
-  const cancel = useCallback(() => {
-    console.log(`\n  ORDER CANCELLED by buyer at ${new Date().toLocaleTimeString()}`);
-    cancelRequest();
-    setQty({});
-    setWish("");
-    toast.info("Request cancelled");
-  }, []);
-
+  const waveAgain = useCallback(async () => {
+    if (!request) return;
+    try {
+      await actions.createWave.mutateAsync({ items: request.items, wish: request.wish, note: request.note, lat: buyer.lat, lng: buyer.lng });
+      toast.success("New wave sent");
+    } catch { toast.error("Could not send another wave"); }
+  }, [request, actions.createWave, buyer]);
+  const cancel = useCallback(async () => {
+    if (!request?.waveId) return;
+    try {
+      await actions.cancelWave.mutateAsync(request.waveId);
+      setClosedWave(request.waveId);
+      cancelRequest(); setQty({}); setWish("");
+      toast.info("Request cancelled");
+    } catch { toast.error("This order has payment or delivery in progress and cannot be cancelled"); }
+  }, [request, actions.cancelWave]);
   const finish = useCallback(() => {
-    archiveRequest();
-    setQty({});
-    setWish("");
-  }, []);
-
+    setClosedWave(request?.waveId ?? null);
+    archiveRequest(); setQty({}); setWish("");
+  }, [request]);
   const timedOut =
     request?.status === "waving" && Date.now() - (request?.createdAt ?? 0) > WAVE_TIMEOUT_MS;
 
@@ -767,7 +744,7 @@ function BuyerPage() {
                   <p className="font-semibold">Waving… waiting for a trader</p>
                 </>
               )}
-              {request.status === "accepted" && (
+              {(request.status === "accepted" || request.status === "delivering") && (
                 <>
                   <MapPin className="size-5 text-primary" />
                   <div>
@@ -787,7 +764,17 @@ function BuyerPage() {
                   </div>
                 </>
               )}
-              {request.status === "delivered" && (
+              {liveOrder && liveOrder.status === "accepted" && liveOrder.payment_method !== "cash" && (
+              <div className="space-y-2">
+                <Button className="w-full" onClick={() => setPayOpen(true)}>Pay with MTN MoMo</Button>
+                <Button variant="outline" className="w-full" onClick={async () => {
+                  try { await actions.chooseCash.mutateAsync(liveOrder.id); toast.success("Cash on delivery selected"); }
+                  catch { toast.error("Could not change payment method"); }
+                }}>Cash on delivery</Button>
+              </div>
+            )}
+            {liveOrder?.payment_method === "cash" && request.status !== "paid" && <p className="text-sm text-muted-foreground">Cash on delivery selected</p>}
+            {request.status === "delivered" && (
                 <>
                   <CheckCircle2 className="size-5 text-primary" />
                   <p className="font-semibold">Delivered — time to pay</p>
@@ -835,6 +822,16 @@ function BuyerPage() {
               </div>
             )}
 
+            {liveOrder && liveOrder.status === "accepted" && liveOrder.payment_method !== "cash" && (
+              <div className="space-y-2">
+                <Button className="w-full" onClick={() => setPayOpen(true)}>Pay with MTN MoMo</Button>
+                <Button variant="outline" className="w-full" onClick={async () => {
+                  try { await actions.chooseCash.mutateAsync(liveOrder.id); toast.success("Cash on delivery selected"); }
+                  catch { toast.error("Could not change payment method"); }
+                }}>Cash on delivery</Button>
+              </div>
+            )}
+            {liveOrder?.payment_method === "cash" && request.status !== "paid" && <p className="text-sm text-muted-foreground">Cash on delivery selected</p>}
             {request.status === "delivered" && (
               <>
                 <Button
@@ -856,12 +853,16 @@ function BuyerPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    payCash();
-                    toast.success("Cash payment recorded");
+                  onClick={async () => {
+                    if (!request.orderId) return;
+                    try {
+                      if (liveOrder?.payment_method === "cash") await actions.confirmCash.mutateAsync(request.orderId);
+                      else await actions.advanceOrder.mutateAsync({ orderId: request.orderId, status: "completed" });
+                      toast.success("Order completed");
+                    } catch { toast.error("Could not complete this order"); }
                   }}
                 >
-                  I paid cash
+                  {liveOrder?.payment_method === "cash" ? "I paid cash" : "Confirm received"}
                 </Button>
               </>
             )}
@@ -929,8 +930,7 @@ function BuyerPage() {
                           variant="ghost"
                           className="h-7 text-xs text-muted-foreground hover:text-destructive"
                           onClick={() => {
-                            refundOrder(order.id);
-                            toast.success(`Refunded ${formatRand(order.total)}`);
+                            toast.info("Refunds require a review with your trader; no money has been refunded");
                           }}
                         >
                           Request Refund
@@ -980,7 +980,7 @@ function BuyerPage() {
           const orderId = request?.orderId;
           if (!orderId) {
             toast.error("Your trader has to accept the order before you can pay");
-            return;
+            throw new Error("order-not-accepted");
           }
           setPayLoading(true);
           try {
@@ -989,7 +989,7 @@ function BuyerPage() {
             if (started.status === "failed") {
               toast.error("MTN MoMo turned the request down — try again");
               setPayLoading(false);
-              return;
+              throw new Error("payment-rejected");
             }
 
             toast.success(`MoMo request sent to ${msisdn} — approve it on your phone`);
@@ -1005,15 +1005,12 @@ function BuyerPage() {
                   return {
                     ...prev,
                     request: { ...prev.request, status: "paid", paidWith: "wave-pay" },
-                    wallet: {
-                      ...prev.wallet,
-                      stokvel_credit: Math.round((prev.wallet.stokvel_credit + 0.5) * 100) / 100,
-                    },
+
                   };
                 });
                 actions.refresh();
                 toast.success("Payment confirmed! Enjoy your veggies");
-                toast.success("+R0.50 Mdeko Community Credit earned");
+
                 setPayLoading(false);
                 return;
               }
@@ -1026,7 +1023,8 @@ function BuyerPage() {
             toast.error("Payment timeout — check your MoMo app and try again");
           } catch (err) {
             console.error("[momo] payment error", err);
-            toast.error("Payment failed — please try again");
+            toast.error(err instanceof Error && err.message.includes("momo-not-configured") ? "MTN MoMo is not connected yet. Choose cash on delivery." : "Payment failed — please try again");
+            throw err;
           }
           setPayLoading(false);
         }}

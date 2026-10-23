@@ -6,43 +6,31 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { catalogWith, formatRand, type CustomItem, type StockLine } from "@/lib/veggie-data";
-import { setStock } from "@/lib/veggie-store";
+import { saveTraderStock } from "@/lib/use-marketplace";
 
 type Props = {
   runnerId: string;
   stock: StockLine[];
   customItems: CustomItem[];
   highlightItemId?: string | null;
+  onSaved?: () => void;
 };
 
-export default function StockEditor({ runnerId, stock, customItems, highlightItemId }: Props) {
+export default function StockEditor({ runnerId, stock, customItems, highlightItemId, onSaved }: Props) {
   const catalog = catalogWith(customItems);
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   const lineFor = (id: string) => stock.find((s) => s.itemId === id) ?? null;
 
-  const toggle = (id: string, on: boolean, fallback: number) => {
-    const next = on
-      ? [...stock, { itemId: id, price: fallback }]
-      : stock.filter((s) => s.itemId !== id);
-    setStock(runnerId, next);
+  const toggle = async (id: string, on: boolean, fallback: number) => {
+    try { await saveTraderStock(runnerId, id, lineFor(id)?.price ?? fallback, on, 99); onSaved?.(); }
+    catch { toast.error("Could not save stock"); }
   };
-
-  const commitPrice = (id: string, raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) return; // empty — ignore, keep current price
-    const value = Number(trimmed);
-    if (!Number.isFinite(value) || value <= 0) {
-      toast.error("Enter a valid price in Rands");
-      return;
-    }
-    setStock(
-      runnerId,
-      stock.map((s) => (s.itemId === id ? { ...s, price: Math.round(value * 100) / 100 } : s)),
-    );
-    // Keep draft in sync with saved value so field doesn't flicker
-    setDraft((prev) => ({ ...prev, [id]: String(Math.round(value * 100) / 100) }));
-    toast.success(`Price updated to R${value.toFixed(2)}`);
+  const commitPrice = async (id: string, raw: string) => {
+    const value = Number(raw.trim());
+    if (!Number.isFinite(value) || value <= 0) { toast.error("Enter a valid price in Rands"); return; }
+    try { await saveTraderStock(runnerId, id, Math.round(value * 100) / 100, true, 99); onSaved?.(); toast.success("Price saved"); }
+    catch { toast.error("Could not save price"); }
   };
 
   return (
