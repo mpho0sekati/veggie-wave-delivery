@@ -34,23 +34,24 @@ export function useSession(): Session {
       }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("name, role")
+        .select("name")
         .eq("id", user.id)
         .maybeSingle();
+      const { data: savedRole } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
       if (cancelled) return;
       setSession({
         loading: false,
         userId: user.id,
         email: user.email ?? null,
         name: profile?.name ?? "",
-        role: (profile?.role as Role | undefined) ?? null,
+        role: (savedRole?.role as Role | undefined) ?? null,
       });
     };
 
     void load();
 
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") void load();
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") setTimeout(() => void load(), 0);
     });
 
     return () => {

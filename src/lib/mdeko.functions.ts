@@ -229,6 +229,10 @@ export const startMomoPayment = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<PaymentResult> => {
+    const { readMomoConfig } = await import("./momo.server");
+    readMomoConfig();
+    const { data: owned } = await context.supabase.from("wave_orders").select("id, payment_method, cancelled_at").eq("id", data.orderId).eq("buyer_id", context.userId).maybeSingle();
+    if (!owned || owned.cancelled_at || owned.payment_method === "cash") throw new Error("order-not-payable");
     const db = await admin();
     const reference = crypto.randomUUID();
     const externalId = `mdeko-${data.orderId.slice(0, 8)}-${Date.now()}`;
@@ -376,6 +380,8 @@ export const recordCourierPosition = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<CourierPosition> => {
+    const { data: owned } = await context.supabase.from("wave_orders").select("id").eq("id", data.orderId).eq("trader_id", context.userId).eq("status", "delivering").is("cancelled_at", null).maybeSingle();
+    if (!owned) throw new Error("not-your-active-delivery");
     const db = await admin();
     const { data: position, error } = await db
       .from("courier_positions")
@@ -520,4 +526,29 @@ export const getRoute = createServerFn({ method: "POST" })
     }
 
     return route;
+  });
+
+export const chooseCash = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const db = await admin();
+    const { data: order, error } = await db.rpc("choose_cash", { _order_id: data.orderId, _buyer: context.userId });
+    if (error) throw new Error(error.message);
+    return order as unknown as Order;
+  });
+export const confirmCash = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const db = await admin();
+    const { data: order, error } = await db.rpc("confirm_cash", { _order_id: data.orderId, _buyer: context.userId });
+    if (error) throw new Error(error.message);
+    return order as unknown as Order;
+  });
+export const cancelWave = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ waveId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const db = await admin();
+    const { error } = await db.rpc("cancel_marketplace_wave", { _wave_id: data.waveId, _actor: context.userId });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

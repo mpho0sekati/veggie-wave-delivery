@@ -10,7 +10,7 @@ import {
 } from "./veggie-data";
 
 export type WaveStatus =
-  "waving" | "accepted" | "delivered" | "paid" | "cancelled" | "failed" | "refunded";
+  "waving" | "accepted" | "delivering" | "delivered" | "paid" | "cancelled" | "failed" | "refunded";
 export type PaidWith = "wave-pay" | "cash";
 
 export type WaveRequest = {
@@ -55,7 +55,7 @@ const MAX_DEMAND = 50;
 
 function initialState(): AppState {
   return {
-    runners: SEED_RUNNERS,
+    runners: [],
     request: null,
     orders: [],
     demand: [],
@@ -307,7 +307,7 @@ export function useAppState(): AppState;
 export function useAppState<T>(selector: (s: AppState) => T): T;
 export function useAppState<T = AppState>(selector?: (s: AppState) => T): T | AppState {
   const [state, setState] = useState<T | AppState>(() =>
-    selector ? selector(read()) : initialState(),
+    selector ? selector(initialState()) : initialState(),
   );
 
   // Track the last selected value to avoid unnecessary re-renders when a

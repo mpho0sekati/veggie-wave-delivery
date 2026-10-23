@@ -43,7 +43,7 @@ function OnboardingPage() {
         navigate({ to: "/auth" });
         return;
       }
-      const { error } = await supabase.from("profiles").upsert({ id: uid, name: name.trim(), role });
+      const { error } = await supabase.rpc("setup_marketplace_profile", { _name: name.trim(), _role: role });
       if (error) throw error;
       setUserRole(role);
       toast.success(role === "buyer" ? "Welcome! You're all set." : "Welcome trader! Set up your stock next.");

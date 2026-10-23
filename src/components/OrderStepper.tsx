@@ -49,7 +49,7 @@ export default function OrderStepper({ status }: Props) {
     );
   }
 
-  const current = STEPS.findIndex((s) => s.key === status);
+  const current = STEPS.findIndex((s) => s.key === (status === "delivering" ? "accepted" : status));
   return (
     <ol className="flex items-start gap-1" aria-label="Order progress">
       {STEPS.map((step, index) => {

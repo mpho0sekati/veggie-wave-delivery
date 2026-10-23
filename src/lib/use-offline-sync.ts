@@ -9,6 +9,7 @@ import {
   markAsSyncing,
   type QueuedOrder,
 } from "./offline-queue";
+import { useSession } from "./use-session";
 import { useOnline } from "./use-online";
 
 const ATTEMPTS_PER_FLUSH = 3;
@@ -36,6 +37,7 @@ export function useOfflineSync(
   onSynced: (order: QueuedOrder, waveId: string, createdAt: string) => void,
 ) {
   const online = useOnline();
+  const session = useSession();
   const run = useServerFn(createWave);
   const busy = useRef(false);
   const cb = useRef(onSynced);
@@ -43,7 +45,7 @@ export function useOfflineSync(
 
   const flush = useCallback(async () => {
     if (busy.current) return;
-    const pending = getOfflineQueue().filter((o) => o.status === "pending");
+    const pending = getOfflineQueue().filter((o) => o.status === "pending" || o.status === "syncing");
     if (!pending.length) return;
 
     busy.current = true;
@@ -89,6 +91,6 @@ export function useOfflineSync(
   // Flush when the connection returns, and once on load in case the app was
   // reopened with saved requests while already online.
   useEffect(() => {
-    if (online) void flush();
-  }, [online, flush]);
+    if (online && session.userId) void flush();
+  }, [online, session.userId, flush]);
 }
