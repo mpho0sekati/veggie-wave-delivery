@@ -5,10 +5,9 @@ import { BUYER_POSITION, type Runner, formatDistance } from "@/lib/veggie-data";
 import type { TrackedPosition } from "@/lib/use-courier-tracking";
 import type { RouteResult } from "@/lib/routing.server";
 import { animateMarker } from "@/lib/marker-animator";
-import NavigationTracker, { type NavigationStep } from "@/components/NavigationTracker";
 import RouteLoadingBanner from "@/components/RouteLoadingBanner";
 import { createLogger } from "@/lib/logger";
-import { WifiOff } from "lucide-react";
+import { Navigation2, WifiOff } from "lucide-react";
 
 const mapLogger = createLogger("VeggieMap");
 
@@ -24,8 +23,6 @@ type Props = {
   isGpsDisconnected?: boolean;
   /** Route calculation loading state */
   routeLoading?: boolean;
-  /** Navigation milestones steps */
-  navigationSteps?: NavigationStep[];
   /** Route polyline and steps for seller navigation */
   route?: RouteResult | null;
   /** Bearings for compass fallback when no route */
@@ -94,7 +91,6 @@ export default function VeggieMap({
   courierPosition,
   isGpsDisconnected = false,
   routeLoading = false,
-  navigationSteps,
   route,
   bearing,
   onPickPosition,
@@ -105,11 +101,43 @@ export default function VeggieMap({
   const courierMarkerRef = useRef<L.Marker | null>(null);
   const courierLineRef = useRef<L.Polyline | null>(null);
   const routeLineRef = useRef<L.Polyline | null>(null);
-  const compassRef = useRef<HTMLDivElement | null>(null);
   const pickRef = useRef(onPickPosition);
   pickRef.current = onPickPosition;
   const buyer = buyerPosition ?? BUYER_POSITION;
   const [followMode, setFollowMode] = useState(false);
+
+  // --- Uber-style camera management -----------------------------------------
+  // The camera fits each phase exactly once; after that the user owns the view.
+  const programmaticMoveRef = useRef(false);
+  const userMovedRef = useRef(false);
+  const runnersFittedRef = useRef(false);
+  const courierFittedRef = useRef(false);
+  const fittedRouteSigRef = useRef<string | null>(null);
+
+  /** Fit bounds while flagging the move as programmatic so we don't count it as user intent. */
+  const fitSmooth = (map: L.Map, bounds: L.LatLngBounds) => {
+    if (!bounds.isValid()) return;
+    programmaticMoveRef.current = true;
+    map.fitBounds(bounds, {
+      animate: true,
+      duration: 0.6,
+      paddingTopLeft: [40, 110], // clear the floating header
+      paddingBottomRight: [40, 240], // clear the bottom drawer
+    });
+    map.once("moveend", () => {
+      programmaticMoveRef.current = false;
+    });
+  };
+
+  /** Pan smoothly so both the courier and the buyer stay in view — no jarring refits. */
+  const keepBothInView = (map: L.Map, courier: { lat: number; lng: number }) => {
+    const bounds = L.latLngBounds([
+      [courier.lat, courier.lng],
+      [buyer.lat, buyer.lng],
+    ]);
+    const view = map.getBounds().pad(-0.08);
+    if (!view.contains(bounds)) fitSmooth(map, bounds);
+  };
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -128,6 +156,15 @@ export default function VeggieMap({
     };
     map.on("click", handleMapPick);
     map.on("contextmenu", handleMapPick);
+    // Once the user pans/zooms themselves, the camera stops auto-refitting.
+    map.on("dragstart", () => {
+      userMovedRef.current = true;
+      setFollowMode(false);
+      mapLogger.debug("User took camera control");
+    });
+    map.on("zoomstart", () => {
+      if (!programmaticMoveRef.current) userMovedRef.current = true;
+    });
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "© OpenStreetMap contributors",
@@ -153,14 +190,27 @@ export default function VeggieMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Explicit recenter (header crosshair) hands camera control back to the app.
   useEffect(() => {
     const map = mapRef.current;
-    if (map) map.setView([buyer.lat, buyer.lng], map.getZoom(), { animate: true });
+    if (!map || recenterTrigger === 0) return;
+    userMovedRef.current = false;
+    runnersFittedRef.current = false;
+    courierFittedRef.current = false;
+    fittedRouteSigRef.current = null;
+    map.setView([buyer.lat, buyer.lng], 15, { animate: true });
   }, [buyer.lat, buyer.lng, recenterTrigger]);
 
-  // Animate courier marker when position or disconnect status updates
+  // Courier tracking: one-time fit on arrival, then only nudge when someone leaves the view.
   useEffect(() => {
-    if (!courierPosition || !mapRef.current) return;
+    if (!courierPosition) {
+      // Delivery ended — rearm so the next delivery gets its one-time fit.
+      courierFittedRef.current = false;
+      return;
+    }
+    const map = mapRef.current;
+    const layer = layerRef.current;
+    if (!map || !layer) return;
     mapLogger.info("Courier position updated", {
       lat: courierPosition.lat,
       lng: courierPosition.lng,
@@ -169,35 +219,23 @@ export default function VeggieMap({
       isGpsDisconnected,
     });
 
-    const map = mapRef.current;
-    const layer = layerRef.current;
-    if (!layer) return;
-
-    // Remove existing courier line
     if (courierLineRef.current) {
       layer.removeLayer(courierLineRef.current);
       courierLineRef.current = null;
     }
 
-    // Create or update courier marker with smooth frame-by-frame LERP animation (2s)
     if (!courierMarkerRef.current) {
       mapLogger.debug("Creating courier marker");
-      const courierMarker = L.marker([courierPosition.lat, courierPosition.lng], {
+      courierMarkerRef.current = L.marker([courierPosition.lat, courierPosition.lng], {
         icon: courierIcon(isGpsDisconnected),
       }).addTo(layer);
-      courierMarkerRef.current = courierMarker;
     } else {
       courierMarkerRef.current.setIcon(courierIcon(isGpsDisconnected));
       // Smooth 2-second LERP animation for marker position
-      mapLogger.debug("Animating courier marker via LERP", {
-        from: courierMarkerRef.current.getLatLng(),
-        to: [courierPosition.lat, courierPosition.lng],
-      });
       animateMarker(courierMarkerRef.current, courierPosition.lat, courierPosition.lng, 2000);
     }
 
-    // Create line from courier to buyer
-    const line = L.polyline(
+    courierLineRef.current = L.polyline(
       [
         [courierPosition.lat, courierPosition.lng],
         [buyer.lat, buyer.lng],
@@ -205,21 +243,21 @@ export default function VeggieMap({
       { color: "oklch(0.55 0.25 145)", weight: 3, dashArray: "6 8" },
     ).addTo(layer);
 
-    courierLineRef.current = line;
-
-    // Auto-center if follow mode is on, otherwise fit bounds once
-    const bounds = L.latLngBounds([
-      [courierPosition.lat, courierPosition.lng],
-      [buyer.lat, buyer.lng],
-    ]);
-
     if (followMode) {
-      mapLogger.debug("Follow mode: fitting bounds to view");
-      map.fitBounds(bounds, { animate: true, duration: 0.5, padding: [40, 40] });
+      keepBothInView(map, courierPosition);
+    } else if (!courierFittedRef.current && !userMovedRef.current) {
+      courierFittedRef.current = true;
+      fitSmooth(
+        map,
+        L.latLngBounds([
+          [courierPosition.lat, courierPosition.lng],
+          [buyer.lat, buyer.lng],
+        ]),
+      );
     }
   }, [courierPosition, buyer.lat, buyer.lng, followMode, isGpsDisconnected]);
 
-  // Render route polyline when available
+  // Route line: drawn on every new route, camera fitted once per distinct route path.
   useEffect(() => {
     if (!route || !mapRef.current || !layerRef.current) return;
     mapLogger.info("Route received", {
@@ -231,16 +269,12 @@ export default function VeggieMap({
     const layer = layerRef.current;
     const map = mapRef.current;
 
-    // Remove existing route line
     if (routeLineRef.current) {
-      mapLogger.debug("Removing old route line");
       layer.removeLayer(routeLineRef.current);
       routeLineRef.current = null;
     }
 
-    // Draw new route line
-    mapLogger.debug("Drawing route polyline");
-    const line = L.polyline(route.polyline, {
+    routeLineRef.current = L.polyline(route.polyline, {
       color: "oklch(0.55 0.15 62)",
       weight: 5,
       opacity: 0.8,
@@ -248,24 +282,21 @@ export default function VeggieMap({
       lineJoin: "round",
     }).addTo(layer);
 
-    routeLineRef.current = line;
+    const bounds = L.latLngBounds(route.polyline);
+    if (!bounds.isValid()) return;
+    const first = route.polyline[0];
+    const last = route.polyline[route.polyline.length - 1];
+    const signature = `${first?.[0]},${first?.[1]}|${last?.[0]},${last?.[1]}`;
+    if (signature === fittedRouteSigRef.current) return;
+    fittedRouteSigRef.current = signature;
 
-    // Fit map to show route if it's valid
-    const routeBounds = L.latLngBounds(route.polyline);
-    if (routeBounds.isValid()) {
-      // Only fit if we have both courier and buyer positions
-      if (courierPosition) {
-        const combinedBounds = routeBounds.extend([
-          [courierPosition.lat, courierPosition.lng],
-          [buyer.lat, buyer.lng],
-        ]);
-        mapLogger.debug("Fitting combined bounds to view");
-        map.fitBounds(combinedBounds, { animate: true, duration: 0.5, padding: [40, 40] });
-      } else {
-        mapLogger.debug("Fitting route bounds to view");
-        map.fitBounds(routeBounds, { animate: true, duration: 0.5, padding: [40, 40] });
-      }
+    if (courierPosition) {
+      bounds.extend([
+        [courierPosition.lat, courierPosition.lng],
+        [buyer.lat, buyer.lng],
+      ]);
     }
+    fitSmooth(map, bounds);
   }, [route, courierPosition, buyer.lat, buyer.lng]);
 
   const runnersKey = useMemo(
@@ -313,14 +344,6 @@ export default function VeggieMap({
           (r.lng - buyer.lng) * 111 * Math.cos((buyer.lat * Math.PI) / 180),
         ),
       );
-      mapLogger.debug("Rendering runner", {
-        id: r.id,
-        name: r.name,
-        active,
-        lat: r.lat,
-        lng: r.lng,
-        rating: r.rating,
-      });
       const marker = L.marker([r.lat, r.lng], {
         icon: runnerIcon(active, r.name, r.rating, r.avatar),
       })
@@ -334,7 +357,6 @@ export default function VeggieMap({
         );
 
       if (active) {
-        mapLogger.debug("Drawing line to active runner");
         L.polyline(
           [
             [r.lat, r.lng],
@@ -345,15 +367,20 @@ export default function VeggieMap({
       }
     });
 
-    // Smart bounds calculation: fit buyer and all online traders in view if available
+    // Frame the market exactly once on first paint; after that the user owns the camera.
     const map = mapRef.current;
-    if (map && !courierPosition && !route) {
+    if (
+      map &&
+      !runnersFittedRef.current &&
+      !courierPosition &&
+      !route &&
+      !userMovedRef.current &&
+      onlineRunners.length > 0
+    ) {
+      runnersFittedRef.current = true;
       const points: [number, number][] = [[buyer.lat, buyer.lng]];
       onlineRunners.forEach((r) => points.push([r.lat, r.lng]));
-      if (points.length > 1) {
-        const bounds = L.latLngBounds(points);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: true });
-      }
+      fitSmooth(map, L.latLngBounds(points));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runners is intentionally omitted; runnersKey is its stable proxy
   }, [runnersKey, activeRunnerId, waving, buyer.lat, buyer.lng]);
@@ -364,103 +391,28 @@ export default function VeggieMap({
       className="h-full w-full relative overflow-hidden"
       aria-label="Map of nearby veggie runners"
     >
-      {/* Glassmorphic Route Loading Banner */}
-      <RouteLoadingBanner isLoading={routeLoading} />
+      {/* Route calculation banner, tucked below the floating header */}
+      <div className="absolute top-20 left-1/2 z-500 w-[92%] max-w-sm -translate-x-1/2">
+        <RouteLoadingBanner isLoading={routeLoading} />
+      </div>
 
-      {/* Navigation Progress Tracker Overlay (top left / overlay) */}
-      {navigationSteps && navigationSteps.length > 0 && (
-        <div className="absolute top-16 left-4 z-500">
-          <NavigationTracker steps={navigationSteps} />
-        </div>
-      )}
-
-      {/* Recenter button - top left */}
-      <button
-        onClick={() => {
-          mapRef.current?.setView([buyer.lat, buyer.lng], 15, { animate: true });
-          setFollowMode(false);
-        }}
-        className="absolute top-4 left-4 z-500 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border"
-        aria-label="Recenter map"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-      </button>
-
-      {/* Follow toggle - top right */}
+      {/* Follow-the-courier toggle — Uber keeps this single control on the map */}
       {courierPosition && (
         <button
           onClick={() => setFollowMode(!followMode)}
-          className={`absolute top-4 right-4 z-500 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-lg hover:bg-background transition-colors border ${
+          className={`absolute top-20 left-4 z-500 flex size-10 items-center justify-center rounded-full border bg-background/95 shadow-lg backdrop-blur-sm transition-colors hover:bg-background ${
             followMode ? "ring-2 ring-primary" : ""
           }`}
           aria-label={followMode ? "Stop following courier" : "Follow courier"}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 14l-7 7m0 0l-7-7m7 7V3"
-            />
-          </svg>
+          <Navigation2 className={`size-5 ${followMode ? "text-primary" : ""}`} />
         </button>
       )}
 
-      {/* Status indicator - bottom center */}
-      {courierPosition === null && activeRunnerId && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border z-500">
-          <p className="text-sm text-muted-foreground">Waiting for seller location...</p>
-        </div>
-      )}
-
-      {/* GPS Disconnected Slide-Up Banner */}
-      {isGpsDisconnected && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-600 w-[90%] max-w-sm rounded-xl bg-destructive/15 border border-destructive/40 backdrop-blur-md px-4 py-2.5 shadow-xl animate-slide-up flex items-center justify-center gap-2.5 text-destructive pointer-events-auto">
-          <WifiOff className="size-4 animate-pulse shrink-0" />
-          <span className="text-xs font-semibold tracking-wide">Reconnecting to live GPS...</span>
-        </div>
-      )}
-
-      {/* Courier info panel - bottom left */}
-      {courierPosition && (
-        <div className="absolute bottom-4 left-4 z-500 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary text-xl">🚴</span>
-            </div>
-            <div>
-              <p className="font-semibold text-sm">Courier en route</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDistance(courierPosition.distanceKm)} away
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-border/50">
-            <p className="text-sm">
-              <span className="font-medium">ETA:</span> ~{courierPosition.etaMinutes} min
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Compass fallback - top right when no route */}
+      {/* Compass fallback while the seller has no routed path yet */}
       {bearing != null && !route && courierPosition && (
         <div
-          ref={compassRef}
-          className="absolute top-20 right-4 bg-background/95 backdrop-blur-sm rounded-xl w-16 h-16 flex items-center justify-center shadow-lg border z-500"
+          className="absolute top-20 right-4 z-500 flex size-16 items-center justify-center rounded-xl border bg-background/95 shadow-lg backdrop-blur-sm"
           style={{ transform: `rotate(${bearing}deg)` }}
         >
           <div className="text-2xl" style={{ transform: `rotate(${-bearing}deg)` }}>
@@ -472,26 +424,14 @@ export default function VeggieMap({
         </div>
       )}
 
-      {/* Route step instructions - bottom right */}
-      {route && route.steps.length > 0 && (
-        <div className="absolute bottom-4 right-4 z-500 bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border max-w-[320px]">
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-primary text-xs">↗</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1">Next step</p>
-              <p className="font-medium text-sm">{route.steps[0].instruction}</p>
-              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
-                <span>{Math.round(route.steps[0].distance)}m</span>
-                <span>{Math.round(route.steps[0].duration / 60)}min</span>
-              </div>
-              {route.steps.length > 1 && (
-                <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                  +{route.steps.length - 1} more steps
-                </p>
-              )}
-            </div>
+      {/* GPS hiccup banner, top center so the drawer never hides it */}
+      {isGpsDisconnected && (
+        <div className="absolute top-20 left-1/2 z-600 w-[90%] max-w-sm -translate-x-1/2 animate-slide-up rounded-xl border border-destructive/40 bg-destructive/15 px-4 py-2.5 shadow-xl backdrop-blur-md">
+          <div className="flex items-center justify-center gap-2.5 text-destructive">
+            <WifiOff className="size-4 shrink-0 animate-pulse" />
+            <span className="text-xs font-semibold tracking-wide">
+              Reconnecting to live GPS…
+            </span>
           </div>
         </div>
       )}
