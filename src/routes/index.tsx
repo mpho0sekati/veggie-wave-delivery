@@ -331,43 +331,52 @@ function BuyerPage() {
         </ClientOnly>
       </div>
 
-      {/* Floating glassmorphic top header overlay */}
-      <header className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between rounded-2xl border bg-background/85 px-4 py-3 shadow-lg backdrop-blur-md">
-        <BrandMark
-          subtitle={
-            geoStatus === "locating"
-              ? "Finding your location…"
-              : buyer.located
-                ? `${online.length} traders nearby`
-                : `${online.length} traders · location disabled`
-          }
-        />
-        <div className="flex items-center gap-2">
-          <Button asChild variant="secondary" size="sm" className="rounded-xl shadow-sm">
-            <Link to="/runner">
-              <Store /> Trader
-            </Link>
-          </Button>
-          {signedIn ? (
+      {/* Uber-style floating round menu button */}
+      <header className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
-              variant="ghost"
               size="icon"
-              className="rounded-xl"
-              aria-label="Sign out"
-              onClick={async () => {
-                await signOutEverywhere();
-                toast.success("Signed out");
-                navigate({ to: "/auth" });
-              }}
+              variant="secondary"
+              className="size-12 rounded-full border bg-background shadow-lg"
+              aria-label="Open menu"
             >
-              <LogOut className="size-4" />
+              <Menu className="size-6" />
             </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm" className="rounded-xl">
-              <Link to="/auth">Sign in</Link>
-            </Button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <div className="px-2 py-2">
+              <BrandMark
+                subtitle={
+                  geoStatus === "locating"
+                    ? "Finding your location…"
+                    : `${online.length} traders nearby`
+                }
+              />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/runner">
+                <Store /> I'm a trader
+              </Link>
+            </DropdownMenuItem>
+            {signedIn ? (
+              <DropdownMenuItem
+                onClick={async () => {
+                  await signOutEverywhere();
+                  toast.success("Signed out");
+                  navigate({ to: "/auth" });
+                }}
+              >
+                <LogOut /> Sign out
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem asChild>
+                <Link to="/auth">Sign in</Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {/* Floating map controls */}
@@ -441,6 +450,20 @@ function BuyerPage() {
 
         {!request && (
           <>
+            <p className="mt-2 border-b pb-3 text-center text-lg font-semibold">
+              {greeting()}
+              {session.name ? `, ${session.name.split(" ")[0]}` : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                document.getElementById("describe-order")?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
+            >
+              What veggies do you need?
+              <Hand className="size-5 text-primary" />
+            </button>
             <div className="mx-4 mt-4 rounded-2xl bg-secondary px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-sm font-medium">
