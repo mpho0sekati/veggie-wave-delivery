@@ -1,10 +1,10 @@
-/**
- * Mdeko Finance — My Money page
+﻿/**
+ * Mdeko Finance â€” My Money page
  *
  * Design principles:
  * - No emojis. Lucide icons only.
  * - Youth-first language: "Clock it", "Stack it", "You're winning"
- * - Dark hero score card — feels like a bank card, not a form
+ * - Dark hero score card â€” feels like a bank card, not a form
  * - High contrast, large touch targets, mobile-first
  * - Multilingual: EN / Zulu / Sesotho
  * - Every section has a purpose a Grade 9 student understands instantly
@@ -34,6 +34,10 @@ import {
   ChevronUp,
   Globe,
   Star,
+  Building2,
+  Link2,
+  FileText,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,15 +47,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSession } from "@/lib/use-session";
-import { useFinanceProfile, useSmartTip, useSavingsJar } from "@/lib/use-finance";
+import { useFinanceProfile, useSmartTip, useSavingsJar, useBankBoost, useBankLink, useExportRecord } from "@/lib/use-finance";
 import BrandMark from "@/components/BrandMark";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({
     meta: [
-      { title: "My Money — Mdeko" },
+      { title: "My Money â€” Mdeko" },
       { name: "description", content: "Your financial identity on Mdeko." },
-      { property: "og:title", content: "My Money — Mdeko" },
+      { property: "og:title", content: "My Money â€” Mdeko" },
       { property: "og:description", content: "Your trading history and savings on Mdeko." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -60,7 +64,7 @@ export const Route = createFileRoute("/finance")({
   component: FinancePage,
 });
 
-/* ─── helpers ─── */
+/* â”€â”€â”€ helpers â”€â”€â”€ */
 function formatRand(n: number) {
   return `R${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }
@@ -68,7 +72,7 @@ function formatMonthYear(iso: string) {
   return new Date(iso).toLocaleDateString("en-ZA", { month: "long", year: "numeric" });
 }
 
-/* ─── tier config — icons, slogans, colours ─── */
+/* â”€â”€â”€ tier config â€” icons, slogans, colours â”€â”€â”€ */
 type Tier = "Just Starting" | "Getting Going" | "Trusted" | "Champion";
 
 const TIER_CONFIG: Record<
@@ -91,7 +95,7 @@ const TIER_CONFIG: Record<
   },
   Trusted: {
     icon: ShieldCheck,
-    slogan: "Clock it — you're trusted.",
+    slogan: "Clock it â€” you're trusted.",
     color: "text-primary",
     bg: "bg-primary/5",
     ring: "ring-primary/30",
@@ -112,7 +116,7 @@ function getTierKey(tier: string): Tier {
   return "Just Starting";
 }
 
-/* ─── language ─── */
+/* â”€â”€â”€ language â”€â”€â”€ */
 type Lang = "en" | "zu" | "st";
 
 const L: Record<Lang, Record<string, string>> = {
@@ -202,7 +206,7 @@ const L: Record<Lang, Record<string, string>> = {
   },
 };
 
-/* ════════════════ SHARE MODAL ════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SHARE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function ShareModal({
   name, score, tier, totalTraded, memberSince, onClose, t,
 }: {
@@ -229,7 +233,7 @@ function ShareModal({
           </Button>
         </div>
 
-        {/* The card itself — screenshot-ready */}
+        {/* The card itself â€” screenshot-ready */}
         <div className="rounded-2xl bg-foreground p-5 text-background shadow-glow">
           <div className="flex items-center justify-between mb-5">
             <span className="text-xs font-bold tracking-widest text-background/50 uppercase">
@@ -267,7 +271,7 @@ function ShareModal({
   );
 }
 
-/* ════════════════ SCORE HERO CARD ════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SCORE HERO CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function ScoreCard({
   score, totalTraded, totalCommission, isLoading, t,
 }: {
@@ -379,7 +383,7 @@ function ScoreCard({
   );
 }
 
-/* ════════════════ AI TIP CARD ════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AI TIP CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function SmartTipCard({ tip, isLoading, t }: {
   tip: string | null; isLoading: boolean; t: Record<string, string>;
 }) {
@@ -406,7 +410,7 @@ function SmartTipCard({ tip, isLoading, t }: {
               </div>
             ) : (
               <p className="text-base font-semibold text-foreground leading-snug">
-                {tip ?? "Keep trading — every order builds your financial record on Mdeko."}
+                {tip ?? "Keep trading â€” every order builds your financial record on Mdeko."}
               </p>
             )}
           </div>
@@ -416,7 +420,7 @@ function SmartTipCard({ tip, isLoading, t }: {
   );
 }
 
-/* ════════════════ STACK IT — SAVINGS CARD ════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STACK IT â€” SAVINGS CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function StackCard({ role, isLoading, t }: {
   role: "buyer" | "trader" | null; isLoading: boolean; t: Record<string, string>;
 }) {
@@ -500,7 +504,7 @@ function StackCard({ role, isLoading, t }: {
   );
 }
 
-/* ════════════════ YOUR RECORD CARD ════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• YOUR RECORD CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function RecordCard({ profile, isLoading, onShare, t }: {
   profile: ReturnType<typeof useFinanceProfile>["profile"];
   isLoading: boolean; onShare: () => void; t: Record<string, string>;
@@ -551,15 +555,248 @@ function RecordCard({ profile, isLoading, onShare, t }: {
   );
 }
 
-/* ════════════════ HOW MDEKO WORKS (SUSTAINABILITY) ════════════════ */
+/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ BANK BOOST CARD ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
+function BankBoostCard({ score, t }: {
+  score: ReturnType<typeof useFinanceProfile>["score"]; t: Record<string, string>;
+}) {
+  const { data: boost, isLoading } = useBankBoost();
+  const { link, submitOtp } = useBankLink();
+  const [step, setStep] = useState<"idle" | "form" | "otp" | "done">("idle");
+  const [bank, setBank] = useState("fnb");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
+
+  const boostedScore = (score?.total ?? 0) + (boost?.boost ?? 0);
+
+  const handleLink = async () => {
+    const result = await link.mutateAsync({
+      bankId: bank as "fnb" | "capitec" | "nedbank" | "absa" | "standardbank" | "investec" | "tymebank",
+      username,
+      password,
+    }) as { type: "success"; profileId: string } | { type: "mfa_required"; sessionToken: string } | { type: "error"; message: string };
+    if (result.type === "success") {
+      setStep("done");
+      toast.success("Bank linked! Your Trust Score has been boosted.");
+    } else if (result.type === "mfa_required") {
+      setSessionToken(result.sessionToken);
+      setStep("otp");
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const handleOtp = async () => {
+    const result = await submitOtp.mutateAsync({ sessionToken, otp }) as { type: "success"; profileId: string } | { type: "error"; message: string };
+    if (result.type === "success") {
+      setStep("done");
+      toast.success("Bank verified! Your Trust Score has been boosted.");
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card><CardContent className="pt-4 space-y-2">
+        <Skeleton className="h-4 w-32" /><Skeleton className="h-8 w-full" />
+      </CardContent></Card>
+    );
+  }
+
+  const hasLinked = (boost?.linkedAccounts ?? 0) > 0;
+
+  return (
+    <Card className={`overflow-hidden ${hasLinked ? "border-primary/30" : "border-dashed"}`}>
+      {hasLinked && <div className="h-1 bg-gradient-to-r from-primary to-emerald-400" />}
+      <CardContent className="pt-4 pb-4">
+        {hasLinked ? (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10">
+                <Building2 className="size-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Bank connected</p>
+                <p className="text-xs text-muted-foreground">
+                  {boost!.linkedAccounts} account{boost!.linkedAccounts > 1 ? "s" : ""} linked via Banklink
+                </p>
+              </div>
+              <Badge className="ml-auto bg-primary text-white text-xs">
+                +{boost!.boost} pts
+              </Badge>
+            </div>
+            <div className="rounded-xl bg-secondary px-3 py-2 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Verified monthly income</span>
+                <span className="font-bold">{formatRand(boost!.estimatedMonthlyIncome)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Bank transactions checked</span>
+                <span className="font-bold">{boost!.transactionCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Boosted Trust Score</span>
+                <span className="font-bold text-primary">{boostedScore}/120</span>
+              </div>
+            </div>
+          </div>
+        ) : step === "idle" ? (
+          <div>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary">
+                <Building2 className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Boost your score with your bank</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Already have FNB, Capitec or Nedbank? Link it to verify your income and boost your Trust Score by up to 20 points.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setStep("form")}
+              variant="outline"
+              className="w-full gap-2 border-primary/30 text-primary"
+              size="sm"
+            >
+              <Link2 className="size-4" />
+              Connect my bank via Banklink
+            </Button>
+          </div>
+        ) : step === "form" ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Link2 className="size-4 text-primary" />
+              <p className="font-bold text-sm">Connect your bank</p>
+              <Button size="icon" variant="ghost" className="ml-auto size-6" onClick={() => setStep("idle")}>
+                <X className="size-3.5" />
+              </Button>
+            </div>
+            <select
+              className="w-full rounded-xl border bg-background px-3 py-2 text-sm"
+              value={bank}
+              onChange={(e) => setBank(e.target.value)}
+            >
+              <option value="fnb">FNB</option>
+              <option value="capitec">Capitec</option>
+              <option value="nedbank">Nedbank</option>
+              <option value="absa">ABSA</option>
+              <option value="standardbank">Standard Bank</option>
+              <option value="investec">Investec</option>
+              <option value="tymebank">TymeBank</option>
+            </select>
+            <Input placeholder="Online banking username" value={username} onChange={(e) => setUsername(e.target.value)} type="text" autoComplete="username" />
+            <Input placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" />
+            <div className="flex items-start gap-2 rounded-xl bg-secondary px-3 py-2">
+              <AlertCircle className="size-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Read-only access only. We never store your credentials. Powered by Banklink.</p>
+            </div>
+            <Button onClick={handleLink} className="w-full" size="sm" disabled={!username || !password || link.isPending}>
+              {link.isPending ? "Connecting..." : "Connect securely"}
+            </Button>
+          </div>
+        ) : step === "otp" ? (
+          <div className="space-y-3">
+            <p className="font-bold text-sm">Enter your OTP</p>
+            <p className="text-xs text-muted-foreground">Your bank sent a one-time PIN to your registered number.</p>
+            <Input placeholder="OTP" value={otp} onChange={(e) => setOtp(e.target.value)} type="text" inputMode="numeric" maxLength={8} autoFocus />
+            <Button onClick={handleOtp} className="w-full" size="sm" disabled={!otp || submitOtp.isPending}>
+              {submitOtp.isPending ? "Verifying..." : "Verify OTP"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="size-6 text-primary shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Bank linked successfully</p>
+              <p className="text-xs text-muted-foreground">Your Trust Score has been boosted with verified income data.</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ EXPORT RECORD CARD ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
+function ExportRecordCard({ t }: { t: Record<string, string> }) {
+  const { data: record, isLoading, refetch, isFetching } = useExportRecord();
+  const [exported, setExported] = useState(false);
+
+  const handleExport = async () => {
+    await refetch();
+    setExported(true);
+    toast.success("Your financial record is ready to share.");
+  };
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <FileText className="size-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-bold text-sm">Your Mdeko record is your bank statement</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              No bank account? Your trading history on Mdeko is a lender-ready financial record ΓÇö in the same format banks and lenders use.
+            </p>
+          </div>
+        </div>
+
+        {exported && record ? (
+          <div className="space-y-2">
+            <div className="rounded-xl bg-background border px-3 py-2 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Transactions</span>
+                <span className="font-bold">{record.transactions.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total income verified</span>
+                <span className="font-bold text-primary">{formatRand(record.totalTraded)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment reliability</span>
+                <span className="font-bold">{Math.round(record.momoSuccessRate * 100)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Format</span>
+                <span className="font-bold text-xs uppercase tracking-wide text-primary">Banklink-compatible</span>
+              </div>
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              Show this to any lender on the Banklink network ΓÇö Klipfontein Capital, Spekboom Lending, Float Money and more.
+            </p>
+          </div>
+        ) : (
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            className="w-full gap-2 border-primary/40 text-primary"
+            size="sm"
+            disabled={isLoading || isFetching}
+          >
+            <FileText className="size-4" />
+            {isFetching ? "Preparing your record..." : "Generate my financial record"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HOW MDEKO WORKS (SUSTAINABILITY) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function BizCard({ t }: { t: Record<string, string> }) {
   const [open, setOpen] = useState(false);
 
   const streams = [
     { Icon: TrendingUp, label: "5% per order", sub: "Commission on every sale" },
-    { Icon: Banknote, label: "R10–R40", sub: "Delivery fee per order" },
-    { Icon: Users, label: "R60–R150/mo", sub: "Trader subscription" },
-    { Icon: Brain, label: "R100–R300/mo", sub: "Analytics package" },
+    { Icon: Banknote, label: "R10â€“R40", sub: "Delivery fee per order" },
+    { Icon: Users, label: "R60â€“R150/mo", sub: "Trader subscription" },
+    { Icon: Brain, label: "R100â€“R300/mo", sub: "Analytics package" },
   ];
 
   return (
@@ -599,14 +836,14 @@ function BizCard({ t }: { t: Record<string, string> }) {
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
                   <span className="text-background/60">Monthly costs</span>
-                  <span className="font-bold">~R15,000–R45,000</span>
+                  <span className="font-bold">~R15,000â€“R45,000</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-background/60">Orders to break even</span>
                   <span className="font-bold">5,000/month</span>
                 </div>
                 <div className="flex justify-between border-t border-background/20 pt-1.5 mt-1.5">
-                  <span className="text-background/60">200 traders × 25 orders</span>
+                  <span className="text-background/60">200 traders Ã— 25 orders</span>
                   <span className="font-bold text-primary">Break-even</span>
                 </div>
               </div>
@@ -637,7 +874,7 @@ function BizCard({ t }: { t: Record<string, string> }) {
   );
 }
 
-/* ════════════════ MAIN PAGE ════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN PAGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function FinancePage() {
   const session = useSession();
   const { profile, score, isLoading } = useFinanceProfile();
@@ -655,7 +892,7 @@ function FinancePage() {
 
   return (
     <main className="min-h-dvh bg-background">
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
           <Button
@@ -689,7 +926,7 @@ function FinancePage() {
         </div>
       </header>
 
-      {/* ── Impact strip ── */}
+      {/* â”€â”€ Impact strip â”€â”€ */}
       <div className="bg-foreground px-4 py-3">
         <p className="mx-auto max-w-lg text-center text-sm font-bold text-background leading-snug">
           {t.tagline}
@@ -700,7 +937,7 @@ function FinancePage() {
       </div>
 
       <div className="mx-auto max-w-lg space-y-4 px-4 py-5 pb-12">
-        {/* ── Empty state ── */}
+        {/* â”€â”€ Empty state â”€â”€ */}
         {isNewUser ? (
           <Card className="border-dashed animate-rise">
             <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
@@ -718,7 +955,7 @@ function FinancePage() {
           </Card>
         ) : (
           <>
-            {/* Card 1 — Score hero */}
+            {/* Card 1 â€” Score hero */}
             <ScoreCard
               score={score}
               totalTraded={profile?.totalTraded ?? 0}
@@ -727,23 +964,29 @@ function FinancePage() {
               t={t}
             />
 
-            {/* Card 2 — AI tip */}
+            {/* Card 2 â€” AI tip */}
             <SmartTipCard tip={tipQuery.data ?? null} isLoading={tipQuery.isLoading} t={t} />
 
-            {/* Card 3 — Stack it (savings) */}
+            {/* Card 3 â€” Stack it (savings) */}
             <StackCard role={profile?.role ?? session.role} isLoading={isLoading} t={t} />
 
-            {/* Card 4 — Your record */}
+            {/* Card 4 â€” Your record */}
             <RecordCard
               profile={profile}
               isLoading={isLoading}
               onShare={() => setShowShare(true)}
               t={t}
             />
+
+            {/* Banklink: Bank Boost */}
+            <BankBoostCard score={score} t={t} />
+
+            {/* Banklink: Export Record */}
+            <ExportRecordCard t={t} />
           </>
         )}
 
-        {/* Always visible — business model */}
+        {/* Always visible â€” business model */}
         <BizCard t={t} />
       </div>
 
@@ -762,3 +1005,5 @@ function FinancePage() {
     </main>
   );
 }
+
+

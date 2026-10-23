@@ -116,3 +116,66 @@ export function useSavingsJar() {
     updateTarget,
   };
 }
+
+/* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ BANKLINK HOOKS ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+
+import {
+  getBankBoost,
+  linkUserBankAccount,
+  submitBankOtp,
+  exportFinancialRecord,
+  type BankBoostResult,
+  type ExportRecord,
+} from "./finance.functions";
+
+export function useBankBoost() {
+  const session = useSession();
+  const fn = useServerFn(getBankBoost);
+
+  return useQuery<BankBoostResult>({
+    queryKey: ["finance", "bank-boost", session.userId],
+    queryFn: () => fn(),
+    enabled: Boolean(session.userId) && !session.loading,
+    staleTime: 10 * 60 * 1000, // 10 min cache
+    retry: 1,
+  });
+}
+
+export function useBankLink() {
+  const queryClient = useQueryClient();
+  const linkFn = useServerFn(linkUserBankAccount);
+  const otpFn = useServerFn(submitBankOtp);
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["finance"] });
+  };
+
+  const link = useMutation({
+    mutationFn: (data: {
+      bankId: "fnb" | "capitec" | "nedbank" | "absa" | "standardbank" | "investec" | "tymebank";
+      username: string;
+      password: string;
+      nickname?: string;
+    }) => linkFn({ data }),
+    onSuccess: refresh,
+  });
+
+  const submitOtp = useMutation({
+    mutationFn: (data: { sessionToken: string; otp: string }) => otpFn({ data }),
+    onSuccess: refresh,
+  });
+
+  return { link, submitOtp };
+}
+
+export function useExportRecord() {
+  const session = useSession();
+  const fn = useServerFn(exportFinancialRecord);
+
+  return useQuery<ExportRecord>({
+    queryKey: ["finance", "export-record", session.userId],
+    queryFn: () => fn(),
+    enabled: Boolean(session.userId) && !session.loading,
+    staleTime: 5 * 60 * 1000,
+  });
+}
