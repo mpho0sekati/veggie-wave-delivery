@@ -519,15 +519,25 @@ function BuyerPage() {
           </button>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
-              <div className="p-5">
-              <button
-                onClick={() => request && setIsCollapsed(true)}
-                className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-muted"
-                aria-label={request ? "Minimize order details" : undefined}
-              />
-
-              <p className="mx-5 mt-3 text-sm text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => (request ? setIsCollapsed(true) : setSheetExpanded((v) => !v))}
+              className="flex w-full shrink-0 flex-col items-center gap-1 pt-2 pb-1"
+              aria-expanded={request ? true : sheetExpanded}
+              aria-label={
+                request ? "Minimize order details" : sheetExpanded ? "Show less" : "Show more"
+              }
+            >
+              <span className="block h-1.5 w-12 rounded-full bg-muted" />
+              {!request && (
+                <ChevronUp
+                  className={`size-4 text-muted-foreground transition-transform duration-300 ${sheetExpanded ? "rotate-180" : ""}`}
+                />
+              )}
+            </button>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
+              <div className="px-1 pb-5">
+              <p className="mx-5 text-xs text-muted-foreground">
                 {geoMessage ? `${geoMessage} ` : ""}Tap the map to drop your pin.
               </p>
 
