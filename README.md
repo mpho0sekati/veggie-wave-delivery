@@ -488,4 +488,4 @@ A GitHub Actions workflow (`.github/workflows/deploy.yml`) deploys to Netlify on
 
 ## License
 
-Provided as-is for demo and prototype use. Built for the FNB AOTY Hackathon 2026 — Financial Inclusion challenge.
+
