@@ -322,7 +322,6 @@ function BuyerPage() {
               buyerPosition={buyer}
               courierPosition={courierPosition}
               isGpsDisconnected={isDisconnected}
-              navigationSteps={request ? navigationSteps : undefined}
               recenterTrigger={recenterTrigger}
               onPickPosition={onPosition}
             />
