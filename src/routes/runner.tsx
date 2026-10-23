@@ -55,6 +55,19 @@ function RunnerPage() {
   const { locate, message } = useGeolocation(onPosition);
   const { currentPosition } = useReportCourierPosition(active?.id ?? null, active?.status === "delivering");
   const { route, isLoading: routeLoading } = useRoute(active?.id ?? null, currentPosition, active?.status === "delivering");
+  useEffect(() => {
+    if (active?.status !== "delivering" || !position || !session.userId) return;
+    let cancelled = false;
+    const report = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      if (cancelled) return;
+      const { error } = await supabase.from("courier_positions").insert({ order_id: active.id, trader_id: session.userId ?? "", lat: position.lat, lng: position.lng });
+      if (error) toast.error("Could not share delivery location");
+    };
+    void report();
+    const timer = setInterval(() => void report(), 15000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [active?.id, active?.status, position, session.userId]);
   const catalog = catalogWith(state.customItems);
   const nearby = useMemo(() => waves.filter(w => w.lat != null && w.lng != null && position && distanceKm(position, { lat: w.lat, lng: w.lng }) <= 5).sort((a,b) => {
     if (!position || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return 0;
