@@ -17,7 +17,15 @@ import {
   ChevronUp,
   Loader2,
   LogOut,
+  Menu,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -58,6 +66,11 @@ import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
 
 const WAVE_TIMEOUT_MS = 120_000;
 
@@ -331,47 +344,56 @@ function BuyerPage() {
         </ClientOnly>
       </div>
 
-      {/* Floating glassmorphic top header overlay */}
-      <header className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between rounded-2xl border bg-background/85 px-4 py-3 shadow-lg backdrop-blur-md">
-        <BrandMark
-          subtitle={
-            geoStatus === "locating"
-              ? "Finding your location…"
-              : buyer.located
-                ? `${online.length} traders nearby`
-                : `${online.length} traders · location disabled`
-          }
-        />
-        <div className="flex items-center gap-2">
-          <Button asChild variant="secondary" size="sm" className="rounded-xl shadow-sm">
-            <Link to="/runner">
-              <Store /> Trader
-            </Link>
-          </Button>
-          {signedIn ? (
+      {/* Uber-style floating round menu button */}
+      <header className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
-              variant="ghost"
               size="icon"
-              className="rounded-xl"
-              aria-label="Sign out"
-              onClick={async () => {
-                await signOutEverywhere();
-                toast.success("Signed out");
-                navigate({ to: "/auth" });
-              }}
+              variant="secondary"
+              className="size-12 rounded-full border bg-background shadow-lg"
+              aria-label="Open menu"
             >
-              <LogOut className="size-4" />
+              <Menu className="size-6" />
             </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm" className="rounded-xl">
-              <Link to="/auth">Sign in</Link>
-            </Button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <div className="px-2 py-2">
+              <BrandMark
+                subtitle={
+                  geoStatus === "locating"
+                    ? "Finding your location…"
+                    : `${online.length} traders nearby`
+                }
+              />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/runner">
+                <Store /> I'm a trader
+              </Link>
+            </DropdownMenuItem>
+            {signedIn ? (
+              <DropdownMenuItem
+                onClick={async () => {
+                  await signOutEverywhere();
+                  toast.success("Signed out");
+                  navigate({ to: "/auth" });
+                }}
+              >
+                <LogOut /> Sign out
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem asChild>
+                <Link to="/auth">Sign in</Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {/* Floating map controls */}
-      <div className="absolute top-20 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 flex flex-col gap-2">
         <Button
           size="icon"
           variant="secondary"
@@ -387,7 +409,7 @@ function BuyerPage() {
       </div>
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[80vh] overflow-y-auto rounded-t-3xl border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
+      <div className="absolute bottom-0 left-0 right-0 z-10 max-h-[55vh] overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)] border-t bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300">
         {request && isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -441,6 +463,20 @@ function BuyerPage() {
 
         {!request && (
           <>
+            <p className="mt-2 border-b pb-3 text-center text-lg font-semibold">
+              {greeting()}
+              {session.name ? `, ${session.name.split(" ")[0]}` : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                document.getElementById("describe-order")?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
+            >
+              What veggies do you need?
+              <Hand className="size-5 text-primary" />
+            </button>
             <div className="mx-4 mt-4 rounded-2xl bg-secondary px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-sm font-medium">
@@ -547,6 +583,7 @@ function BuyerPage() {
               </ul>
             )}
 
+            <div id="describe-order" />
             <DescribeOrder
               catalog={catalog}
               onApply={(items, extras) => {
