@@ -508,7 +508,8 @@ function BuyerPage() {
           </button>
         ) : (
           <>
-            <div className="p-5">
+            <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
+              <div className="p-5">
               <button
                 onClick={() => request && setIsCollapsed(true)}
                 className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-muted"
