@@ -11,6 +11,7 @@
 
 ## Active / Backlog
 
+- Clean My Money presentation: clear money summary, savings and optional bank/record tools; preserve existing finance actions and verify signed-in flows.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
 - Order status updates now poll every four seconds across phones.
