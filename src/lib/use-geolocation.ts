@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type GeoStatus = "idle" | "locating" | "ready" | "approximate" | "denied" | "unavailable" | "unsupported";
+export type GeoStatus =
+  "idle" | "locating" | "ready" | "approximate" | "denied" | "unavailable" | "unsupported";
 
 const MAX_ACCEPTABLE_ACCURACY_METERS = 100;
 
@@ -8,7 +9,8 @@ const MESSAGES: Record<GeoStatus, string> = {
   idle: "",
   locating: "Finding your location…",
   ready: "",
-  approximate: "Your device shared an approximate location. Turn on precise location or tap the map to correct your pin.",
+  approximate:
+    "Your device shared an approximate location. Turn on precise location or tap the map to correct your pin.",
   denied: "Location permission was blocked. Allow it in your browser settings, then tap again.",
   unavailable: "We couldn't get a precise location. Turn on GPS or tap the map to set it manually.",
   unsupported: "This browser can't share location.",
@@ -34,9 +36,15 @@ export function useGeolocation(onPosition: (pos: { lat: number; lng: number }) =
     const handle = (pos: GeolocationPosition) => {
       if (generation !== generationRef.current) return;
       const { latitude, longitude, accuracy } = pos.coords;
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
-          Math.abs(latitude) > 90 || Math.abs(longitude) > 180 ||
-          !Number.isFinite(accuracy) || accuracy < 0) return;
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 ||
+        Math.abs(longitude) > 180 ||
+        !Number.isFinite(accuracy) ||
+        accuracy < 0
+      )
+        return;
       hasPosition = true;
       setStatus(accuracy > MAX_ACCEPTABLE_ACCURACY_METERS ? "approximate" : "ready");
       cb.current({ lat: latitude, lng: longitude });

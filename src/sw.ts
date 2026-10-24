@@ -26,7 +26,7 @@ registerRoute(
         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
       }),
     ],
-  })
+  }),
 );
 
 // Network-first for API calls
@@ -41,7 +41,7 @@ registerRoute(
         maxAgeSeconds: 60 * 60, // 1 hour
       }),
     ],
-  })
+  }),
 );
 
 // Fonts
@@ -54,5 +54,5 @@ registerRoute(
         maxAgeSeconds: 30 * 24 * 60 * 60,
       }),
     ],
-  })
+  }),
 );

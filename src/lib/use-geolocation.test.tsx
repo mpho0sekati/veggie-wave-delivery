@@ -23,8 +23,16 @@ describe("device location", () => {
   });
 
   const position = (accuracy: number): GeolocationPosition => ({
-    coords: { latitude: -26.2041, longitude: 28.0473, accuracy, altitude: null,
-      altitudeAccuracy: null, heading: null, speed: null, toJSON: () => ({}) },
+    coords: {
+      latitude: -26.2041,
+      longitude: 28.0473,
+      accuracy,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null,
+      toJSON: () => ({}),
+    },
     timestamp: Date.now(),
     toJSON: () => ({}),
   });
@@ -44,15 +52,29 @@ describe("device location", () => {
   it("keeps a received location when a later GPS request times out", () => {
     const { result } = renderHook(() => useGeolocation(vi.fn()));
     act(() => success(position(20)));
-    act(() => failure?.({ code: 3, message: "Timeout", PERMISSION_DENIED: 1,
-      POSITION_UNAVAILABLE: 2, TIMEOUT: 3 }));
+    act(() =>
+      failure?.({
+        code: 3,
+        message: "Timeout",
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      }),
+    );
     expect(result.current.status).toBe("ready");
   });
 
   it("shows blocked permissions and retries with a new watch", () => {
     const { result } = renderHook(() => useGeolocation(vi.fn()));
-    act(() => failure?.({ code: 1, message: "Denied", PERMISSION_DENIED: 1,
-      POSITION_UNAVAILABLE: 2, TIMEOUT: 3 }));
+    act(() =>
+      failure?.({
+        code: 1,
+        message: "Denied",
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      }),
+    );
     expect(result.current.status).toBe("denied");
     act(() => result.current.locate());
     expect(clearWatch).toHaveBeenCalledWith(42);

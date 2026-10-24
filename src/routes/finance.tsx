@@ -47,7 +47,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSession } from "@/lib/use-session";
-import { useFinanceProfile, useSmartTip, useSavingsJar, useBankBoost, useBankLink, useExportRecord } from "@/lib/use-finance";
+import {
+  useFinanceProfile,
+  useSmartTip,
+  useSavingsJar,
+  useBankBoost,
+  useBankLink,
+  useExportRecord,
+} from "@/lib/use-finance";
 import BrandMark from "@/components/BrandMark";
 
 export const Route = createFileRoute("/finance")({
@@ -208,10 +215,21 @@ const L: Record<Lang, Record<string, string>> = {
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SHARE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function ShareModal({
-  name, score, tier, totalTraded, memberSince, onClose, t,
+  name,
+  score,
+  tier,
+  totalTraded,
+  memberSince,
+  onClose,
+  t,
 }: {
-  name: string; score: number; tier: string; totalTraded: number;
-  memberSince: string; onClose: () => void; t: Record<string, string>;
+  name: string;
+  score: number;
+  tier: string;
+  totalTraded: number;
+  memberSince: string;
+  onClose: () => void;
+  t: Record<string, string>;
 }) {
   const tk = getTierKey(tier);
   const cfg = TIER_CONFIG[tk];
@@ -273,11 +291,17 @@ function ShareModal({
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SCORE HERO CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function ScoreCard({
-  score, totalTraded, totalCommission, isLoading, t,
+  score,
+  totalTraded,
+  totalCommission,
+  isLoading,
+  t,
 }: {
   score: ReturnType<typeof useFinanceProfile>["score"];
-  totalTraded: number; totalCommission: number;
-  isLoading: boolean; t: Record<string, string>;
+  totalTraded: number;
+  totalCommission: number;
+  isLoading: boolean;
+  t: Record<string, string>;
 }) {
   if (isLoading) {
     return (
@@ -365,7 +389,9 @@ function ScoreCard({
               <div className="flex-1">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-background/70">{f.label}</span>
-                  <span className="font-bold text-background">{f.pts}/{f.max}</span>
+                  <span className="font-bold text-background">
+                    {f.pts}/{f.max}
+                  </span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-background/20 overflow-hidden">
                   <div
@@ -384,8 +410,14 @@ function ScoreCard({
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AI TIP CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function SmartTipCard({ tip, isLoading, t }: {
-  tip: string | null; isLoading: boolean; t: Record<string, string>;
+function SmartTipCard({
+  tip,
+  isLoading,
+  t,
+}: {
+  tip: string | null;
+  isLoading: boolean;
+  t: Record<string, string>;
 }) {
   return (
     <Card className="animate-slide-up border-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background ring-1 ring-primary/20">
@@ -400,7 +432,8 @@ function SmartTipCard({ tip, isLoading, t }: {
                 {t.aiLabel}
               </p>
               <Badge className="gap-1 text-[10px] px-1.5 py-0 h-4 bg-primary text-white font-bold">
-                <Zap className="size-2.5" />AI
+                <Zap className="size-2.5" />
+                AI
               </Badge>
             </div>
             {isLoading ? (
@@ -421,8 +454,14 @@ function SmartTipCard({ tip, isLoading, t }: {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STACK IT â€” SAVINGS CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function StackCard({ role, isLoading, t }: {
-  role: "buyer" | "trader" | null; isLoading: boolean; t: Record<string, string>;
+function StackCard({
+  role,
+  isLoading,
+  t,
+}: {
+  role: "buyer" | "trader" | null;
+  isLoading: boolean;
+  t: Record<string, string>;
 }) {
   const { jar, updateTarget } = useSavingsJar();
   const [editing, setEditing] = useState(false);
@@ -430,17 +469,28 @@ function StackCard({ role, isLoading, t }: {
 
   const save = () => {
     const val = Number(input);
-    if (!val || val < 10) { toast.error("Minimum goal is R10"); return; }
+    if (!val || val < 10) {
+      toast.error("Minimum goal is R10");
+      return;
+    }
     updateTarget.mutate(val, {
-      onSuccess: () => { toast.success("Goal updated!"); setEditing(false); setInput(""); },
+      onSuccess: () => {
+        toast.success("Goal updated!");
+        setEditing(false);
+        setInput("");
+      },
     });
   };
 
   if (isLoading) {
     return (
-      <Card className="animate-pulse"><CardContent className="pt-5 space-y-3">
-        <Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-28" /><Skeleton className="h-2 w-full" />
-      </CardContent></Card>
+      <Card className="animate-pulse">
+        <CardContent className="pt-5 space-y-3">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-10 w-28" />
+          <Skeleton className="h-2 w-full" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -463,7 +513,8 @@ function StackCard({ role, isLoading, t }: {
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
             type="button"
           >
-            <Pencil className="size-3" />{t.stackEdit}
+            <Pencil className="size-3" />
+            {t.stackEdit}
           </button>
         </div>
 
@@ -475,8 +526,13 @@ function StackCard({ role, isLoading, t }: {
         {/* Progress */}
         <div className="space-y-1.5 mb-3">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{pct.toFixed(0)}{t.pctGoal}</span>
-            <span>{t.stackGoal}: {formatRand(target)}</span>
+            <span>
+              {pct.toFixed(0)}
+              {t.pctGoal}
+            </span>
+            <span>
+              {t.stackGoal}: {formatRand(target)}
+            </span>
           </div>
           <Progress value={pct} className="h-2.5" />
         </div>
@@ -491,8 +547,12 @@ function StackCard({ role, isLoading, t }: {
               className="flex-1"
               autoFocus
             />
-            <Button size="sm" onClick={save} disabled={updateTarget.isPending}>Save</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button size="sm" onClick={save} disabled={updateTarget.isPending}>
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
           </div>
         )}
 
@@ -505,15 +565,27 @@ function StackCard({ role, isLoading, t }: {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• YOUR RECORD CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function RecordCard({ profile, isLoading, onShare, t }: {
+function RecordCard({
+  profile,
+  isLoading,
+  onShare,
+  t,
+}: {
   profile: ReturnType<typeof useFinanceProfile>["profile"];
-  isLoading: boolean; onShare: () => void; t: Record<string, string>;
+  isLoading: boolean;
+  onShare: () => void;
+  t: Record<string, string>;
 }) {
   if (isLoading) {
     return (
-      <Card><CardContent className="pt-5 space-y-3">
-        <Skeleton className="h-4 w-28" /><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-32" /><Skeleton className="h-11 w-full mt-2" />
-      </CardContent></Card>
+      <Card>
+        <CardContent className="pt-5 space-y-3">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-11 w-full mt-2" />
+        </CardContent>
+      </Card>
     );
   }
   if (!profile) return null;
@@ -556,8 +628,12 @@ function RecordCard({ profile, isLoading, onShare, t }: {
 }
 
 /* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ BANK BOOST CARD ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
-function BankBoostCard({ score, t }: {
-  score: ReturnType<typeof useFinanceProfile>["score"]; t: Record<string, string>;
+function BankBoostCard({
+  score,
+  t,
+}: {
+  score: ReturnType<typeof useFinanceProfile>["score"];
+  t: Record<string, string>;
 }) {
   const { data: boost, isLoading } = useBankBoost();
   const { link, submitOtp } = useBankLink();
@@ -571,11 +647,15 @@ function BankBoostCard({ score, t }: {
   const boostedScore = (score?.total ?? 0) + (boost?.boost ?? 0);
 
   const handleLink = async () => {
-    const result = await link.mutateAsync({
-      bankId: bank as "fnb" | "capitec" | "nedbank" | "absa" | "standardbank" | "investec" | "tymebank",
+    const result = (await link.mutateAsync({
+      bankId: bank as
+        "fnb" | "capitec" | "nedbank" | "absa" | "standardbank" | "investec" | "tymebank",
       username,
       password,
-    }) as { type: "success"; profileId: string } | { type: "mfa_required"; sessionToken: string } | { type: "error"; message: string };
+    })) as
+      | { type: "success"; profileId: string }
+      | { type: "mfa_required"; sessionToken: string }
+      | { type: "error"; message: string };
     if (result.type === "success") {
       setStep("done");
       toast.success("Bank linked! Your Trust Score has been boosted.");
@@ -588,7 +668,8 @@ function BankBoostCard({ score, t }: {
   };
 
   const handleOtp = async () => {
-    const result = await submitOtp.mutateAsync({ sessionToken, otp }) as { type: "success"; profileId: string } | { type: "error"; message: string };
+    const result = (await submitOtp.mutateAsync({ sessionToken, otp })) as
+      { type: "success"; profileId: string } | { type: "error"; message: string };
     if (result.type === "success") {
       setStep("done");
       toast.success("Bank verified! Your Trust Score has been boosted.");
@@ -599,9 +680,12 @@ function BankBoostCard({ score, t }: {
 
   if (isLoading) {
     return (
-      <Card><CardContent className="pt-4 space-y-2">
-        <Skeleton className="h-4 w-32" /><Skeleton className="h-8 w-full" />
-      </CardContent></Card>
+      <Card>
+        <CardContent className="pt-4 space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-8 w-full" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -620,12 +704,11 @@ function BankBoostCard({ score, t }: {
               <div>
                 <p className="font-bold text-sm">Bank connected</p>
                 <p className="text-xs text-muted-foreground">
-                  {boost!.linkedAccounts} account{boost!.linkedAccounts > 1 ? "s" : ""} linked via Banklink
+                  {boost!.linkedAccounts} account{boost!.linkedAccounts > 1 ? "s" : ""} linked via
+                  Banklink
                 </p>
               </div>
-              <Badge className="ml-auto bg-primary text-white text-xs">
-                +{boost!.boost} pts
-              </Badge>
+              <Badge className="ml-auto bg-primary text-white text-xs">+{boost!.boost} pts</Badge>
             </div>
             <div className="rounded-xl bg-secondary px-3 py-2 space-y-1 text-sm">
               <div className="flex justify-between">
@@ -651,7 +734,8 @@ function BankBoostCard({ score, t }: {
               <div>
                 <p className="font-bold text-sm">Boost your score with your bank</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Already have FNB, Capitec or Nedbank? Link it to verify your income and boost your Trust Score by up to 20 points.
+                  Already have FNB, Capitec or Nedbank? Link it to verify your income and boost your
+                  Trust Score by up to 20 points.
                 </p>
               </div>
             </div>
@@ -670,7 +754,12 @@ function BankBoostCard({ score, t }: {
             <div className="flex items-center gap-2 mb-1">
               <Link2 className="size-4 text-primary" />
               <p className="font-bold text-sm">Connect your bank</p>
-              <Button size="icon" variant="ghost" className="ml-auto size-6" onClick={() => setStep("idle")}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="ml-auto size-6"
+                onClick={() => setStep("idle")}
+              >
                 <X className="size-3.5" />
               </Button>
             </div>
@@ -687,22 +776,56 @@ function BankBoostCard({ score, t }: {
               <option value="investec">Investec</option>
               <option value="tymebank">TymeBank</option>
             </select>
-            <Input placeholder="Online banking username" value={username} onChange={(e) => setUsername(e.target.value)} type="text" autoComplete="username" />
-            <Input placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" />
+            <Input
+              placeholder="Online banking username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              type="text"
+              autoComplete="username"
+            />
+            <Input
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+            />
             <div className="flex items-start gap-2 rounded-xl bg-secondary px-3 py-2">
               <AlertCircle className="size-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Read-only access only. We never store your credentials. Powered by Banklink.</p>
+              <p className="text-xs text-muted-foreground">
+                Read-only access only. We never store your credentials. Powered by Banklink.
+              </p>
             </div>
-            <Button onClick={handleLink} className="w-full" size="sm" disabled={!username || !password || link.isPending}>
+            <Button
+              onClick={handleLink}
+              className="w-full"
+              size="sm"
+              disabled={!username || !password || link.isPending}
+            >
               {link.isPending ? "Connecting..." : "Connect securely"}
             </Button>
           </div>
         ) : step === "otp" ? (
           <div className="space-y-3">
             <p className="font-bold text-sm">Enter your OTP</p>
-            <p className="text-xs text-muted-foreground">Your bank sent a one-time PIN to your registered number.</p>
-            <Input placeholder="OTP" value={otp} onChange={(e) => setOtp(e.target.value)} type="text" inputMode="numeric" maxLength={8} autoFocus />
-            <Button onClick={handleOtp} className="w-full" size="sm" disabled={!otp || submitOtp.isPending}>
+            <p className="text-xs text-muted-foreground">
+              Your bank sent a one-time PIN to your registered number.
+            </p>
+            <Input
+              placeholder="OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              type="text"
+              inputMode="numeric"
+              maxLength={8}
+              autoFocus
+            />
+            <Button
+              onClick={handleOtp}
+              className="w-full"
+              size="sm"
+              disabled={!otp || submitOtp.isPending}
+            >
               {submitOtp.isPending ? "Verifying..." : "Verify OTP"}
             </Button>
           </div>
@@ -711,7 +834,9 @@ function BankBoostCard({ score, t }: {
             <CheckCircle2 className="size-6 text-primary shrink-0" />
             <div>
               <p className="font-bold text-sm">Bank linked successfully</p>
-              <p className="text-xs text-muted-foreground">Your Trust Score has been boosted with verified income data.</p>
+              <p className="text-xs text-muted-foreground">
+                Your Trust Score has been boosted with verified income data.
+              </p>
             </div>
           </div>
         )}
@@ -741,7 +866,8 @@ function ExportRecordCard({ t }: { t: Record<string, string> }) {
           <div>
             <p className="font-bold text-sm">Your Mdeko record is your bank statement</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              No bank account? Your trading history on Mdeko is a lender-ready financial record ΓÇö in the same format banks and lenders use.
+              No bank account? Your trading history on Mdeko is a lender-ready financial record ΓÇö
+              in the same format banks and lenders use.
             </p>
           </div>
         </div>
@@ -763,11 +889,14 @@ function ExportRecordCard({ t }: { t: Record<string, string> }) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Format</span>
-                <span className="font-bold text-xs uppercase tracking-wide text-primary">Banklink-compatible</span>
+                <span className="font-bold text-xs uppercase tracking-wide text-primary">
+                  Banklink-compatible
+                </span>
               </div>
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              Show this to any lender on the Banklink network ΓÇö Klipfontein Capital, Spekboom Lending, Float Money and more.
+              Show this to any lender on the Banklink network ΓÇö Klipfontein Capital, Spekboom
+              Lending, Float Money and more.
             </p>
           </div>
         ) : (
@@ -786,7 +915,6 @@ function ExportRecordCard({ t }: { t: Record<string, string> }) {
     </Card>
   );
 }
-
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HOW MDEKO WORKS (SUSTAINABILITY) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function BizCard({ t }: { t: Record<string, string> }) {
@@ -811,10 +939,11 @@ function BizCard({ t }: { t: Record<string, string> }) {
             <Banknote className="size-5 text-primary" />
             <p className="font-bold text-sm">{t.bizTitle}</p>
           </div>
-          {open
-            ? <ChevronUp className="size-4 text-muted-foreground" />
-            : <ChevronDown className="size-4 text-muted-foreground" />
-          }
+          {open ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
         </button>
 
         {open && (
@@ -896,8 +1025,11 @@ function FinancePage() {
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
           <Button
-            size="icon" variant="ghost" className="rounded-xl shrink-0"
-            onClick={handleBack} aria-label="Go back"
+            size="icon"
+            variant="ghost"
+            className="rounded-xl shrink-0"
+            onClick={handleBack}
+            aria-label="Go back"
           >
             <ArrowLeft className="size-5" />
           </Button>
@@ -931,9 +1063,7 @@ function FinancePage() {
         <p className="mx-auto max-w-lg text-center text-sm font-bold text-background leading-snug">
           {t.tagline}
         </p>
-        <p className="mx-auto max-w-lg text-center text-xs text-background/60 mt-0.5">
-          {t.sub}
-        </p>
+        <p className="mx-auto max-w-lg text-center text-xs text-background/60 mt-0.5">{t.sub}</p>
       </div>
 
       <div className="mx-auto max-w-lg space-y-4 px-4 py-5 pb-12">
@@ -1005,5 +1135,3 @@ function FinancePage() {
     </main>
   );
 }
-
-

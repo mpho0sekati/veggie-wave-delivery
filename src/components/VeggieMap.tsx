@@ -429,9 +429,7 @@ export default function VeggieMap({
         <div className="absolute top-20 left-1/2 z-600 w-[90%] max-w-sm -translate-x-1/2 animate-slide-up rounded-xl border border-destructive/40 bg-destructive/15 px-4 py-2.5 shadow-xl backdrop-blur-md">
           <div className="flex items-center justify-center gap-2.5 text-destructive">
             <WifiOff className="size-4 shrink-0 animate-pulse" />
-            <span className="text-xs font-semibold tracking-wide">
-              Reconnecting to live GPS…
-            </span>
+            <span className="text-xs font-semibold tracking-wide">Reconnecting to live GPS…</span>
           </div>
         </div>
       )}

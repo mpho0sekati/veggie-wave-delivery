@@ -119,9 +119,7 @@ export const depositToJar = createServerFn({ method: "POST" })
 export const updateSavingsTarget = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({ targetAmount: z.number().min(10, "Goal must be at least R10") })
-      .parse(input),
+    z.object({ targetAmount: z.number().min(10, "Goal must be at least R10") }).parse(input),
   )
   .handler(async ({ data, context }): Promise<SavingsJar> => {
     const db = await admin();
@@ -177,52 +175,35 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
     const userId = context.userId;
 
     // Run queries in parallel for speed
-    const [
-      buyerOrdersResult,
-      traderOrdersResult,
-      paymentsResult,
-      profileResult,
-      savingsResult,
-    ] = await Promise.all([
-      // Buyer: orders where I was the buyer
-      context.supabase
-        .from("wave_orders")
-        .select("id, amount, status, created_at")
-        .eq("buyer_id", userId)
-        .eq("status", "completed")
-        .order("created_at", { ascending: false })
-        .limit(50),
+    const [buyerOrdersResult, traderOrdersResult, paymentsResult, profileResult, savingsResult] =
+      await Promise.all([
+        // Buyer: orders where I was the buyer
+        context.supabase
+          .from("wave_orders")
+          .select("id, amount, status, created_at")
+          .eq("buyer_id", userId)
+          .eq("status", "completed")
+          .order("created_at", { ascending: false })
+          .limit(50),
 
-      // Trader: orders where I was the trader
-      context.supabase
-        .from("wave_orders")
-        .select("id, amount, status, created_at")
-        .eq("trader_id", userId)
-        .eq("status", "completed")
-        .order("created_at", { ascending: false })
-        .limit(50),
+        // Trader: orders where I was the trader
+        context.supabase
+          .from("wave_orders")
+          .select("id, amount, status, created_at")
+          .eq("trader_id", userId)
+          .eq("status", "completed")
+          .order("created_at", { ascending: false })
+          .limit(50),
 
-      // Payments: MoMo success rate
-      context.supabase
-        .from("payments")
-        .select("status")
-        .eq("buyer_id", userId)
-        .limit(50),
+        // Payments: MoMo success rate
+        context.supabase.from("payments").select("status").eq("buyer_id", userId).limit(50),
 
-      // Profile: member since date
-      context.supabase
-        .from("profiles")
-        .select("created_at, role")
-        .eq("id", userId)
-        .maybeSingle(),
+        // Profile: member since date
+        context.supabase.from("profiles").select("created_at, role").eq("id", userId).maybeSingle(),
 
-      // Savings jar
-      context.supabase
-        .from("savings_pots")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle(),
-    ]);
+        // Savings jar
+        context.supabase.from("savings_pots").select("*").eq("user_id", userId).maybeSingle(),
+      ]);
 
     const buyerOrders = buyerOrdersResult.data ?? [];
     const traderOrders = traderOrdersResult.data ?? [];
@@ -405,7 +386,6 @@ Write like you're talking to a friend â€” not a banker. No jargon. No emoji
     }
   });
 
-
 /* ─────────────────── BANKLINK INTEGRATION ─────────────────── */
 
 export type BankBoostResult = {
@@ -470,7 +450,7 @@ export const getBankBoost = createServerFn({ method: "POST" })
       const { listLinkedAccounts, getRecentTransactions, computeBankBoost } =
         await import("./banklink.server");
 
-      const accounts = await listLinkedAccounts(userId);
+      const accounts = await listLinkedAccounts();
       if (accounts.length === 0) {
         return {
           linkedAccounts: 0,
@@ -513,21 +493,33 @@ export const linkUserBankAccount = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        bankId: z.enum(["fnb", "capitec", "nedbank", "absa", "standardbank", "investec", "tymebank"]),
+        bankId: z.enum([
+          "fnb",
+          "capitec",
+          "nedbank",
+          "absa",
+          "standardbank",
+          "investec",
+          "tymebank",
+        ]),
         username: z.string().min(1).max(100),
         password: z.string().min(1).max(100),
         nickname: z.string().max(50).optional(),
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<
-    | { type: "success"; profileId: string }
-    | { type: "mfa_required"; sessionToken: string }
-    | { type: "error"; message: string }
-  > => {
-    const { linkBankAccount } = await import("./banklink.server");
-    return linkBankAccount(data.bankId, data.username, data.password, data.nickname);
-  });
+  .handler(
+    async ({
+      data,
+    }): Promise<
+      | { type: "success"; profileId: string }
+      | { type: "mfa_required"; sessionToken: string }
+      | { type: "error"; message: string }
+    > => {
+      const { linkBankAccount } = await import("./banklink.server");
+      return linkBankAccount(data.bankId, data.username, data.password, data.nickname);
+    },
+  );
 
 /**
  * Submit OTP for MFA bank linking.
@@ -542,12 +534,14 @@ export const submitBankOtp = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<
-    { type: "success"; profileId: string } | { type: "error"; message: string }
-  > => {
-    const { submitBankLinkOtp } = await import("./banklink.server");
-    return submitBankLinkOtp(data.sessionToken, data.otp);
-  });
+  .handler(
+    async ({
+      data,
+    }): Promise<{ type: "success"; profileId: string } | { type: "error"; message: string }> => {
+      const { submitBankLinkOtp } = await import("./banklink.server");
+      return submitBankLinkOtp(data.sessionToken, data.otp);
+    },
+  );
 
 /**
  * Export the user's Mdeko financial record in a Banklink-compatible format.

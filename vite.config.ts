@@ -21,7 +21,8 @@ export default defineConfig({
         manifest: {
           name: "Mdeko · Veggie Wave",
           short_name: "Veggie Wave",
-          description: "Raise your hand and nearby veggie traders bring fresh fruit and veg you need",
+          description:
+            "Raise your hand and nearby veggie traders bring fresh fruit and veg you need",
           theme_color: "#10b981",
           background_color: "#ffffff",
           display: "standalone",

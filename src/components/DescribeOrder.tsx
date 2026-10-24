@@ -18,9 +18,11 @@ export default function DescribeOrder({ catalog, onApply }: Props) {
   const run = useServerFn(describeToOrder);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ summary: string; items: AiOrderLine[]; extras: string[] } | null>(
-    null,
-  );
+  const [result, setResult] = useState<{
+    summary: string;
+    items: AiOrderLine[];
+    extras: string[];
+  } | null>(null);
 
   const submit = async () => {
     if (text.trim().length < 3 || busy) return;

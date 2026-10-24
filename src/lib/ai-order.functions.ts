@@ -14,7 +14,13 @@ export const describeToOrder = createServerFn({ method: "POST" })
       .object({
         description: z.string().trim().min(3).max(500),
         catalog: z
-          .array(z.object({ id: z.string().max(80), name: z.string().max(80), unit: z.string().max(40) }))
+          .array(
+            z.object({
+              id: z.string().max(80),
+              name: z.string().max(80),
+              unit: z.string().max(40),
+            }),
+          )
           .max(200),
       })
       .parse(input),
