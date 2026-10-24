@@ -391,7 +391,19 @@ function BuyerPage() {
       console.error("[mdeko] wave failed", err);
       toast.error("Could not send your wave — please try again");
     }
-  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline, landmark, clearSavedCart]);
+  }, [
+    picked,
+    wish,
+    total,
+    qty,
+    signedIn,
+    navigate,
+    actions.createWave,
+    buyer,
+    isOnline,
+    landmark,
+    clearSavedCart,
+  ]);
 
   const waveAgain = useCallback(async () => {
     if (!request) return;
