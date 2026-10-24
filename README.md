@@ -1,6 +1,6 @@
 # Mdeko · Veggie Wave
 
-Mdeko Veggie Wave is a township produce marketplace that connects buyers with nearby veggie traders through a map-based, mobile-first flow: a buyer raises a "wave", the closest trader accepts, an order is created, payment runs through MTN MoMo, and the trader delivers.
+Mdeko Veggie Wave is a township produce marketplace that connects buyers with nearby veggie traders through a map-based, mobile-first flow: a buyer raises a "wave", the closest trader accepts, an order is fulfilled, payment is completed, and the settlement is recorded in the finance profile.
 
 Built with React 19, TanStack Start, Leaflet, Tailwind CSS v4, and a Supabase backend.
 
@@ -21,7 +21,7 @@ Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery �
 ### System Architecture — Component Diagram
 
 ```mermaid
-graph TB
+flowchart TB
     subgraph Client["Client (PWA — React 19 + TanStack Router)"]
         BuyerPage["/ — Buyer page\n(wave, map, order, pay)"]
         TraderPage["/runner — Trader dashboard\n(stock, waves, deliver, earn)"]
@@ -50,7 +50,7 @@ graph TB
     end
 
     subgraph Webhook["Webhook Handler"]
-        MoMoCB["/api/public/momo-callback\nverify → finalize → settle\n→ auto-save 5%"]
+        MoMoCB["/api/public/momo-callback\nverify -> finalize -> settle\n-> auto-save 5%"]
     end
 
     BuyerPage -->|server fn calls| WaveFns
@@ -59,14 +59,14 @@ graph TB
     TraderPage -->|server fn calls| WaveFns
     FinancePage -->|server fn calls| FinanceFns
 
-    WaveFns --> DB
+    WaveFns --> CoreTables
     PayFns --> MoMo
-    PayFns --> DB
-    FinanceFns --> DB
+    PayFns --> CoreTables
+    FinanceFns --> CoreTables
     AIFns --> AIGateway
 
     MoMo -->|webhook POST| MoMoCB
-    MoMoCB --> DB
+    MoMoCB --> CoreTables
 
     BuyerPage --> OSM
     TraderPage --> OSM
@@ -94,7 +94,7 @@ sequenceDiagram
 
     Trader->>App: Sees wave on map
     App->>Server: acceptWave(waveId)
-    Server->>DB: RPC accept_wave → INSERT wave_orders
+    Server->>DB: RPC accept_wave -> INSERT wave_orders
     DB-->>Server: order row (status=accepted)
     Server-->>App: order accepted
 
@@ -114,10 +114,10 @@ sequenceDiagram
     App->>Server: verifyMomoPayment (re-verify with MoMo)
     Server->>MoMo: GET /requesttopay/{ref}
     MoMo-->>Server: SUCCESSFUL
-    Server->>DB: RPC finalize_payment → INSERT settlements
-    Server->>Finance: depositToJar(net × 5%)
+    Server->>DB: RPC finalize_payment -> INSERT settlements
+    Server->>Finance: depositToJar(net x 5%)
     Finance->>DB: UPSERT savings_pots (balance += 5%)
-    DB-->>App: Realtime update → order completed
+    DB-->>App: Realtime update -> order completed
 
     Buyer->>App: Views /finance
     App->>Finance: getMoneyProfile()
@@ -250,31 +250,32 @@ stateDiagram-v2
     GettingGoing --> Trusted: 20+ orders AND active AND MoMo rate > 70%
     Trusted --> Champion: 30+ orders AND savings goal reached AND active
 
-    state JustStarting {
+    state "Just Starting" as JustStarting {
         [*] --> Scoring
-        Scoring --> Score_0_25
-        Score_0_25: Score 0–25\nSlogan: Every legend started here
+        Scoring --> Score025
+        state "Score 0-25\nSlogan: Every legend started here" as Score025
     }
 
-    state GettingGoing {
+    state "Getting Going" as GettingGoing {
         [*] --> Scoring2
-        Scoring2 --> Score_26_50
-        Score_26_50: Score 26–50\nSlogan: You're building. Keep going.
+        Scoring2 --> Score050
+        state "Score 26-50\nSlogan: You're building. Keep going." as Score050
     }
 
-    state Trusted {
+    state "Trusted" as Trusted {
         [*] --> Scoring3
-        Scoring3 --> Score_51_75
-        Score_51_75: Score 51–75\nSlogan: Clock it — you're trusted.
+        Scoring3 --> Score075
+        state "Score 51-75\nSlogan: Clock it — you're trusted." as Score075
     }
 
-    state Champion {
+    state "Champion" as Champion {
         [*] --> Scoring4
-        Scoring4 --> Score_76_100
-        Score_76_100: Score 76–100\nSlogan: You're winning. Stack more.
+        Scoring4 --> Score100
+        state "Score 76-100\nSlogan: You're winning. Stack more." as Score100
     }
 
     state "5% Auto-Save" as AutoSave {
+        [*] --> MoMoPayment
         MoMoPayment --> FinalizePayment
         FinalizePayment --> CreateSettlement
         CreateSettlement --> DepositToSavingsJar
@@ -304,17 +305,17 @@ flowchart TD
 
     subgraph Score["Score Computation — browser-side, no API call"]
         H --> I["orderVolumePts\n= min(completedOrders, 30)"]
-        I --> J["paymentReliabilityPts\n= round(momoSuccessRate × 30)"]
+        I --> J["paymentReliabilityPts\n= round(momoSuccessRate * 30)"]
         J --> K["activityConsistencyPts\n= anyOrderInLast30Days ? 20 : 0"]
-        K --> L["savingsBehaviourPts\n= min(round(balance ÷ target × 20), 20)"]
+        K --> L["savingsBehaviourPts\n= min(round(balance / target * 20), 20)"]
         L --> M["total = sum of all four\n(max 100)"]
     end
 
     M --> N{total}
-    N -->|0–25| O[Tier: Just Starting\nEvery legend started here.]
-    N -->|26–50| P[Tier: Getting Going\nYou're building. Keep going.]
-    N -->|51–75| Q[Tier: Trusted\nClock it — you're trusted.]
-    N -->|76–100| R[Tier: Champion\nYou're winning. Stack more.]
+    N -->|0-25| O["Tier: Just Starting\nEvery legend started here."]
+    N -->|26-50| P["Tier: Getting Going\nYou're building. Keep going."]
+    N -->|51-75| Q["Tier: Trusted\nClock it — you're trusted."]
+    N -->|76-100| R["Tier: Champion\nYou're winning. Stack more."]
 
     O --> S[Generate next-step tip]
     P --> S
@@ -323,7 +324,7 @@ flowchart TD
 
     S --> T[Call AI gateway\ngetSmartTip — personalised tip\nbased on trading patterns]
     T --> U{AI available?}
-    U -->|Yes| V[AI-generated tip\nmax 200 chars]
+    U -->|Yes| V["AI-generated tip\nmax 200 chars"]
     U -->|No| W[Static fallback tip]
     V --> X([Render My Money page])
     W --> X
@@ -336,7 +337,7 @@ flowchart TD
 ### Buyer experience (`/`)
 
 - Browse a produce catalogue with icons, quantities, and trader prices.
-- **Describe your order in words** — an AI assistant converts a free-text description into an itemised order; unrecognised items are logged as demand.
+- Describe your order in words — an AI assistant converts a free-text description into an itemised order; unrecognised items are logged as demand.
 - See nearby traders on a live OpenStreetMap, ranked by stock match and distance, with walking-time estimates.
 - Real browser geolocation with a manual pin-drop fallback.
 - Raise a wave and track it through a status stepper: waving → on the way → delivered → paid.
@@ -348,24 +349,24 @@ flowchart TD
 - Profile with photo upload.
 - Full stock management — per-item availability, price, and quantity.
 - Incoming waves with accept / deliver / request-payment actions.
-- **Demand insights** — see what buyers are asking for that nobody stocks.
+- Demand insights — see what buyers are asking for that nobody stocks.
 - Earnings and settlement tracking.
 
 ### Mdeko Finance (`/finance`)
 
-- **Community Credit Score (0–100)** computed from real order and payment data — four factors: volume, reliability, activity, savings.
-- **Tiers** with youth-first slogans: Just Starting → Getting Going → Trusted ("Clock it") → Champion ("Stack more").
-- **Stack it** — savings jar that auto-grows by 5% of every MoMo settlement, no action needed.
-- **AI Smart Tip** — personalised weekly money advice generated from your actual trading patterns.
-- **Your Record** — a shareable financial identity card: orders done, total traded, member since.
-- **How Mdeko works** — transparent breakdown of revenue streams and break-even numbers.
+- Community Credit Score (0–100) computed from real order and payment data — four factors: volume, reliability, activity, savings.
+- Tiers with youth-first slogans: Just Starting → Getting Going → Trusted ("Clock it") → Champion ("Stack more").
+- Stack it — savings jar that auto-grows by 5% of every MoMo settlement, no action needed.
+- AI Smart Tip — personalised weekly money advice generated from your actual trading patterns.
+- Your Record — a shareable financial identity card: orders done, total traded, member since.
+- How Mdeko works — transparent breakdown of revenue streams and break-even numbers.
 - Multilingual: English / Zulu / Sesotho — full page translates instantly.
 
 ### Backend & integrations
 
-- **Supabase (Lovable Cloud)**: auth, profiles, wallets, savings_pots, catalogue, stock, waves, orders, payments, settlements, demand — all protected by row-level security.
-- **MTN MoMo Collections** (production, `mtnsouthafrica`, ZAR): server-side token management, idempotent request-to-pay, webhook re-verification before settlement. 5% auto-save fires in the webhook handler.
-- **AI order parsing + Smart Tips**: Lovable AI gateway → order parsing and personalised finance coaching.
+- Supabase (Lovable Cloud): auth, profiles, wallets, savings_pots, catalogue, stock, waves, orders, payments, settlements, demand — all protected by row-level security.
+- MTN MoMo Collections (production, `mtnsouthafrica`, ZAR): server-side token management, idempotent request-to-pay, webhook re-verification before settlement. 5% auto-save fires in the webhook callback.
+- AI order parsing + Smart Tips: Lovable AI gateway → order parsing and personalised finance coaching.
 - Weather alerts and walking-route guidance during delivery.
 
 ---
@@ -474,9 +475,9 @@ MoMo secrets are read inside server handlers only — never exposed to the brows
 
 ## Payments: MTN MoMo flow
 
-1. **Token** — `POST /collection/token/` with Basic auth (base64 of `API_USER:API_KEY`) plus the subscription key and `X-Target-Environment`. Tokens are cached server-side and refreshed before expiry, with one automatic retry on 401.
-2. **Request to pay** — `POST /collection/v1_0/requesttopay` with a unique UUID `X-Reference-Id` per transaction, amount in ZAR, MSISDN normalised to `27XXXXXXXXX`.
-3. **Status** — `GET /collection/v1_0/requesttopay/{referenceId}`; the webhook re-verifies with MTN before settling. On success, 5% of the net settlement is automatically deposited into the trader's savings jar.
+1. Token — `POST /collection/token/` with Basic auth (base64 of `API_USER:API_KEY`) plus the subscription key and `X-Target-Environment`. Tokens are cached server-side and refreshed before expiry.
+2. Request to pay — `POST /collection/v1_0/requesttopay` with a unique UUID `X-Reference-Id` per transaction, amount in ZAR, MSISDN normalised to `27XXXXXXXXX`.
+3. Status — `GET /collection/v1_0/requesttopay/{referenceId}`; the webhook re-verifies with MTN before settling. On success, 5% of the net settlement is automatically deposited into the trader's savings jar.
 
 ---
 
@@ -488,4 +489,5 @@ A GitHub Actions workflow (`.github/workflows/deploy.yml`) deploys to Netlify on
 
 ## License
 
+This project is provided as-is for demonstration and development use.
 
