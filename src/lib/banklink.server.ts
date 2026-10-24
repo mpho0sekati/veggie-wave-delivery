@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Banklink server-side client — Mdeko Financial Inclusion
  *
  * Server-side only. Never import this in browser code.
@@ -10,6 +10,7 @@
  */
 
 import BankLink from "@banklink/sdk";
+import type { Account, LinkResult, Transaction } from "@banklink/sdk";
 
 let _client: BankLink | null = null;
 
@@ -24,7 +25,7 @@ export function getBanklinkClient(): BankLink {
 export type BanklinkAccount = {
   id: string;
   bank: string;
-  accountNumber: string;
+  accountNumber: string | null;
   nickname: string | null;
   currency: string;
 };
@@ -38,18 +39,33 @@ export type BanklinkTransaction = {
   balance: number | null;
 };
 
+function toBanklinkAccount(a: Account): BanklinkAccount {
+  return {
+    id: a.id,
+    bank: a.bank,
+    accountNumber: a.account_number,
+    nickname: a.nickname ? a.nickname : null,
+    currency: "ZAR",
+  };
+}
+
+function toBanklinkTransaction(t: Transaction): BanklinkTransaction {
+  return {
+    id: t.id,
+    date: t.date,
+    description: t.description,
+    amount: Math.abs(t.amount),
+    type: t.direction === "credit" ? "credit" : "debit",
+    balance: t.balance,
+  };
+}
+
 /** List all linked bank accounts on the Banklink profile. */
 export async function listLinkedAccounts(): Promise<BanklinkAccount[]> {
   const bl = getBanklinkClient();
   try {
     const { data: accounts } = await bl.accounts.list();
-    return (accounts ?? []).map((a: Record<string, unknown>) => ({
-      id: String(a.id ?? ""),
-      bank: String(a.bank ?? ""),
-      accountNumber: String(a.account_number ?? ""),
-      nickname: a.nickname ? String(a.nickname) : null,
-      currency: String(a.currency ?? "ZAR"),
-    }));
+    return (accounts ?? []).map(toBanklinkAccount);
   } catch {
     return [];
   }
@@ -62,17 +78,8 @@ export async function getRecentTransactions(accountId: string): Promise<Banklink
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   try {
     for await (const txn of bl.transactions.listAutoPaginate(accountId, { limit: 100 })) {
-      const t = txn as Record<string, unknown>;
-      const amount = Number(t.amount ?? 0);
-      transactions.push({
-        id: String(t.id ?? ""),
-        date: String(t.date ?? ""),
-        description: String(t.description ?? ""),
-        amount: Math.abs(amount),
-        type: amount >= 0 ? "credit" : "debit",
-        balance: t.balance != null ? Number(t.balance) : null,
-      });
-      if (new Date(String(t.date ?? "")) < ninetyDaysAgo) break;
+      transactions.push(toBanklinkTransaction(txn));
+      if (new Date(txn.date) < ninetyDaysAgo) break;
     }
   } catch {
     /* non-fatal */
@@ -105,6 +112,18 @@ export function computeBankBoost(transactions: BanklinkTransaction[]): {
   return { estimatedMonthlyIncome, transactionCount: transactions.length, boost, hasVerifiedIncome };
 }
 
+function fromLinkResult(r: LinkResult):
+  | { type: "success"; profileId: string }
+  | { type: "mfa_required"; sessionToken: string }
+  | { type: "error"; message: string } {
+  if (r.type === "success" && r.profile_id) return { type: "success", profileId: r.profile_id };
+  if (r.type === "mfa_required" && r.session_token)
+    return { type: "mfa_required", sessionToken: r.session_token };
+  if (r.type === "success") return { type: "error", message: "Link succeeded but no profile was returned" };
+  if (r.type === "mfa_required") return { type: "error", message: "Your bank asked for a PIN but sent no session" };
+  return { type: "error", message: r.message ?? "Bank link failed" };
+}
+
 /** Initiate bank account linking via Banklink. */
 export async function linkBankAccount(
   bankId: string,
@@ -119,10 +138,7 @@ export async function linkBankAccount(
   const bl = getBanklinkClient();
   try {
     const result = await bl.link.create({ bankId, credentials: { username, password }, nickname });
-    const r = result as Record<string, unknown>;
-    if (r.type === "success") return { type: "success", profileId: String(r.profile_id ?? "") };
-    if (r.type === "mfa_required") return { type: "mfa_required", sessionToken: String(r.session_token ?? "") };
-    return { type: "error", message: "Unexpected response from Banklink" };
+    return fromLinkResult(result);
   } catch (err) {
     return { type: "error", message: (err as Error).message ?? "Bank link failed" };
   }
@@ -136,9 +152,9 @@ export async function submitBankLinkOtp(
   const bl = getBanklinkClient();
   try {
     const result = await bl.link.submitOtp({ sessionToken, otp });
-    const r = result as Record<string, unknown>;
-    if (r.type === "success") return { type: "success", profileId: String(r.profile_id ?? "") };
-    return { type: "error", message: "OTP verification failed" };
+    const mapped = fromLinkResult(result);
+    if (mapped.type === "success") return mapped;
+    return { type: "error", message: mapped.type === "mfa_required" ? "OTP verification failed" : mapped.message };
   } catch (err) {
     return { type: "error", message: (err as Error).message ?? "OTP failed" };
   }
