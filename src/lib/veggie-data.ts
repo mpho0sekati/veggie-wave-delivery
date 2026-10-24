@@ -117,6 +117,8 @@ export type Runner = {
   avatar?: string | null;
   stock: StockLine[];
   earnings: number;
+  /** SA mobile for WhatsApp/call coordination, e.g. 27821234567 */
+  phone?: string;
 };
 
 export const BUYER_POSITION = { lat: -33.9249, lng: 18.4241 };
@@ -128,6 +130,7 @@ export const SEED_RUNNERS: Runner[] = [
   {
     id: "r1",
     name: "Thabo",
+    phone: "27821112201",
     lat: -33.9221,
     lng: 18.4189,
     online: true,
@@ -145,6 +148,7 @@ export const SEED_RUNNERS: Runner[] = [
   {
     id: "r2",
     name: "Nomsa",
+    phone: "27821112202",
     lat: -33.9302,
     lng: 18.4288,
     online: true,
@@ -162,6 +166,7 @@ export const SEED_RUNNERS: Runner[] = [
   {
     id: "r3",
     name: "Sipho",
+    phone: "27821112203",
     lat: -33.9188,
     lng: 18.4335,
     online: true,
@@ -178,6 +183,7 @@ export const SEED_RUNNERS: Runner[] = [
   {
     id: "r4",
     name: "Lerato",
+    phone: "27821112204",
     lat: -33.9345,
     lng: 18.4152,
     online: false,

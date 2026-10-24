@@ -57,6 +57,41 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // One-tap demo sign-in for judges — tries to sign in, creates the demo account on first use.
+  const demoSignIn = async (demoRole: "buyer" | "trader") => {
+    const creds =
+      demoRole === "trader"
+        ? { email: "demo.trader@mdeko.app", password: "mdeko-demo-1234" }
+        : { email: "demo.buyer@mdeko.app", password: "mdeko-demo-1234" };
+    setLoading(true);
+    setError("");
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      let { error: signInError } = await supabase.auth.signInWithPassword(creds);
+      if (signInError) {
+        // First time: create the demo account, then set up its profile.
+        const { data: signUp, error: signUpError } = await supabase.auth.signUp(creds);
+        if (signUpError) throw signUpError;
+        if (signUp.session) {
+          await supabase.rpc("setup_marketplace_profile", {
+            _name: demoRole === "trader" ? "Demo Trader" : "Demo Buyer",
+            _role: demoRole,
+          });
+        } else {
+          // Email confirmation is on — retry sign in (confirmation may be auto for demo).
+          ({ error: signInError } = await supabase.auth.signInWithPassword(creds));
+          if (signInError) throw signInError;
+        }
+      }
+      toast.success(`Signed in as Demo ${demoRole === "trader" ? "Trader" : "Buyer"}`);
+      navigate({ to: demoRole === "trader" ? "/runner" : "/" });
+    } catch (err) {
+      setError(friendly(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submit = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Email and password are required");
@@ -122,6 +157,34 @@ function AuthPage() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 pb-8">
       <div className="mb-8">
         <BrandMark subtitle="Fresh veggies, delivered to you" />
+      </div>
+
+      {/* Judge / demo quick access — no typing required */}
+      <div className="mb-4 w-full rounded-2xl border-2 border-primary/30 bg-primary/5 p-4">
+        <p className="mb-1 text-center text-sm font-semibold text-primary">Judges & quick demo</p>
+        <p className="mb-3 text-center text-xs text-muted-foreground">
+          One tap — no sign-up needed
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="wave"
+            onClick={() => demoSignIn("buyer")}
+            disabled={loading}
+            className="flex-col gap-1 h-auto py-3"
+          >
+            <ShoppingBasket className="size-5" />
+            <span className="text-xs">Demo Buyer</span>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => demoSignIn("trader")}
+            disabled={loading}
+            className="flex-col gap-1 h-auto py-3"
+          >
+            <Store className="size-5" />
+            <span className="text-xs">Demo Trader</span>
+          </Button>
+        </div>
       </div>
 
       <Card className="w-full gap-5 p-6">

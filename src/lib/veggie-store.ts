@@ -23,6 +23,8 @@ export type WaveRequest = {
   runnerId: string | null;
   createdAt: number;
   paidWith?: PaidWith;
+  /** Township landmark for the trader to find the buyer, e.g. "blue container spaza". */
+  landmark?: string;
   /** Persisted backend ids, so the wave survives a refresh and reaches other phones. */
   waveId?: string;
   orderId?: string;

@@ -20,6 +20,7 @@ import {
   Menu,
   WifiOff,
   CloudUpload,
+  MessageCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -136,13 +137,51 @@ function BuyerPage() {
   const customItems = useAppState((s) => s.customItems);
   const buyer = useAppState((s) => s.buyer);
 
-  const [qty, setQty] = useState<Record<string, number>>({});
-  const [wish, setWish] = useState("");
+  // Cart persists in localStorage so signing in never wipes the buyer's basket.
+  const [qty, setQty] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(window.localStorage.getItem("mdeko-cart-qty") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const [wish, setWish] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem("mdeko-cart-wish") || "";
+  });
+  const [landmark, setLandmark] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem("mdeko-landmark") || "";
+  });
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
   const [payLoading, setPayLoading] = useState(false);
   const isOnline = useOnline();
   const queuedCount = useOfflineQueueCount();
+
+  // Save the cart on every change so it survives sign-in redirects and refreshes.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("mdeko-cart-qty", JSON.stringify(qty));
+    } catch {
+      /* storage blocked */
+    }
+  }, [qty]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("mdeko-cart-wish", wish);
+    } catch {
+      /* storage blocked */
+    }
+  }, [wish]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("mdeko-landmark", landmark);
+    } catch {
+      /* storage blocked */
+    }
+  }, [landmark]);
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
@@ -268,6 +307,15 @@ function BuyerPage() {
   const best = ranked[0] ?? null;
   const total = best?.total ?? 0;
 
+  const clearSavedCart = useCallback(() => {
+    try {
+      window.localStorage.removeItem("mdeko-cart-qty");
+      window.localStorage.removeItem("mdeko-cart-wish");
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
+
   const bump = useCallback(
     (id: string, delta: number) =>
       setQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) })),
@@ -305,6 +353,7 @@ function BuyerPage() {
       ]);
       setQty({});
       setWish("");
+      clearSavedCart();
       toast.success("You're offline — request saved. It sends itself when you're back online.");
       return;
     }
@@ -326,6 +375,7 @@ function BuyerPage() {
           wish: wish.trim(),
           total,
           note: `${picked.length} items`,
+          landmark: landmark.trim() || undefined,
           status: "waving",
           runnerId: null,
           createdAt: new Date(saved.created_at).getTime(),
@@ -335,12 +385,13 @@ function BuyerPage() {
         ...picked.map((p) => ({ itemId: p.id, label: p.name })),
         ...(wish.trim() ? [{ itemId: null, label: wish.trim().toLowerCase() }] : []),
       ]);
+      clearSavedCart();
       toast.success("Hand raised — traders nearby can see you waving");
     } catch (err) {
       console.error("[mdeko] wave failed", err);
       toast.error("Could not send your wave — please try again");
     }
-  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline]);
+  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline, landmark]);
 
   const waveAgain = useCallback(async () => {
     if (!request) return;
@@ -365,6 +416,7 @@ function BuyerPage() {
       cancelRequest();
       setQty({});
       setWish("");
+      clearSavedCart();
       toast.info("Request cancelled");
     } catch {
       toast.error("This order has payment or delivery in progress and cannot be cancelled");
@@ -777,6 +829,21 @@ function BuyerPage() {
                         Even if nobody has it yet, we tell traders people are asking.
                       </p>
                     </div>
+
+                    <div className="mx-4 mt-4 space-y-2">
+                      <Label htmlFor="landmark" className="flex items-center gap-2">
+                        <MapPin className="size-4 text-primary" /> Where should they find you?
+                      </Label>
+                      <Input
+                        id="landmark"
+                        placeholder="e.g. opposite the blue container spaza"
+                        value={landmark}
+                        onChange={(e) => setLandmark(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        A landmark helps the trader reach you — no street number needed.
+                      </p>
+                    </div>
                   </>
                 )}
 
@@ -828,6 +895,23 @@ function BuyerPage() {
 
                     {request.status === "waving" && <WaveClock createdAt={request.createdAt} />}
 
+                    {/* WhatsApp the trader once they've accepted — township coordination by landmark */}
+                    {(request.status === "accepted" || request.status === "delivering") &&
+                      assigned?.phone && (
+                        <a
+                          href={`https://wa.me/${assigned.phone}?text=${encodeURIComponent(
+                            `Hi ${assigned.name}, I waved for your veggies on Mdeko.${
+                              request.landmark ? ` I'm at: ${request.landmark}.` : ""
+                            } How far are you?`,
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 font-semibold text-white shadow-sm transition-transform active:scale-[0.98]"
+                        >
+                          <MessageCircle className="size-5" /> WhatsApp {assigned.name}
+                        </a>
+                      )}
+
                     <ul className="space-y-1 text-sm text-muted-foreground">
                       {request.items.map((line) => {
                         const item = catalog.find((c) => c.id === line.id);
@@ -842,6 +926,12 @@ function BuyerPage() {
                       })}
                       {request.wish && <li className="italic">also asked for: {request.wish}</li>}
                     </ul>
+                    {request.landmark && (
+                      <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                        <MapPin className="size-4 shrink-0 text-primary" />
+                        <span>Find me: {request.landmark}</span>
+                      </p>
+                    )}
                     <p className="font-display text-xl font-bold">{formatRand(request.total)}</p>
 
                     {timedOut && (
