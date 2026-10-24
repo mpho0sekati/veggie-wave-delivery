@@ -6,10 +6,9 @@
 
 - Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
 - Courier position persistence verified.
+- Simplified buyer selection, removed blocking welcome guide, and collapsed secondary tools; selection and layouts verified at 608×543, 390×844, and 1280×1800.
 
 ## Active / Backlog
-
-- Simplify buyer selection, remove blocking welcome guide, and collapse secondary tools; verify small-screen selection flow.
 
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.

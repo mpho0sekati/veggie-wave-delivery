@@ -391,7 +391,7 @@ function BuyerPage() {
       console.error("[mdeko] wave failed", err);
       toast.error("Could not send your wave — please try again");
     }
-  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline, landmark]);
+  }, [picked, wish, total, qty, signedIn, navigate, actions.createWave, buyer, isOnline, landmark, clearSavedCart]);
 
   const waveAgain = useCallback(async () => {
     if (!request) return;
@@ -421,7 +421,7 @@ function BuyerPage() {
     } catch {
       toast.error("This order has payment or delivery in progress and cannot be cancelled");
     }
-  }, [request, actions.cancelWave]);
+  }, [request, actions.cancelWave, clearSavedCart]);
   const finish = useCallback(() => {
     setClosedWave(request?.waveId ?? null);
     if (request?.waveId) localStorage.setItem("mdeko-closed-wave", request.waveId);
