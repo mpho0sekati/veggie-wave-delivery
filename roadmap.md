@@ -7,10 +7,10 @@
 - Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
 - Courier position persistence verified.
 - Simplified buyer selection, removed blocking welcome guide, and collapsed secondary tools; selection and layouts verified at 608×543, 390×844, and 1280×1800.
+- Simplified produce picking with large tap-to-add icons, selected checkmarks, basket review and everyday wording; pick/add/remove, saved selections and optional helper verified at 608×543, 390×844 and 1280×1800. All 15 regression tests pass.
 
 ## Active / Backlog
 
-- Simplify buyer picking with familiar, obvious controls and short everyday words; verify the basket and layout.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
 - Order status updates now poll every four seconds across phones.
