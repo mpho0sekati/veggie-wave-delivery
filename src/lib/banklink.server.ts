@@ -109,18 +109,27 @@ export function computeBankBoost(transactions: BanklinkTransaction[]): {
   if (estimatedMonthlyIncome >= 2000) boost = 10;
   if (estimatedMonthlyIncome >= 5000) boost = 15;
   if (estimatedMonthlyIncome >= 10000) boost = 20;
-  return { estimatedMonthlyIncome, transactionCount: transactions.length, boost, hasVerifiedIncome };
+  return {
+    estimatedMonthlyIncome,
+    transactionCount: transactions.length,
+    boost,
+    hasVerifiedIncome,
+  };
 }
 
-function fromLinkResult(r: LinkResult):
+function fromLinkResult(
+  r: LinkResult,
+):
   | { type: "success"; profileId: string }
   | { type: "mfa_required"; sessionToken: string }
   | { type: "error"; message: string } {
   if (r.type === "success" && r.profile_id) return { type: "success", profileId: r.profile_id };
   if (r.type === "mfa_required" && r.session_token)
     return { type: "mfa_required", sessionToken: r.session_token };
-  if (r.type === "success") return { type: "error", message: "Link succeeded but no profile was returned" };
-  if (r.type === "mfa_required") return { type: "error", message: "Your bank asked for a PIN but sent no session" };
+  if (r.type === "success")
+    return { type: "error", message: "Link succeeded but no profile was returned" };
+  if (r.type === "mfa_required")
+    return { type: "error", message: "Your bank asked for a PIN but sent no session" };
   return { type: "error", message: r.message ?? "Bank link failed" };
 }
 
@@ -154,7 +163,10 @@ export async function submitBankLinkOtp(
     const result = await bl.link.submitOtp({ sessionToken, otp });
     const mapped = fromLinkResult(result);
     if (mapped.type === "success") return mapped;
-    return { type: "error", message: mapped.type === "mfa_required" ? "OTP verification failed" : mapped.message };
+    return {
+      type: "error",
+      message: mapped.type === "mfa_required" ? "OTP verification failed" : mapped.message,
+    };
   } catch (err) {
     return { type: "error", message: (err as Error).message ?? "OTP failed" };
   }
