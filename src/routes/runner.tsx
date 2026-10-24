@@ -14,6 +14,7 @@ import { waveView } from "@/lib/wave-view";
 import { catalogWith, distanceKm, formatRand } from "@/lib/veggie-data";
 import { useReportCourierPosition } from "@/lib/use-courier-tracking";
 import { useRoute } from "@/lib/use-route";
+import { useWaveAlert } from "@/lib/use-wave-alert";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import OrderStepper from "@/components/OrderStepper";
@@ -134,6 +135,9 @@ function RunnerPage() {
         }),
     [waves, position],
   );
+  // Whistle + vibrate when a new wave lands nearby and the trader is free to take it.
+  useWaveAlert(nearby.length, Boolean(me?.online) && !active);
+
   const advance = async (status: "delivering" | "delivered") => {
     if (!active) return;
     try {
@@ -181,34 +185,41 @@ function RunnerPage() {
         </ClientOnly>
       </div>
       <header className="absolute inset-x-4 top-4 z-10 flex items-center justify-between gap-2 rounded-xl border bg-background p-3 shadow-lg">
-        <Button asChild size="icon" variant="ghost">
-          <Link to="/" aria-label="Back to buyers">
-            <ArrowLeft />
-          </Link>
-        </Button>
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{me?.name || session.name || "My stall"}</p>
-          <p className="text-xs text-muted-foreground">{me?.online ? "Available" : "Offline"}</p>
+          <p className="text-xs text-muted-foreground">
+            Trader · {me?.online ? "Available" : "Offline"}
+          </p>
         </div>
-        <Switch
-          aria-label="Available for deliveries"
-          checked={me?.online ?? false}
-          onCheckedChange={async (online) => {
-            if (!session.userId || !position) {
-              toast.error("Set your location first");
-              return;
-            }
-            try {
-              await saveTraderProfile(session.userId, { online, ...position });
-              await refresh();
-            } catch {
-              toast.error("Could not update availability");
-            }
-          }}
-        />
+        <div className="flex flex-col items-center">
+          <Switch
+            aria-label="Available for deliveries"
+            checked={me?.online ?? false}
+            onCheckedChange={async (online) => {
+              if (!session.userId || !position) {
+                toast.error("Set your location first");
+                return;
+              }
+              try {
+                await saveTraderProfile(session.userId, { online, ...position });
+                await refresh();
+              } catch {
+                toast.error("Could not update availability");
+              }
+            }}
+          />
+          <span className="mt-0.5 text-[0.6rem] text-muted-foreground">
+            {me?.online ? "Online" : "Go online"}
+          </span>
+        </div>
         <Button asChild variant="outline" size="sm">
           <Link to="/finance">
-            <Wallet /> My Money
+            <Wallet /> Money
+          </Link>
+        </Button>
+        <Button asChild variant="secondary" size="sm">
+          <Link to="/" aria-label="Switch to buyer view">
+            <ArrowLeft className="size-4" /> Buy
           </Link>
         </Button>
       </header>

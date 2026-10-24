@@ -507,7 +507,7 @@ function BuyerPage() {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link to="/runner">
-                <Store /> I'm a trader
+                <Store /> Switch to Trader Stall
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
