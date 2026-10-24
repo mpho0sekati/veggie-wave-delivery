@@ -20,14 +20,26 @@ export type MomoConfig = {
 
 export type MomoStatus = "PENDING" | "SUCCESSFUL" | "FAILED";
 
+/** Only remove a copied line label when the remainder matches the expected shape. */
+export function cleanMomoCredential(raw: string | undefined, kind: "key" | "user"): string {
+  const value = raw?.trim() ?? "";
+  const shape =
+    kind === "user"
+      ? "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      : "[0-9a-f]{32}";
+  if (new RegExp(`^${shape}$`, "i").test(value)) return value;
+  const labelled = new RegExp(`^[0-9]{1,3}(?:[.:)]?\\s*)?(${shape})$`, "i").exec(value);
+  return labelled?.[1] ?? value;
+}
+
 export function readMomoConfig(): MomoConfig {
-  const baseUrl = process.env["MOMO_BASE_URL"] ?? "https://proxy.momoapi.mtn.com";
-  const subscriptionKey = process.env["MOMO_SUBSCRIPTION_KEY"];
-  const apiUser = process.env["MOMO_API_USER"];
-  const apiKey = process.env["MOMO_API_KEY"];
-  const targetEnvironment = process.env["MOMO_TARGET_ENVIRONMENT"] ?? "mtnsouthafrica";
+  const baseUrl = process.env["MOMO_BASE_URL"]?.trim() || "https://proxy.momoapi.mtn.com";
+  const subscriptionKey = cleanMomoCredential(process.env["MOMO_SUBSCRIPTION_KEY"], "key");
+  const apiUser = cleanMomoCredential(process.env["MOMO_API_USER"], "user");
+  const apiKey = cleanMomoCredential(process.env["MOMO_API_KEY"], "key");
+  const targetEnvironment = process.env["MOMO_TARGET_ENVIRONMENT"]?.trim() || "mtnsouthafrica";
   const currency =
-    process.env["MOMO_CURRENCY"] ?? (targetEnvironment === "sandbox" ? "EUR" : "ZAR");
+    process.env["MOMO_CURRENCY"]?.trim() || (targetEnvironment === "sandbox" ? "EUR" : "ZAR");
 
   const missing = [
     ...(subscriptionKey ? [] : ["MOMO_SUBSCRIPTION_KEY"]),
@@ -40,12 +52,12 @@ export function readMomoConfig(): MomoConfig {
 
   return {
     baseUrl: baseUrl.replace(/\/$/, ""),
-    subscriptionKey: subscriptionKey!,
-    apiUser: apiUser!,
-    apiKey: apiKey!,
+    subscriptionKey,
+    apiUser,
+    apiKey,
     targetEnvironment,
     currency,
-    callbackUrl: process.env["MOMO_CALLBACK_URL"] ?? undefined,
+    callbackUrl: process.env["MOMO_CALLBACK_URL"]?.trim() || undefined,
   };
 }
 
@@ -74,8 +86,7 @@ async function accessToken(cfg: MomoConfig): Promise<string> {
     },
   });
   if (!res.ok) {
-    const detail = await res.text();
-    console.error(`[momo] token failed ${res.status}: ${detail.slice(0, 200)}`);
+    console.error(`[momo] token failed ${res.status}`);
     throw new Error(`momo-token-failed: ${res.status}`);
   }
   const body = (await res.json()) as { access_token?: string; expires_in?: number };
@@ -133,8 +144,7 @@ export async function requestToPay(args: {
   if (res.status === 202 || res.status === 409) {
     return { accepted: true, providerStatus: `accepted:${res.status}` };
   }
-  const detail = await res.text();
-  console.error(`[momo] requestToPay failed ${res.status}: ${detail.slice(0, 300)}`);
+  console.error(`[momo] requestToPay failed ${res.status}`);
   return { accepted: false, providerStatus: `error:${res.status}` };
 }
 
@@ -160,8 +170,7 @@ export async function fetchPaymentStatus(
   }
 
   if (!res.ok) {
-    const detail = await res.text();
-    console.error(`[momo] status lookup failed ${res.status}: ${detail.slice(0, 300)}`);
+    console.error(`[momo] status lookup failed ${res.status}`);
     return { status: "PENDING", providerStatus: `lookup-error:${res.status}`, reason: null };
   }
 
