@@ -1,50 +1,33 @@
-﻿/**
- * Mdeko Finance â€” My Money page
- *
- * Design principles:
- * - No emojis. Lucide icons only.
- * - Youth-first language: "Clock it", "Stack it", "You're winning"
- * - Dark hero score card â€” feels like a bank card, not a form
- * - High contrast, large touch targets, mobile-first
- * - Multilingual: EN / Zulu / Sesotho
- * - Every section has a purpose a Grade 9 student understands instantly
- */
-
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ArrowLeft,
-  TrendingUp,
-  Calendar,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Building2,
   CheckCircle2,
-  Share2,
+  ChevronRight,
+  FileText,
+  Globe,
+  Loader2,
   Pencil,
-  X,
-  Brain,
-  Zap,
-  Users,
-  Banknote,
   PiggyBank,
   ShieldCheck,
-  Flame,
-  Trophy,
-  Sprout,
-  Rocket,
-  ChevronDown,
-  ChevronUp,
-  Globe,
-  Star,
-  Building2,
-  Link2,
-  FileText,
-  AlertCircle,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useSession } from "@/lib/use-session";
 import {
@@ -55,15 +38,21 @@ import {
   useBankLink,
   useExportRecord,
 } from "@/lib/use-finance";
-import BrandMark from "@/components/BrandMark";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({
     meta: [
-      { title: "My Money â€” Mdeko" },
-      { name: "description", content: "Your financial identity on Mdeko." },
-      { property: "og:title", content: "My Money â€” Mdeko" },
-      { property: "og:description", content: "Your trading history and savings on Mdeko." },
+      { title: "My Money — Mdeko" },
+      {
+        name: "description",
+        content: "See your completed Mdeko orders, savings goal and financial record in one place.",
+      },
+      { property: "og:title", content: "My Money — Mdeko" },
+      {
+        property: "og:description",
+        content:
+          "Your Mdeko orders and savings, with optional bank connection and financial records.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -71,78 +60,36 @@ export const Route = createFileRoute("/finance")({
   component: FinancePage,
 });
 
-/* â”€â”€â”€ helpers â”€â”€â”€ */
-function formatRand(n: number) {
-  return `R${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+function formatRand(value: number) {
+  return new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR" }).format(value);
 }
-function formatMonthYear(iso: string) {
-  return new Date(iso).toLocaleDateString("en-ZA", { month: "long", year: "numeric" });
-}
-
-/* â”€â”€â”€ tier config â€” icons, slogans, colours â”€â”€â”€ */
-type Tier = "Just Starting" | "Getting Going" | "Trusted" | "Champion";
-
-const TIER_CONFIG: Record<
-  Tier,
-  { icon: React.ElementType; slogan: string; color: string; bg: string; ring: string }
-> = {
-  "Just Starting": {
-    icon: Sprout,
-    slogan: "Every legend started here.",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    ring: "ring-emerald-200",
-  },
-  "Getting Going": {
-    icon: Rocket,
-    slogan: "You're building. Keep going.",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    ring: "ring-blue-200",
-  },
-  Trusted: {
-    icon: ShieldCheck,
-    slogan: "Clock it â€” you're trusted.",
-    color: "text-primary",
-    bg: "bg-primary/5",
-    ring: "ring-primary/30",
-  },
-  Champion: {
-    icon: Trophy,
-    slogan: "You're winning. Stack more.",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    ring: "ring-amber-200",
-  },
-};
-
-function getTierKey(tier: string): Tier {
-  if (tier.includes("Champion")) return "Champion";
-  if (tier.includes("Trusted")) return "Trusted";
-  if (tier.includes("Going")) return "Getting Going";
-  return "Just Starting";
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-/* â”€â”€â”€ language â”€â”€â”€ */
 type Lang = "en" | "zu" | "st";
 
 const L: Record<Lang, Record<string, string>> = {
   en: {
     tagline: "23 million South Africans have no proof of income.",
     sub: "Every trade on Mdeko builds your financial history.",
-    score: "Your Score",
+    score: "Mdeko score",
     factorTrade: "How much you've sold",
     factorPaid: "Payments came through",
     factorActive: "You've been active",
     factorSaving: "You're stacking savings",
-    scoreNote: "Banks look at records like this. Yours is growing.",
-    aiLabel: "AI Money Tip",
-    stackTitle: "Stack it",
+    scoreNote: "This is a Mdeko activity score, not a bank credit score.",
+    aiLabel: "Money tip",
+    stackTitle: "My savings",
     stackSaved: "saved",
     stackGoal: "Goal",
     stackEdit: "Change goal",
     stackTrader: "We save 5% for you every time you get paid.",
-    stackBuyer: "Every order you complete adds to your stack.",
+    stackBuyer: "Your saved amount on Mdeko.",
     storyTitle: "Your Record",
     storyOrders: "orders done",
     storyTraded: "traded on Mdeko",
@@ -213,925 +160,625 @@ const L: Record<Lang, Record<string, string>> = {
   },
 };
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SHARE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function ShareModal({
-  name,
-  score,
-  tier,
-  totalTraded,
-  memberSince,
-  onClose,
-  t,
-}: {
-  name: string;
-  score: number;
-  tier: string;
-  totalTraded: number;
-  memberSince: string;
-  onClose: () => void;
-  t: Record<string, string>;
-}) {
-  const tk = getTierKey(tier);
-  const cfg = TIER_CONFIG[tk];
-  const TierIcon = cfg.icon;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm animate-slide-up rounded-3xl bg-background p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <p className="font-display font-bold text-lg">{t.shareTitle}</p>
-          <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close">
-            <X className="size-5" />
-          </Button>
-        </div>
-
-        {/* The card itself â€” screenshot-ready */}
-        <div className="rounded-2xl bg-foreground p-5 text-background shadow-glow">
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-xs font-bold tracking-widest text-background/50 uppercase">
-              Mdeko Finance
-            </span>
-            <ShieldCheck className="size-5 text-primary" />
-          </div>
-          <p className="font-display text-2xl font-black">{name || "Mdeko Member"}</p>
-          <div className="mt-4 flex items-end gap-3">
-            <span className="font-display text-6xl font-black leading-none">{score}</span>
-            <div className="mb-1">
-              <p className="text-xs text-background/50">/ 100</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <TierIcon className="size-4 text-primary" />
-                <span className="text-sm font-bold text-primary">{cfg.slogan}</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-5 border-t border-background/20 pt-4 grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-background/50 text-xs">{t.storyTraded}</p>
-              <p className="font-bold">{formatRand(totalTraded)}</p>
-            </div>
-            <div>
-              <p className="text-background/50 text-xs">{t.storyMember}</p>
-              <p className="font-bold">{formatMonthYear(memberSince)}</p>
-            </div>
-          </div>
-          <p className="mt-4 text-center text-xs text-background/30">mdeko.app</p>
-        </div>
-
-        <p className="mt-3 text-center text-sm text-muted-foreground">{t.shareSub}</p>
-      </div>
-    </div>
-  );
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SCORE HERO CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function ScoreCard({
-  score,
-  totalTraded,
-  totalCommission,
-  isLoading,
-  t,
-}: {
-  score: ReturnType<typeof useFinanceProfile>["score"];
-  totalTraded: number;
-  totalCommission: number;
-  isLoading: boolean;
-  t: Record<string, string>;
-}) {
-  if (isLoading) {
-    return (
-      <div className="rounded-3xl bg-foreground p-6 animate-pulse">
-        <Skeleton className="h-4 w-24 bg-background/20 mb-4" />
-        <Skeleton className="h-16 w-32 bg-background/20 mb-3" />
-        <Skeleton className="h-3 w-full bg-background/20" />
-      </div>
-    );
-  }
-  if (!score) return null;
-
-  const tk = getTierKey(score.tier);
-  const cfg = TIER_CONFIG[tk];
-  const TierIcon = cfg.icon;
-
-  const factors = [
-    { label: t.factorTrade, pts: score.orderVolumePts, max: 30, icon: TrendingUp },
-    { label: t.factorPaid, pts: score.paymentReliabilityPts, max: 30, icon: Banknote },
-    { label: t.factorActive, pts: score.activityConsistencyPts, max: 20, icon: Flame },
-    { label: t.factorSaving, pts: score.savingsBehaviourPts, max: 20, icon: PiggyBank },
-  ];
-
-  return (
-    <div className="animate-slide-up rounded-3xl bg-foreground text-background overflow-hidden shadow-glow">
-      {/* Hero section */}
-      <div className="px-6 pt-6 pb-5">
-        <div className="flex items-start justify-between mb-1">
-          <p className="text-xs font-bold tracking-widest text-background/50 uppercase">
-            {t.score}
-          </p>
-          <div className="flex items-center gap-1.5 rounded-full bg-background/10 px-3 py-1">
-            <TierIcon className="size-3.5 text-primary" />
-            <span className="text-xs font-bold text-primary">{cfg.slogan}</span>
-          </div>
-        </div>
-
-        <div className="flex items-end gap-3 mt-2">
-          <span className="font-display text-7xl font-black leading-none">{score.total}</span>
-          <div className="mb-2">
-            <span className="text-2xl text-background/40 font-bold">/ 100</span>
-          </div>
-        </div>
-
-        {/* Score bar */}
-        <div className="mt-4 h-2 w-full rounded-full bg-background/20 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-700"
-            style={{ width: `${score.total}%` }}
-          />
-        </div>
-
-        {/* Next step tip */}
-        <p className="mt-3 text-sm text-background/70 leading-snug">{score.tip}</p>
-      </div>
-
-      {/* Business model strip */}
-      {totalTraded > 0 && (
-        <div className="border-t border-background/10 px-6 py-3 flex justify-between text-sm">
-          <div>
-            <p className="text-background/40 text-xs">Total traded</p>
-            <p className="font-bold">{formatRand(totalTraded)}</p>
-          </div>
-          {totalCommission > 0 && (
-            <div className="text-right">
-              <p className="text-background/40 text-xs">Platform fee (5%)</p>
-              <p className="font-bold text-primary">{formatRand(totalCommission)}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Factor breakdown */}
-      <div className="border-t border-background/10 px-6 py-4 space-y-3">
-        <p className="text-xs font-bold tracking-widest text-background/40 uppercase mb-2">
-          How it's calculated
-        </p>
-        {factors.map((f) => {
-          const Icon = f.icon;
-          return (
-            <div key={f.label} className="flex items-center gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-background/10">
-                <Icon className="size-4 text-background/70" />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-background/70">{f.label}</span>
-                  <span className="font-bold text-background">
-                    {f.pts}/{f.max}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-background/20 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
-                    style={{ width: `${(f.pts / f.max) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        <p className="pt-1 text-xs text-background/40">{t.scoreNote}</p>
-      </div>
-    </div>
-  );
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AI TIP CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function SmartTipCard({
-  tip,
-  isLoading,
-  t,
-}: {
-  tip: string | null;
-  isLoading: boolean;
-  t: Record<string, string>;
-}) {
-  return (
-    <Card className="animate-slide-up border-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background ring-1 ring-primary/20">
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary shadow-glow">
-            <Brain className="size-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-foreground">
-                {t.aiLabel}
-              </p>
-              <Badge className="gap-1 text-[10px] px-1.5 py-0 h-4 bg-primary text-white font-bold">
-                <Zap className="size-2.5" />
-                AI
-              </Badge>
-            </div>
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            ) : (
-              <p className="text-base font-semibold text-foreground leading-snug">
-                {tip ?? "Keep trading â€” every order builds your financial record on Mdeko."}
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STACK IT â€” SAVINGS CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function StackCard({
+function SavingsSection({
   role,
-  isLoading,
   t,
 }: {
   role: "buyer" | "trader" | null;
-  isLoading: boolean;
   t: Record<string, string>;
 }) {
-  const { jar, updateTarget } = useSavingsJar();
+  const { jar, isLoading, updateTarget } = useSavingsJar();
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState("");
-
   const save = () => {
-    const val = Number(input);
-    if (!val || val < 10) {
-      toast.error("Minimum goal is R10");
+    const value = Number(input);
+    if (!Number.isFinite(value) || value < 10) {
+      toast.error("Your goal must be at least R10");
       return;
     }
-    updateTarget.mutate(val, {
+    updateTarget.mutate(value, {
       onSuccess: () => {
-        toast.success("Goal updated!");
         setEditing(false);
-        setInput("");
+        toast.success("Savings goal updated");
       },
+      onError: () => toast.error("Could not save your goal. Please try again."),
     });
   };
-
-  if (isLoading) {
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!jar)
     return (
-      <Card className="animate-pulse">
-        <CardContent className="pt-5 space-y-3">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-10 w-28" />
-          <Skeleton className="h-2 w-full" />
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground">
+        Your savings could not be loaded. Try again shortly.
+      </p>
     );
-  }
-
-  const balance = jar?.balance ?? 0;
-  const target = jar?.targetAmount ?? 500;
-  const pct = Math.min((balance / target) * 100, 100);
-
+  const pct = Math.min((jar.balance / jar.targetAmount) * 100, 100);
   return (
-    <Card className="animate-slide-up overflow-hidden">
-      {/* Coloured top strip */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-primary via-emerald-400 to-primary" />
-      <CardContent className="pt-5 pb-5">
-        <div className="flex items-start justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <PiggyBank className="size-5 text-primary" />
-            <p className="font-display font-bold text-lg">{t.stackTitle}</p>
-          </div>
-          <button
-            onClick={() => setEditing((v) => !v)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-            type="button"
-          >
-            <Pencil className="size-3" />
-            {t.stackEdit}
-          </button>
-        </div>
-
-        <div className="mt-3 mb-4">
-          <p className="font-display text-4xl font-black text-foreground">{formatRand(balance)}</p>
-          <p className="text-sm text-muted-foreground mt-0.5">{t.stackSaved}</p>
-        </div>
-
-        {/* Progress */}
-        <div className="space-y-1.5 mb-3">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>
-              {pct.toFixed(0)}
-              {t.pctGoal}
-            </span>
-            <span>
-              {t.stackGoal}: {formatRand(target)}
-            </span>
-          </div>
-          <Progress value={pct} className="h-2.5" />
-        </div>
-
-        {editing && (
-          <div className="flex gap-2 mt-3 mb-2">
-            <Input
-              type="number"
-              placeholder={`New goal, e.g. 1000`}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-1"
-              autoFocus
-            />
-            <Button size="sm" onClick={save} disabled={updateTarget.isPending}>
-              Save
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        <p className="text-sm text-muted-foreground leading-snug">
-          {role === "trader" ? t.stackTrader : t.stackBuyer}
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• YOUR RECORD CARD â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function RecordCard({
-  profile,
-  isLoading,
-  onShare,
-  t,
-}: {
-  profile: ReturnType<typeof useFinanceProfile>["profile"];
-  isLoading: boolean;
-  onShare: () => void;
-  t: Record<string, string>;
-}) {
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="pt-5 space-y-3">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-11 w-full mt-2" />
-        </CardContent>
-      </Card>
-    );
-  }
-  if (!profile) return null;
-
-  const rows = [
-    { Icon: CheckCircle2, value: `${profile.totalOrders}`, label: t.storyOrders },
-    { Icon: TrendingUp, value: formatRand(profile.totalTraded), label: t.storyTraded },
-    { Icon: Calendar, value: formatMonthYear(profile.memberSince), label: t.storyMember },
-  ];
-
-  return (
-    <Card className="animate-slide-up">
-      <CardContent className="pt-5 pb-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Star className="size-5 text-primary" />
-          <p className="font-display font-bold text-lg">{t.storyTitle}</p>
-        </div>
-
-        <div className="space-y-3 mb-5">
-          {rows.map(({ Icon, value, label }) => (
-            <div key={label} className="flex items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary">
-                <Icon className="size-4 text-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-base leading-tight">{value}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <Button onClick={onShare} className="w-full gap-2 shadow-glow" size="lg">
-          <Share2 className="size-5" />
-          {t.shareBtn}
+    <section className="border-b py-6" aria-labelledby="savings-title">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="savings-title" className="flex items-center gap-2 text-lg font-semibold">
+          <PiggyBank className="size-5 text-primary" />
+          {t.stackTitle}
+        </h2>
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label="Change savings goal"
+          title="Change savings goal"
+          onClick={() => {
+            setInput(String(jar.targetAmount));
+            setEditing(true);
+          }}
+        >
+          <Pencil />
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+      <p className="mt-3 font-display text-3xl font-bold tabular-nums">{formatRand(jar.balance)}</p>
+      <div className="mt-3 flex flex-wrap justify-between gap-2 text-sm text-muted-foreground">
+        <span>
+          {t.stackGoal}: {formatRand(jar.targetAmount)}
+        </span>
+        <span>{Math.round(pct)}%</span>
+      </div>
+      <Progress value={pct} className="mt-2 h-2" />
+      <p className="mt-3 text-sm text-muted-foreground">
+        {role === "trader" ? t.stackTrader : t.stackBuyer}
+      </p>
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>My savings goal</DialogTitle>
+          <DialogDescription>Choose the amount you want to save.</DialogDescription>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              save();
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="savings-goal">Goal in rands</Label>
+              <Input
+                id="savings-goal"
+                type="number"
+                min={10}
+                step="0.01"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+              />
+            </div>
+            <Button type="submit" className="h-11 w-full" disabled={updateTarget.isPending}>
+              {updateTarget.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}Save
+              goal
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }
 
-/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ BANK BOOST CARD ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
-function BankBoostCard({
+function ScoreDetails({
   score,
   t,
 }: {
   score: ReturnType<typeof useFinanceProfile>["score"];
   t: Record<string, string>;
 }) {
-  const { data: boost, isLoading } = useBankBoost();
+  if (!score) return null;
+  const factors = [
+    { label: t.factorTrade, value: score.orderVolumePts, max: 30 },
+    { label: t.factorPaid, value: score.paymentReliabilityPts, max: 30 },
+    { label: t.factorActive, value: score.activityConsistencyPts, max: 20 },
+    { label: t.factorSaving, value: score.savingsBehaviourPts, max: 20 },
+  ];
+  return (
+    <div className="space-y-4">
+      <p className="font-display text-4xl font-bold">
+        {score.total}
+        <span className="text-base font-normal text-muted-foreground"> / 100</span>
+      </p>
+      <p className="text-sm text-muted-foreground">{score.tip}</p>
+      {factors.map((factor) => (
+        <div key={factor.label}>
+          <div className="mb-2 flex justify-between gap-3 text-sm">
+            <span>{factor.label}</span>
+            <span>
+              {factor.value}/{factor.max}
+            </span>
+          </div>
+          <Progress value={(factor.value / factor.max) * 100} className="h-2" />
+        </div>
+      ))}
+      <p className="text-sm text-muted-foreground">
+        This is a Mdeko activity score, not a bank credit score or a promise of a loan.
+      </p>
+    </div>
+  );
+}
+
+const BANKS = [
+  "fnb",
+  "capitec",
+  "nedbank",
+  "absa",
+  "standardbank",
+  "investec",
+  "tymebank",
+] as const;
+type BankId = (typeof BANKS)[number];
+const bankNames: Record<BankId, string> = {
+  fnb: "FNB",
+  capitec: "Capitec",
+  nedbank: "Nedbank",
+  absa: "ABSA",
+  standardbank: "Standard Bank",
+  investec: "Investec",
+  tymebank: "TymeBank",
+};
+
+function BankConnection() {
+  const { data: boost, isLoading, isError } = useBankBoost();
   const { link, submitOtp } = useBankLink();
   const [step, setStep] = useState<"idle" | "form" | "otp" | "done">("idle");
-  const [bank, setBank] = useState("fnb");
+  const [bank, setBank] = useState<BankId>("fnb");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [sessionToken, setSessionToken] = useState("");
-
-  const boostedScore = (score?.total ?? 0) + (boost?.boost ?? 0);
-
-  const handleLink = async () => {
-    const result = (await link.mutateAsync({
-      bankId: bank as
-        "fnb" | "capitec" | "nedbank" | "absa" | "standardbank" | "investec" | "tymebank",
-      username,
-      password,
-    })) as
-      | { type: "success"; profileId: string }
-      | { type: "mfa_required"; sessionToken: string }
-      | { type: "error"; message: string };
-    if (result.type === "success") {
-      setStep("done");
-      toast.success("Bank linked! Your Trust Score has been boosted.");
-    } else if (result.type === "mfa_required") {
-      setSessionToken(result.sessionToken);
-      setStep("otp");
-    } else {
-      toast.error(result.message);
+  const connect = async () => {
+    try {
+      const result = await link.mutateAsync({ bankId: bank, username, password });
+      setPassword("");
+      if (result.type === "success") {
+        setStep("done");
+        toast.success("Bank connected");
+      } else if (result.type === "mfa_required") {
+        setSessionToken(result.sessionToken);
+        setStep("otp");
+      } else toast.error(result.message);
+    } catch {
+      setPassword("");
+      toast.error("Could not connect your bank. Please try again.");
     }
   };
-
-  const handleOtp = async () => {
-    const result = (await submitOtp.mutateAsync({ sessionToken, otp })) as
-      { type: "success"; profileId: string } | { type: "error"; message: string };
-    if (result.type === "success") {
-      setStep("done");
-      toast.success("Bank verified! Your Trust Score has been boosted.");
-    } else {
-      toast.error(result.message);
+  const verify = async () => {
+    try {
+      const result = await submitOtp.mutateAsync({ sessionToken, otp });
+      if (result.type === "success") {
+        setStep("done");
+        setOtp("");
+        setSessionToken("");
+        toast.success("Bank connected");
+      } else toast.error(result.message);
+    } catch {
+      toast.error("Could not check that code. Please try again.");
     }
   };
-
-  if (isLoading) {
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  if (step === "done")
     return (
-      <Card>
-        <CardContent className="pt-4 space-y-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-8 w-full" />
-        </CardContent>
-      </Card>
+      <p className="flex items-center gap-2 text-sm">
+        <CheckCircle2 className="text-primary" />
+        Your bank is connected.
+      </p>
     );
-  }
-
-  const hasLinked = (boost?.linkedAccounts ?? 0) > 0;
-
-  return (
-    <Card className={`overflow-hidden ${hasLinked ? "border-primary/30" : "border-dashed"}`}>
-      {hasLinked && <div className="h-1 bg-gradient-to-r from-primary to-emerald-400" />}
-      <CardContent className="pt-4 pb-4">
-        {hasLinked ? (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10">
-                <Building2 className="size-4 text-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Bank connected</p>
-                <p className="text-xs text-muted-foreground">
-                  {boost!.linkedAccounts} account{boost!.linkedAccounts > 1 ? "s" : ""} linked via
-                  Banklink
-                </p>
-              </div>
-              <Badge className="ml-auto bg-primary text-white text-xs">+{boost!.boost} pts</Badge>
-            </div>
-            <div className="rounded-xl bg-secondary px-3 py-2 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Verified monthly income</span>
-                <span className="font-bold">{formatRand(boost!.estimatedMonthlyIncome)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Bank transactions checked</span>
-                <span className="font-bold">{boost!.transactionCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Boosted Trust Score</span>
-                <span className="font-bold text-primary">{boostedScore}/120</span>
-              </div>
-            </div>
-          </div>
-        ) : step === "idle" ? (
-          <div>
-            <div className="flex items-start gap-3 mb-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary">
-                <Building2 className="size-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Boost your score with your bank</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Already have FNB, Capitec or Nedbank? Link it to verify your income and boost your
-                  Trust Score by up to 20 points.
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setStep("form")}
-              variant="outline"
-              className="w-full gap-2 border-primary/30 text-primary"
-              size="sm"
-            >
-              <Link2 className="size-4" />
-              Connect my bank via Banklink
-            </Button>
-          </div>
-        ) : step === "form" ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Link2 className="size-4 text-primary" />
-              <p className="font-bold text-sm">Connect your bank</p>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="ml-auto size-6"
-                onClick={() => setStep("idle")}
-              >
-                <X className="size-3.5" />
-              </Button>
-            </div>
-            <select
-              className="w-full rounded-xl border bg-background px-3 py-2 text-sm"
-              value={bank}
-              onChange={(e) => setBank(e.target.value)}
-            >
-              <option value="fnb">FNB</option>
-              <option value="capitec">Capitec</option>
-              <option value="nedbank">Nedbank</option>
-              <option value="absa">ABSA</option>
-              <option value="standardbank">Standard Bank</option>
-              <option value="investec">Investec</option>
-              <option value="tymebank">TymeBank</option>
-            </select>
-            <Input
-              placeholder="Online banking username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              type="text"
-              autoComplete="username"
-            />
-            <Input
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              autoComplete="current-password"
-            />
-            <div className="flex items-start gap-2 rounded-xl bg-secondary px-3 py-2">
-              <AlertCircle className="size-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
-                Read-only access only. We never store your credentials. Powered by Banklink.
-              </p>
-            </div>
-            <Button
-              onClick={handleLink}
-              className="w-full"
-              size="sm"
-              disabled={!username || !password || link.isPending}
-            >
-              {link.isPending ? "Connecting..." : "Connect securely"}
-            </Button>
-          </div>
-        ) : step === "otp" ? (
-          <div className="space-y-3">
-            <p className="font-bold text-sm">Enter your OTP</p>
-            <p className="text-xs text-muted-foreground">
-              Your bank sent a one-time PIN to your registered number.
-            </p>
-            <Input
-              placeholder="OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              type="text"
-              inputMode="numeric"
-              maxLength={8}
-              autoFocus
-            />
-            <Button
-              onClick={handleOtp}
-              className="w-full"
-              size="sm"
-              disabled={!otp || submitOtp.isPending}
-            >
-              {submitOtp.isPending ? "Verifying..." : "Verify OTP"}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="size-6 text-primary shrink-0" />
-            <div>
-              <p className="font-bold text-sm">Bank linked successfully</p>
-              <p className="text-xs text-muted-foreground">
-                Your Trust Score has been boosted with verified income data.
-              </p>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ EXPORT RECORD CARD ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
-function ExportRecordCard({ t }: { t: Record<string, string> }) {
-  const { data: record, isLoading, refetch, isFetching } = useExportRecord();
-  const [exported, setExported] = useState(false);
-
-  const handleExport = async () => {
-    await refetch();
-    setExported(true);
-    toast.success("Your financial record is ready to share.");
-  };
-
-  return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <FileText className="size-5 text-primary" />
-          </div>
-          <div>
-            <p className="font-bold text-sm">Your Mdeko record is your bank statement</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              No bank account? Your trading history on Mdeko is a lender-ready financial record ΓÇö
-              in the same format banks and lenders use.
-            </p>
-          </div>
+  if (boost && boost.linkedAccounts > 0)
+    return (
+      <dl className="space-y-3 text-sm">
+        <div className="flex justify-between gap-3">
+          <dt>Connected accounts</dt>
+          <dd className="font-semibold">{boost.linkedAccounts}</dd>
         </div>
-
-        {exported && record ? (
-          <div className="space-y-2">
-            <div className="rounded-xl bg-background border px-3 py-2 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Transactions</span>
-                <span className="font-bold">{record.transactions.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total income verified</span>
-                <span className="font-bold text-primary">{formatRand(record.totalTraded)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Payment reliability</span>
-                <span className="font-bold">{Math.round(record.momoSuccessRate * 100)}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Format</span>
-                <span className="font-bold text-xs uppercase tracking-wide text-primary">
-                  Banklink-compatible
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-center text-muted-foreground">
-              Show this to any lender on the Banklink network ΓÇö Klipfontein Capital, Spekboom
-              Lending, Float Money and more.
-            </p>
-          </div>
-        ) : (
-          <Button
-            onClick={handleExport}
-            variant="outline"
-            className="w-full gap-2 border-primary/40 text-primary"
-            size="sm"
-            disabled={isLoading || isFetching}
-          >
-            <FileText className="size-4" />
-            {isFetching ? "Preparing your record..." : "Generate my financial record"}
-          </Button>
+        <div className="flex justify-between gap-3">
+          <dt>Estimated monthly income</dt>
+          <dd className="font-semibold">{formatRand(boost.estimatedMonthlyIncome)}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt>Bank transactions</dt>
+          <dd>{boost.transactionCount}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt>Extra Mdeko points</dt>
+          <dd>{boost.boost}</dd>
+        </div>
+      </dl>
+    );
+  if (step === "idle")
+    return (
+      <div className="space-y-4">
+        {isError && (
+          <p className="text-sm text-muted-foreground">
+            Bank connection status is unavailable right now.
+          </p>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HOW MDEKO WORKS (SUSTAINABILITY) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function BizCard({ t }: { t: Record<string, string> }) {
-  const [open, setOpen] = useState(false);
-
-  const streams = [
-    { Icon: TrendingUp, label: "5% per order", sub: "Commission on every sale" },
-    { Icon: Banknote, label: "R10â€“R40", sub: "Delivery fee per order" },
-    { Icon: Users, label: "R60â€“R150/mo", sub: "Trader subscription" },
-    { Icon: Brain, label: "R100â€“R300/mo", sub: "Analytics package" },
-  ];
-
+        <p className="text-sm text-muted-foreground">
+          Connect an existing bank account through Banklink to include your bank history. This is
+          optional.
+        </p>
+        <Button className="h-11 w-full" onClick={() => setStep("form")}>
+          <Building2 />
+          Connect my bank
+        </Button>
+      </div>
+    );
+  if (step === "otp")
+    return (
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void verify();
+        }}
+      >
+        <div className="space-y-2">
+          <Label htmlFor="bank-otp">Code from your bank</Label>
+          <Input
+            id="bank-otp"
+            value={otp}
+            onChange={(event) => setOtp(event.target.value)}
+            inputMode="numeric"
+            maxLength={8}
+            autoComplete="one-time-code"
+          />
+        </div>
+        <Button type="submit" className="h-11 w-full" disabled={!otp || submitOtp.isPending}>
+          {submitOtp.isPending ? "Checking…" : "Confirm code"}
+        </Button>
+      </form>
+    );
   return (
-    <Card className="border-primary/20">
-      <CardContent className="pt-4 pb-4">
-        <button
-          className="flex w-full items-center justify-between"
-          onClick={() => setOpen((v) => !v)}
-          type="button"
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void connect();
+      }}
+    >
+      <div className="space-y-2">
+        <Label htmlFor="bank-select">Your bank</Label>
+        <Select
+          value={bank}
+          onValueChange={(value) => {
+            const selected = BANKS.find((id) => id === value);
+            if (selected) setBank(selected);
+          }}
         >
-          <div className="flex items-center gap-2">
-            <Banknote className="size-5 text-primary" />
-            <p className="font-bold text-sm">{t.bizTitle}</p>
-          </div>
-          {open ? (
-            <ChevronUp className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="size-4 text-muted-foreground" />
-          )}
-        </button>
-
-        {open && (
-          <div className="mt-4 space-y-3 animate-rise">
-            <div className="grid grid-cols-2 gap-2">
-              {streams.map(({ Icon, label, sub }) => (
-                <div key={label} className="rounded-2xl bg-secondary px-3 py-3">
-                  <Icon className="size-5 text-primary mb-1.5" />
-                  <p className="font-bold text-sm">{label}</p>
-                  <p className="text-xs text-muted-foreground">{sub}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-2xl bg-foreground text-background px-4 py-3">
-              <p className="text-xs font-bold tracking-widest uppercase text-background/50 mb-2">
-                Break-even
-              </p>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-background/60">Monthly costs</span>
-                  <span className="font-bold">~R15,000â€“R45,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-background/60">Orders to break even</span>
-                  <span className="font-bold">5,000/month</span>
-                </div>
-                <div className="flex justify-between border-t border-background/20 pt-1.5 mt-1.5">
-                  <span className="text-background/60">200 traders Ã— 25 orders</span>
-                  <span className="font-bold text-primary">Break-even</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-secondary px-4 py-3">
-              <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-2">
-                6-month targets
-              </p>
-              <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                {[
-                  { Icon: Users, v: "1,000", l: "buyers" },
-                  { Icon: Users, v: "200", l: "traders" },
-                  { Icon: CheckCircle2, v: "5,000", l: "orders" },
-                ].map(({ Icon, v, l }) => (
-                  <div key={l}>
-                    <Icon className="size-4 text-primary mx-auto mb-1" />
-                    <p className="font-black">{v}</p>
-                    <p className="text-xs text-muted-foreground">{l}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          <SelectTrigger id="bank-select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {BANKS.map((id) => (
+              <SelectItem key={id} value={id}>
+                {bankNames[id]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="bank-username">Online banking username</Label>
+        <Input
+          id="bank-username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          autoComplete="username"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="bank-password">Online banking password</Label>
+        <Input
+          id="bank-password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Your details are sent to Banklink to connect your account.
+      </p>
+      <Button
+        type="submit"
+        className="h-11 w-full"
+        disabled={!username || !password || link.isPending}
+      >
+        {link.isPending ? "Connecting…" : "Connect my bank"}
+      </Button>
+    </form>
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN PAGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+function RecordDetails({ profile }: { profile: ReturnType<typeof useFinanceProfile>["profile"] }) {
+  const { data: record, isLoading, isError, refetch, isFetching } = useExportRecord();
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if ((isError || !record) && profile)
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between gap-3 text-sm">
+          <span>Completed orders</span>
+          <strong>{profile.totalOrders}</strong>
+        </div>
+        <div className="flex justify-between gap-3 text-sm">
+          <span>Completed order value</span>
+          <strong>{formatRand(profile.totalTraded)}</strong>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {profile.recentOrders.length
+            ? "Your latest completed orders"
+            : "Your completed orders will appear here."}
+        </p>
+        <ul className="divide-y">
+          {profile.recentOrders.map((order) => (
+            <li key={order.id} className="flex justify-between gap-3 py-3 text-sm">
+              <span>
+                {order.role === "trader" ? "Sale" : "Purchase"} · {formatDate(order.createdAt)}
+              </span>
+              <strong>{formatRand(order.amount)}</strong>
+            </li>
+          ))}
+        </ul>
+        <p className="text-xs text-muted-foreground">
+          Showing your account summary. The full record is unavailable right now.
+        </p>
+        <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+          Retry full record
+        </Button>
+      </div>
+    );
+  if (isError || !record)
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">Could not load your record.</p>
+        <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+          Try again
+        </Button>
+      </div>
+    );
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between gap-3 text-sm">
+        <span>Completed orders</span>
+        <strong>{record.totalOrders}</strong>
+      </div>
+      <div className="flex justify-between gap-3 text-sm">
+        <span>Completed order value</span>
+        <strong>{formatRand(record.totalTraded)}</strong>
+      </div>
+      <ul className="max-h-56 divide-y overflow-y-auto">
+        {record.transactions.map((transaction) => (
+          <li
+            key={transaction.reference}
+            className="flex items-center justify-between gap-3 py-3 text-sm"
+          >
+            <div className="min-w-0">
+              <p>{transaction.type === "credit" ? "Sale" : "Purchase"}</p>
+              <p className="text-xs text-muted-foreground">{formatDate(transaction.date)}</p>
+            </div>
+            <strong className="shrink-0">{formatRand(transaction.amount)}</strong>
+          </li>
+        ))}
+      </ul>
+      {record.transactions.length === 0 && (
+        <p className="text-sm text-muted-foreground">Your completed orders will appear here.</p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        This is your Mdeko record, not a bank statement. Each lender decides what records it
+        accepts.
+      </p>
+    </div>
+  );
+}
+
 function FinancePage() {
   const session = useSession();
-  const { profile, score, isLoading } = useFinanceProfile();
+  const { profile, score, isLoading, isError } = useFinanceProfile();
   const tipQuery = useSmartTip(profile);
-  const [showShare, setShowShare] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
+  const [panel, setPanel] = useState<"score" | "bank" | "record" | null>(null);
+  const [languageOpen, setLanguageOpen] = useState(false);
   const t = L[lang];
-
-  const isNewUser = !isLoading && profile?.totalOrders === 0;
-
-  const handleBack = () => {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = "/";
-  };
-
+  const loading = session.loading || isLoading;
   return (
     <main className="min-h-dvh bg-background">
-      {/* â”€â”€ Header â”€â”€ */}
-      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
+          <Button asChild variant="ghost" size="icon" className="size-11 shrink-0">
+            <Link to="/" aria-label="Back to veggies">
+              <ArrowLeft />
+            </Link>
+          </Button>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-primary">Mdeko</p>
+            <h1 className="text-xl font-semibold">My Money</h1>
+          </div>
           <Button
             size="icon"
             variant="ghost"
-            className="rounded-xl shrink-0"
-            onClick={handleBack}
-            aria-label="Go back"
+            className="size-11"
+            aria-label="Change language"
+            title="Change language"
+            onClick={() => setLanguageOpen(true)}
           >
-            <ArrowLeft className="size-5" />
+            <Globe />
           </Button>
-          <div className="flex-1 min-w-0">
-            <BrandMark subtitle="My Money" />
-          </div>
-          {/* Language switcher */}
-          <div className="flex items-center gap-0.5 rounded-xl border bg-secondary p-1 shrink-0">
-            <Globe className="size-3.5 text-muted-foreground ml-1 mr-0.5" />
-            {(["en", "zu", "st"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`rounded-lg px-2 py-0.5 text-xs font-bold transition-all ${
-                  lang === l
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                type="button"
-                aria-label={`Switch to ${l}`}
-              >
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
-
-      {/* â”€â”€ Impact strip â”€â”€ */}
-      <div className="bg-foreground px-4 py-3">
-        <p className="mx-auto max-w-lg text-center text-sm font-bold text-background leading-snug">
-          {t.tagline}
-        </p>
-        <p className="mx-auto max-w-lg text-center text-xs text-background/60 mt-0.5">{t.sub}</p>
-      </div>
-
-      <div className="mx-auto max-w-lg space-y-4 px-4 py-5 pb-12">
-        {/* â”€â”€ Empty state â”€â”€ */}
-        {isNewUser ? (
-          <Card className="border-dashed animate-rise">
-            <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-              <div className="flex size-16 items-center justify-center rounded-3xl bg-primary/10">
-                <Sprout className="size-8 text-primary" />
-              </div>
-              <div>
-                <p className="font-display font-bold text-xl mb-2">Every legend started here.</p>
-                <p className="text-muted-foreground text-sm">{t.empty}</p>
-              </div>
-              <Button asChild size="lg" className="mt-1 shadow-glow">
-                <Link to="/">{t.emptyBtn}</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="mx-auto max-w-xl px-5 pb-12">
+        {loading ? (
+          <div className="space-y-4 py-8">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : !session.userId ? (
+          <section className="py-12">
+            <PiggyBank className="mb-4 size-10 text-primary" />
+            <h2 className="text-2xl font-semibold">Your money, in one place</h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Sign in to see your Mdeko orders and savings.
+            </p>
+            <Button asChild className="mt-6 h-11">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          </section>
+        ) : isError || !profile ? (
+          <section className="py-10">
+            <h2 className="text-lg font-semibold">We couldn't load your money</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Your records haven't changed.</p>
+            <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+              Try again
+            </Button>
+          </section>
         ) : (
           <>
-            {/* Card 1 â€” Score hero */}
-            <ScoreCard
-              score={score}
-              totalTraded={profile?.totalTraded ?? 0}
-              totalCommission={profile?.totalCommission ?? 0}
-              isLoading={isLoading}
-              t={t}
-            />
-
-            {/* Card 2 â€” AI tip */}
-            <SmartTipCard tip={tipQuery.data ?? null} isLoading={tipQuery.isLoading} t={t} />
-
-            {/* Card 3 â€” Stack it (savings) */}
-            <StackCard role={profile?.role ?? session.role} isLoading={isLoading} t={t} />
-
-            {/* Card 4 â€” Your record */}
-            <RecordCard
-              profile={profile}
-              isLoading={isLoading}
-              onShare={() => setShowShare(true)}
-              t={t}
-            />
-
-            {/* Banklink: Bank Boost */}
-            <BankBoostCard score={score} t={t} />
-
-            {/* Banklink: Export Record */}
-            <ExportRecordCard t={t} />
+            <section className="border-b py-6">
+              <p className="text-sm text-muted-foreground">Completed order value</p>
+              <p className="mt-2 break-words font-display text-4xl font-bold tabular-nums">
+                {formatRand(profile.totalTraded)}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {profile.totalOrders} completed {profile.totalOrders === 1 ? "order" : "orders"} ·
+                purchases and sales
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Order totals, not your available balance.
+              </p>
+            </section>
+            <SavingsSection role={profile.role ?? session.role} t={t} />
+            <section className="border-b py-6" aria-labelledby="activity-title">
+              <div className="flex items-center justify-between gap-2">
+                <h2 id="activity-title" className="text-lg font-semibold">
+                  Recent activity
+                </h2>
+                <Button variant="ghost" size="sm" onClick={() => setPanel("record")}>
+                  View record
+                  <ChevronRight />
+                </Button>
+              </div>
+              {profile.recentOrders.length > 0 ? (
+                <ul className="mt-2 divide-y">
+                  {profile.recentOrders.map((order) => (
+                    <li key={order.id} className="flex items-center gap-3 py-4">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+                        {order.role === "trader" ? (
+                          <ArrowDownLeft className="size-5" />
+                        ) : (
+                          <ArrowUpRight className="size-5" />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">
+                          {order.role === "trader" ? "Veggie sale" : "Veggie purchase"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(order.createdAt)} · completed
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums">
+                        {formatRand(order.amount)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="py-5">
+                  <p className="text-sm text-muted-foreground">No completed orders yet.</p>
+                  <Button asChild variant="outline" className="mt-3 h-11">
+                    <Link to={profile.role === "trader" ? "/runner" : "/"}>
+                      {profile.role === "trader" ? "Go to my stall" : "Pick veggies"}
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </section>
+            <nav aria-label="Money tools" className="divide-y">
+              <Button
+                variant="ghost"
+                className="h-auto min-h-16 w-full justify-start gap-3 rounded-none px-0 py-4 text-left"
+                onClick={() => setPanel("bank")}
+              >
+                <Building2 className="text-primary" />
+                <span className="min-w-0 flex-1 whitespace-normal">
+                  <span className="block font-semibold">My bank</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Connect an account · optional
+                  </span>
+                </span>
+                <ChevronRight />
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-auto min-h-16 w-full justify-start gap-3 rounded-none px-0 py-4 text-left"
+                onClick={() => setPanel("score")}
+              >
+                <ShieldCheck className="text-primary" />
+                <span className="min-w-0 flex-1 whitespace-normal">
+                  <span className="block font-semibold">{t.score}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Your activity on Mdeko
+                  </span>
+                </span>
+                <span className="text-sm">{score?.total ?? 0}/100</span>
+                <ChevronRight />
+              </Button>
+            </nav>
+            {tipQuery.data && (
+              <aside className="mt-5 border-l-2 border-primary pl-3">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <TrendingUp className="size-4 text-primary" />
+                  {t.aiLabel}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {tipQuery.data.replace(/â€”|â€“|â€"|ΓÇö/g, "—").replace(/â€™/g, "'")}
+                </p>
+              </aside>
+            )}
           </>
         )}
-
-        {/* Always visible â€” business model */}
-        <BizCard t={t} />
       </div>
-
-      {/* Share modal */}
-      {showShare && profile && score && (
-        <ShareModal
-          name={session.name}
-          score={score.total}
-          tier={score.tier}
-          totalTraded={profile.totalTraded}
-          memberSince={profile.memberSince}
-          onClose={() => setShowShare(false)}
-          t={t}
-        />
-      )}
+      <Dialog
+        open={panel !== null}
+        onOpenChange={(open) => {
+          if (!open) setPanel(null);
+        }}
+      >
+        <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto">
+          <DialogTitle>
+            {panel === "bank" ? "My bank" : panel === "score" ? t.score : "My Mdeko record"}
+          </DialogTitle>
+          <DialogDescription>
+            {panel === "bank"
+              ? "Your bank history, separate from your Mdeko orders."
+              : panel === "score"
+                ? "Based on your orders, payments, activity and savings."
+                : "Your completed purchases and sales on Mdeko."}
+          </DialogDescription>
+          {panel === "bank" && <BankConnection />}
+          {panel === "score" && <ScoreDetails score={score} t={t} />}
+          {panel === "record" && <RecordDetails profile={profile} />}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={languageOpen} onOpenChange={setLanguageOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Language</DialogTitle>
+          <DialogDescription>Choose your preferred language.</DialogDescription>
+          <div className="space-y-2">
+            {(["en", "zu", "st"] as Lang[]).map((value) => (
+              <Button
+                key={value}
+                variant={value === lang ? "secondary" : "ghost"}
+                className="h-11 w-full justify-between"
+                onClick={() => {
+                  setLang(value);
+                  setLanguageOpen(false);
+                }}
+              >
+                {value === "en" ? "English" : value === "zu" ? "isiZulu" : "Sesotho"}
+                {value === lang && <CheckCircle2 />}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
