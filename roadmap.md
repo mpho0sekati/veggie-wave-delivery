@@ -7,6 +7,7 @@
 - Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
 - Courier position persistence verified.
 - Simplified buyer selection, removed blocking welcome guide, and collapsed secondary tools; selection and layouts verified at 608×543, 390×844, and 1280×1800.
+- Simplified produce picking with large tap-to-add icons, selected checkmarks, basket review and everyday wording; pick/add/remove, saved selections and optional helper verified at 608×543, 390×844 and 1280×1800. All 15 regression tests pass.
 
 ## Active / Backlog
 
