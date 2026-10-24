@@ -9,6 +9,8 @@
 
 ## Active / Backlog
 
+- Simplify buyer selection, remove blocking welcome guide, and collapse secondary tools; verify small-screen selection flow.
+
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
 - Order status updates now poll every four seconds across phones.
