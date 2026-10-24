@@ -487,9 +487,20 @@ function BankConnection() {
   );
 }
 
-function RecordDetails() {
+function RecordDetails({ profile }: { profile: ReturnType<typeof useFinanceProfile>["profile"] }) {
   const { data: record, isLoading, isError, refetch, isFetching } = useExportRecord();
   if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if ((isError || !record) && profile)
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between gap-3 text-sm"><span>Completed orders</span><strong>{profile.totalOrders}</strong></div>
+        <div className="flex justify-between gap-3 text-sm"><span>Completed order value</span><strong>{formatRand(profile.totalTraded)}</strong></div>
+        <p className="text-sm text-muted-foreground">{profile.recentOrders.length ? "Your latest completed orders" : "Your completed orders will appear here."}</p>
+        <ul className="divide-y">{profile.recentOrders.map((order) => <li key={order.id} className="flex justify-between gap-3 py-3 text-sm"><span>{order.role === "trader" ? "Sale" : "Purchase"} · {formatDate(order.createdAt)}</span><strong>{formatRand(order.amount)}</strong></li>)}</ul>
+        <p className="text-xs text-muted-foreground">Showing your account summary. The full record is unavailable right now.</p>
+        <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>Retry full record</Button>
+      </div>
+    );
   if (isError || !record)
     return (
       <div className="space-y-3">
@@ -693,7 +704,7 @@ function FinancePage() {
                   <TrendingUp className="size-4 text-primary" />
                   {t.aiLabel}
                 </p>
-                <p className="mt-2 text-sm text-muted-foreground">{tipQuery.data}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{tipQuery.data.replace(/â€”|â€“|â€"|ΓÇö/g, "—").replace(/â€™/g, "'")}</p>
               </aside>
             )}
           </>
@@ -718,7 +729,7 @@ function FinancePage() {
           </DialogDescription>
           {panel === "bank" && <BankConnection />}
           {panel === "score" && <ScoreDetails score={score} t={t} />}
-          {panel === "record" && <RecordDetails />}
+          {panel === "record" && <RecordDetails profile={profile} />}
         </DialogContent>
       </Dialog>
       <Dialog open={languageOpen} onOpenChange={setLanguageOpen}>
