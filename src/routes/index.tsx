@@ -135,7 +135,13 @@ function BuyerPage() {
     try {
       const saved: unknown = JSON.parse(window.localStorage.getItem("mdeko-cart-qty") || "{}");
       if (saved && typeof saved === "object" && !Array.isArray(saved)) {
-        setQty(Object.fromEntries(Object.entries(saved).filter(([, value]) => typeof value === "number" && Number.isFinite(value) && value > 0)));
+        setQty(
+          Object.fromEntries(
+            Object.entries(saved).filter(
+              ([, value]) => typeof value === "number" && Number.isFinite(value) && value > 0,
+            ),
+          ),
+        );
       }
       setWish(window.localStorage.getItem("mdeko-cart-wish") || "");
       setLandmark(window.localStorage.getItem("mdeko-landmark") || "");
