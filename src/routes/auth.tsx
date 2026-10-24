@@ -1,3 +1,4 @@
+import { ensureDemoAccount } from "@/lib/demo-auth.functions";
 import { createFileRoute, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye, EyeOff, Loader2, ShoppingBasket, Store } from "lucide-react";
@@ -67,7 +68,6 @@ function AuthPage() {
     setError("");
     try {
       const { supabase } = await import("@/integrations/supabase/client");
-      const { ensureDemoAccount } = await import("@/lib/demo-auth.functions");
       await ensureDemoAccount({ data: { role: demoRole } });
       const { error: signInError } = await supabase.auth.signInWithPassword(creds);
       if (signInError) throw signInError;
