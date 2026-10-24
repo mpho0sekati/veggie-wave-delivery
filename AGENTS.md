@@ -11,3 +11,4 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 
 - **Marketplace source of truth:** Use waves/wave_orders and authenticated server actions for order changes; profiles/stock are shared Cloud data, while local storage is only a view cache and offline queue. This prevents same-device demos from masquerading as cross-phone orders.
 - **Roles:** Read marketplace roles from user_roles and set them through the authenticated setup routine; never use browser storage to authorize trading.
+- **MoMo configuration:** Keep copy-paste cleanup in the server-only MoMo client, remove numeric line labels only when the remainder matches the credential shape, and never log provider response bodies; this preserves valid keys and avoids exposing credentials.
