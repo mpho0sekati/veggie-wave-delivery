@@ -20,13 +20,19 @@ function clean(raw: z.infer<typeof schema>, catalog: Catalog): AiOrderResult {
     if (!ids.has(line.id)) continue;
     const qty = Math.min(20, Math.max(1, Math.round(line.qty)));
     const prev = merged.get(line.id);
-    merged.set(line.id, { qty: Math.min(20, (prev?.qty ?? 0) + qty), reason: line.reason.slice(0, 80) });
+    merged.set(line.id, {
+      qty: Math.min(20, (prev?.qty ?? 0) + qty),
+      reason: line.reason.slice(0, 80),
+    });
   }
   return {
     ok: true,
     summary: raw.summary.slice(0, 200),
     items: [...merged].slice(0, 15).map(([id, v]) => ({ id, ...v })),
-    extras: raw.extras.map((e) => e.trim().toLowerCase().slice(0, 40)).filter(Boolean).slice(0, 5),
+    extras: raw.extras
+      .map((e) => e.trim().toLowerCase().slice(0, 40))
+      .filter(Boolean)
+      .slice(0, 5),
   };
 }
 

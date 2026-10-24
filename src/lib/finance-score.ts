@@ -12,10 +12,7 @@
  */
 
 export type ScoreTier =
-  | "Just Starting 🌱"
-  | "Getting Going 🚀"
-  | "Trusted Member ⭐"
-  | "Champion 🏆";
+  "Just Starting 🌱" | "Getting Going 🚀" | "Trusted Member ⭐" | "Champion 🏆";
 
 export type ScoreResult = {
   total: number;
@@ -38,10 +35,7 @@ export function computeCommunityScore(
   const paymentReliabilityPts = Math.round(Math.max(0, Math.min(1, momoSuccessRate)) * 30);
   const activityConsistencyPts = hasOrderInLast30Days ? 20 : 0;
   const safeTarget = savingsTarget > 0 ? savingsTarget : 500;
-  const savingsBehaviourPts = Math.min(
-    Math.round((savingsBalance / safeTarget) * 20),
-    20,
-  );
+  const savingsBehaviourPts = Math.min(Math.round((savingsBalance / safeTarget) * 20), 20);
 
   const total =
     orderVolumePts + paymentReliabilityPts + activityConsistencyPts + savingsBehaviourPts;
