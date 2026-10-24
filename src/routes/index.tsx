@@ -3,8 +3,6 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand,
-  Minus,
-  Plus,
   Star,
   Store,
   MapPin,
@@ -66,6 +64,7 @@ import WavePayDialog from "@/components/WavePayDialog";
 import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
+import ProducePicker from "@/components/ProducePicker";
 import { addToOfflineQueue, type QueuedOrder } from "@/lib/offline-queue";
 import { useOnline } from "@/lib/use-online";
 import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
@@ -504,9 +503,12 @@ function BuyerPage() {
               )}
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setDescribeOpen(true)}>
+              <Wand2 /> Help me make a list
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/runner">
-                <Store /> Switch to Trader Stall
+                <Store /> Sell veggies
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -547,7 +549,8 @@ function BuyerPage() {
             locate();
             setRecenterTrigger((p) => p + 1);
           }}
-          aria-label="Recenter location"
+          aria-label="Find my location"
+          title="Find my location"
         >
           <Crosshair className="size-5" />
         </Button>
@@ -557,7 +560,7 @@ function BuyerPage() {
       {!isOnline && (
         <div className="absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border bg-background/95 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md">
           <WifiOff className="size-4 text-destructive" />
-          You're offline — waves are saved and sent later
+          No internet · your wave will be saved
         </div>
       )}
 
@@ -619,23 +622,13 @@ function BuyerPage() {
                 </h1>
                 {!request && (
                   <p className="truncate text-xs text-muted-foreground">
-                    {buyer.located ? `${ranked.length} nearby traders` : "Location not set"}
-                    {geoStatus === "approximate" ? " · approximate location" : ""}
+                    {buyer.located
+                      ? `${ranked.length} traders nearby${geoStatus === "approximate" ? " · location is approximate" : ""}`
+                      : ""}
                   </p>
                 )}
               </div>
               <div className="flex shrink-0 gap-1">
-                {!request && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Describe my order"
-                    title="Describe my order"
-                    onClick={() => setDescribeOpen(true)}
-                  >
-                    <Wand2 className="size-5" />
-                  </Button>
-                )}
                 <Button
                   size="icon"
                   variant="ghost"
@@ -659,70 +652,32 @@ function BuyerPage() {
 
                 {!request && (
                   <>
-                    <div className="grid grid-cols-2 gap-2 px-4 pt-3 min-[420px]:grid-cols-3">
-                      {catalog.map((item) => {
-                        const Icon = item.icon;
-                        const count = qty[item.id] ?? 0;
-                        const sellers = online.filter((r) => priceFor(r, item.id) !== null).length;
-                        return (
-                          <div
-                            key={item.id}
-                            className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 ${count ? "border-primary bg-secondary" : "bg-card"}`}
-                          >
-                            <div className="flex min-w-0 items-center gap-2">
-                              <Icon className="size-6 shrink-0 text-primary" />
-                              <div className="min-w-0">
-                                <p className="break-words text-sm font-semibold leading-tight">
-                                  {item.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{item.unit}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                aria-label={`Remove one ${item.name}`}
-                                disabled={count === 0}
-                                onClick={() => bump(item.id, -1)}
-                              >
-                                <Minus />
-                              </Button>
-                              <span
-                                className="min-w-5 text-center font-display text-sm font-semibold"
-                                aria-live="polite"
-                              >
-                                {count}
-                              </span>
-                              <Button
-                                size="icon"
-                                variant={count ? "default" : "secondary"}
-                                aria-label={`Add one ${item.name}`}
-                                onClick={() => bump(item.id, 1)}
-                              >
-                                <Plus />
-                              </Button>
-                            </div>
-                            {sellers > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                from{" "}
-                                {formatRand(
-                                  Math.min(
-                                    ...online
-                                      .map((r) => priceFor(r, item.id))
-                                      .filter((p): p is number => p !== null),
-                                  ),
-                                )}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {!buyer.located && (
+                      <Button
+                        variant="ghost"
+                        className="mx-4 mt-2 h-11 justify-start px-0 text-primary"
+                        onClick={locate}
+                        disabled={geoStatus === "locating"}
+                      >
+                        {geoStatus === "locating" ? <Loader2 className="animate-spin" /> : <MapPin />}
+                        {geoStatus === "locating" ? "Finding you…" : "Set my location"}
+                      </Button>
+                    )}
+                    {geoMessage && (
+                      <p className="mx-4 mt-1 text-xs text-muted-foreground" role="status">
+                        {geoMessage}
+                      </p>
+                    )}
+                    <ProducePicker
+                      catalog={catalog}
+                      quantities={qty}
+                      traders={online}
+                      onChange={bump}
+                    />
 
                     <details className="mx-4 mt-4 border-t pt-3">
                       <summary className="cursor-pointer text-sm font-medium">
-                        Something else / delivery landmark
+                        Can't find what you need?
                       </summary>
                       <div className="mx-4 mt-4 space-y-2">
                         <Label htmlFor="wish">Something else?</Label>
@@ -732,11 +687,12 @@ function BuyerPage() {
                           value={wish}
                           onChange={(e) => setWish(e.target.value)}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Even if nobody has it yet, we tell traders people are asking.
-                        </p>
                       </div>
-
+                    </details>
+                    <details className="mx-4 mt-4 border-t pt-3">
+                      <summary className="cursor-pointer text-sm font-medium">
+                        Add a delivery note
+                      </summary>
                       <div className="mx-4 mt-4 space-y-2">
                         <Label htmlFor="landmark" className="flex items-center gap-2">
                           <MapPin className="size-4 text-primary" /> Where should they find you?
@@ -747,9 +703,6 @@ function BuyerPage() {
                           value={landmark}
                           onChange={(e) => setLandmark(e.target.value)}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          A landmark helps the trader reach you — no street number needed.
-                        </p>
                       </div>
                     </details>
                     <details className="mt-4 border-t pt-3">
@@ -811,7 +764,7 @@ function BuyerPage() {
                                       {formatDistance(km)} away
                                     </span>
                                     <span className="flex items-center gap-1">
-                                      <Clock className="size-3.5" /> {etaMin} min ETA
+                                      <Clock className="size-3.5" /> about {etaMin} min
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Star className="size-3.5 text-accent" />{" "}
@@ -1050,10 +1003,10 @@ function BuyerPage() {
                 {!request && orders.length > 0 && (
                   <details className="mx-4 mt-4 border-t pt-3 pb-4">
                     <summary className="cursor-pointer text-sm font-medium">
-                      Past waves · {orders.length}
+                      My past orders · {orders.length}
                     </summary>
                     <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
-                      <History className="size-5 text-primary" /> Past waves
+                      <History className="size-5 text-primary" /> My past orders
                     </h2>
                     <ul className="space-y-2">
                       {orders.map((order) => {
@@ -1113,26 +1066,37 @@ function BuyerPage() {
             {/* Fixed footer — the wave button is always reachable, never covering content */}
             {!request && (
               <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
+                {(picked.length > 0 || wish.trim()) && (
+                  <details className="mb-2 text-sm">
+                    <summary className="flex cursor-pointer items-center justify-between gap-2 py-1 font-medium">
+                      <span>
+                        {picked.reduce((sum, item) => sum + (qty[item.id] ?? 0), 0)} in your basket
+                        {wish.trim() ? " · extra request" : ""}
+                      </span>
+                      <ChevronUp className="size-4 text-muted-foreground" />
+                    </summary>
+                    <ul className="max-h-24 space-y-1 overflow-y-auto py-2 text-muted-foreground">
+                      {picked.map((item) => (
+                        <li key={item.id}>{qty[item.id]} × {item.name} · {item.unit}</li>
+                      ))}
+                      {wish.trim() && <li>{wish.trim()}</li>}
+                    </ul>
+                    <p className="pb-2 text-xs text-muted-foreground">
+                      {total > 0 ? "Estimated price, with delivery" : "Your trader will confirm the price"}
+                    </p>
+                  </details>
+                )}
                 <Button
                   size="xl"
                   variant="wave"
-                  className="shadow-glow w-full"
+                  className="shadow-glow w-full gap-2 px-3"
                   onClick={wave}
                   disabled={actions.createWave.isPending || (!picked.length && !wish.trim())}
                 >
-                  <Hand /> {actions.createWave.isPending ? "Sending wave…" : "Raise my hand"}
+                  {actions.createWave.isPending ? <Loader2 className="animate-spin" /> : <Hand />}
+                  {actions.createWave.isPending ? "Sending…" : "Raise my hand"}
                   {total > 0 ? ` · ${formatRand(total)}` : ""}
                 </Button>
-                {(picked.length > 0 || wish.trim()) && (
-                  <p
-                    className="mt-1 truncate text-center text-xs text-muted-foreground"
-                    aria-live="polite"
-                  >
-                    {picked.reduce((sum, item) => sum + (qty[item.id] ?? 0), 0)} selected
-                    {wish.trim() ? ` · ${wish.trim()}` : ""}
-                    {total > 0 ? " · estimated incl. delivery" : " · awaiting trader prices"}
-                  </p>
-                )}
                 {queuedCount > 0 && (
                   <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
                     <CloudUpload className="size-3" /> {queuedCount} saved{" "}
@@ -1148,7 +1112,7 @@ function BuyerPage() {
 
       <Dialog open={describeOpen} onOpenChange={setDescribeOpen}>
         <DialogContent className="max-h-[85dvh] overflow-y-auto">
-          <DialogTitle>Describe your order</DialogTitle>
+          <DialogTitle>Make my veggie list</DialogTitle>
           <DialogDescription>What are you cooking or shopping for?</DialogDescription>
           <DescribeOrder
             catalog={catalog}
