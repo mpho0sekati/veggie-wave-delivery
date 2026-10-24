@@ -470,7 +470,7 @@ export const getBankBoost = createServerFn({ method: "POST" })
       const { listLinkedAccounts, getRecentTransactions, computeBankBoost } =
         await import("./banklink.server");
 
-      const accounts = await listLinkedAccounts(userId);
+      const accounts = await listLinkedAccounts();
       if (accounts.length === 0) {
         return {
           linkedAccounts: 0,
