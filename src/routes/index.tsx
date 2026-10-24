@@ -127,22 +127,23 @@ function BuyerPage() {
   const buyer = useAppState((s) => s.buyer);
 
   // Cart persists in localStorage so signing in never wipes the buyer's basket.
-  const [qty, setQty] = useState<Record<string, number>>(() => {
-    if (typeof window === "undefined") return {};
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [wish, setWish] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [cartReady, setCartReady] = useState(false);
+  useEffect(() => {
     try {
-      return JSON.parse(window.localStorage.getItem("mdeko-cart-qty") || "{}");
+      const saved: unknown = JSON.parse(window.localStorage.getItem("mdeko-cart-qty") || "{}");
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+        setQty(Object.fromEntries(Object.entries(saved).filter(([, value]) => typeof value === "number" && Number.isFinite(value) && value > 0)));
+      }
+      setWish(window.localStorage.getItem("mdeko-cart-wish") || "");
+      setLandmark(window.localStorage.getItem("mdeko-landmark") || "");
     } catch {
-      return {};
+      /* storage blocked or stale: start with an empty cart */
     }
-  });
-  const [wish, setWish] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("mdeko-cart-wish") || "";
-  });
-  const [landmark, setLandmark] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("mdeko-landmark") || "";
-  });
+    setCartReady(true);
+  }, []);
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
   const [payLoading, setPayLoading] = useState(false);
@@ -151,26 +152,29 @@ function BuyerPage() {
 
   // Save the cart on every change so it survives sign-in redirects and refreshes.
   useEffect(() => {
+    if (!cartReady) return;
     try {
       window.localStorage.setItem("mdeko-cart-qty", JSON.stringify(qty));
     } catch {
       /* storage blocked */
     }
-  }, [qty]);
+  }, [qty, cartReady]);
   useEffect(() => {
+    if (!cartReady) return;
     try {
       window.localStorage.setItem("mdeko-cart-wish", wish);
     } catch {
       /* storage blocked */
     }
-  }, [wish]);
+  }, [wish, cartReady]);
   useEffect(() => {
+    if (!cartReady) return;
     try {
       window.localStorage.setItem("mdeko-landmark", landmark);
     } catch {
       /* storage blocked */
     }
-  }, [landmark]);
+  }, [landmark, cartReady]);
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
