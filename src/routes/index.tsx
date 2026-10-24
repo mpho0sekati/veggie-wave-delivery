@@ -13,13 +13,13 @@ import {
   Wallet,
   History,
   Clock,
-  ChevronDown,
   ChevronUp,
   Loader2,
   LogOut,
   Menu,
   WifiOff,
   CloudUpload,
+  Wand2,
   MessageCircle,
 } from "lucide-react";
 import {
@@ -29,13 +29,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import WelcomeGuide from "@/components/WelcomeGuide";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   catalogWith,
   distanceKm,
@@ -71,17 +71,6 @@ import { useOnline } from "@/lib/use-online";
 import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
-
-function greetingFor(h: number) {
-  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-}
-
-/** Uses the phone's local time only after load, so server and browser always agree first. */
-function Greeting() {
-  const [text, setText] = useState("Hello");
-  useEffect(() => setText(greetingFor(new Date().getHours())), []);
-  return <>{text}</>;
-}
 
 const WAVE_TIMEOUT_MS = 120_000;
 
@@ -295,6 +284,7 @@ function BuyerPage() {
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [describeOpen, setDescribeOpen] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
   // so the map stays the hero; it expands again when the wave needs a decision.
@@ -434,31 +424,6 @@ function BuyerPage() {
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
-      <WelcomeGuide
-        storageKey="mdeko-guide-buyer"
-        steps={[
-          {
-            icon: MapPin,
-            title: "See traders near you",
-            body: "The map shows veggie traders around you and how far they are.",
-          },
-          {
-            icon: Hand,
-            title: "Pick and raise your hand",
-            body: 'Choose what you need, or just type it, then tap "Raise my hand".',
-          },
-          {
-            icon: Clock,
-            title: "Watch them come",
-            body: "The closest trader accepts and you can follow them on the map.",
-          },
-          {
-            icon: Wallet,
-            title: "Pay safely",
-            body: "Pay with MoMo or cash when your veggies arrive.",
-          },
-        ]}
-      />
       {/* Full screen edge-to-edge Leaflet map */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <ClientOnly fallback={<MapSkeleton />}>
@@ -504,6 +469,18 @@ function BuyerPage() {
                 }
               />
             </div>
+            <div className="border-t px-2 py-3 text-sm">
+              <p className="flex justify-between gap-3">
+                <span>Mdeko Pay</span>
+                <strong>{formatRand(walletBalance)}</strong>
+              </p>
+              {communityCredit > 0 && (
+                <p className="mt-1 flex justify-between gap-3 text-muted-foreground">
+                  <span>Community Credit</span>
+                  <span>{formatRand(communityCredit)}</span>
+                </p>
+              )}
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link to="/runner">
@@ -534,6 +511,10 @@ function BuyerPage() {
         </DropdownMenu>
       </header>
 
+      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-1/2 z-10 -translate-x-1/2 rounded-lg border bg-background/95 px-3 py-2 shadow-sm">
+        <BrandMark />
+      </div>
+
       {/* Floating map controls */}
       <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 flex flex-col gap-2">
         <Button
@@ -560,14 +541,19 @@ function BuyerPage() {
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex w-full max-w-lg flex-col rounded-t-3xl border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur-xl transition-[max-height] duration-300 ease-out sm:bottom-4 sm:rounded-3xl sm:border ${
-          sheetExpanded ? "max-h-[88dvh]" : "max-h-[50dvh] min-h-[min(20rem,60dvh)]"
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
+          request && isCollapsed
+            ? "h-auto"
+            : sheetExpanded || request
+              ? "h-[88dvh]"
+              : "h-[62dvh] max-h-[620px]"
         }`}
       >
         {request && isCollapsed ? (
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setIsCollapsed(false)}
-            className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/50"
+            className="h-auto w-full justify-start gap-3 whitespace-normal px-5 py-3 text-left"
             aria-expanded="false"
             aria-label="Show order details"
           >
@@ -601,249 +587,237 @@ function BuyerPage() {
               </div>
             )}
             <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
-          </button>
+          </Button>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => (request ? setIsCollapsed(true) : setSheetExpanded((v) => !v))}
-              className="flex w-full shrink-0 flex-col items-center gap-1 pt-2 pb-1"
-              aria-expanded={request ? true : sheetExpanded}
-              aria-label={
-                request ? "Minimize order details" : sheetExpanded ? "Show less" : "Show more"
-              }
-            >
-              <span className="block h-1.5 w-12 rounded-full bg-muted" />
-              {!request && (
-                <ChevronUp
-                  className={`size-4 text-muted-foreground transition-transform duration-300 ${sheetExpanded ? "rotate-180" : ""}`}
-                />
-              )}
-            </button>
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-2">
+              <div className="min-w-0">
+                <h1 className="text-lg font-semibold">
+                  {request ? "Your wave" : "What do you need?"}
+                </h1>
+                {!request && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {buyer.located ? `${ranked.length} nearby traders` : "Location not set"}
+                    {geoStatus === "approximate" ? " · approximate location" : ""}
+                  </p>
+                )}
+              </div>
+              <div className="flex shrink-0 gap-1">
+                {!request && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Describe my order"
+                    title="Describe my order"
+                    onClick={() => setDescribeOpen(true)}
+                  >
+                    <Wand2 className="size-5" />
+                  </Button>
+                )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => (request ? setIsCollapsed(true) : setSheetExpanded((v) => !v))}
+                  aria-expanded={request ? true : sheetExpanded}
+                  aria-label={
+                    request ? "Minimize order details" : sheetExpanded ? "Show less" : "Show more"
+                  }
+                >
+                  <ChevronUp
+                    className={`size-5 transition-transform motion-reduce:transition-none ${sheetExpanded ? "rotate-180" : ""}`}
+                  />
+                </Button>
+              </div>
+            </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               <div className="px-1 pb-5">
-                <p className="mx-5 text-xs text-muted-foreground">
-                  {geoMessage ||
-                    (buyer.located
-                      ? "Tap the map to correct your pin."
-                      : "Location not set — tap the crosshair or drop your pin on the map.")}
-                </p>
+                {request && geoMessage && (
+                  <p className="mx-4 mt-2 text-xs text-muted-foreground">{geoMessage}</p>
+                )}
 
                 {!request && (
                   <>
-                    <p className="mt-2 border-b pb-3 text-center text-lg font-semibold">
-                      <Greeting />
-                      {session.name ? `, ${session.name.split(" ")[0]}` : ""}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSheetExpanded(true);
-                        setTimeout(
-                          () =>
-                            document
-                              .getElementById("describe-order")
-                              ?.scrollIntoView({ behavior: "smooth" }),
-                          320,
-                        );
-                      }}
-                      className="mx-4 mt-4 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl bg-secondary px-4 py-4 text-left text-lg font-medium"
-                    >
-                      What veggies do you need?
-                      <Hand className="size-5 text-primary" />
-                    </button>
-                    <div className="mx-4 mt-4 rounded-2xl bg-secondary px-4 py-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          <Wallet className="size-4 text-primary" /> Mdeko Pay balance
-                        </span>
-                        <span className="font-display font-semibold">
-                          {formatRand(walletBalance)}
-                        </span>
-                      </div>
-                      {communityCredit > 0 && (
-                        <div className="flex items-center justify-between border-t pt-2">
-                          <span className="flex items-center gap-2 text-xs text-primary font-medium">
-                            Community Credit
-                          </span>
-                          <span className="font-display text-sm font-semibold text-primary">
-                            {formatRand(communityCredit)}
-                          </span>
-                        </div>
-                      )}
-                      {communityCredit === 0 && (
-                        <p className="text-xs text-muted-foreground border-t pt-2">
-                          Earn <strong>R0.50 Mdeko Community Credit</strong> every time you pay with
-                          MoMo
-                        </p>
-                      )}
-                    </div>
-
-                    <h2 className="mt-6 px-5 text-lg font-semibold">Traders near you</h2>
-                    {ranked.length === 0 ? (
-                      <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
-                        <Store className="size-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          No Mdeko trader is online around you yet. Pick what you need anyway.
-                        </p>
-                      </Card>
-                    ) : (
-                      <ul className="mx-4 mt-2 space-y-2">
-                        {ranked.map(({ runner, km, have, total: runnerTotal, etaMin }, index) => {
-                          const partial = picked.length > 0 && have < picked.length;
-                          const bestMatch = index === 0 && picked.length > 0 && !partial;
-                          const isSelected = selectedRunnerId === runner.id;
-                          return (
-                            <li
-                              key={runner.id}
-                              onClick={() => {
-                                setSelectedRunnerId((p) => (p === runner.id ? null : runner.id));
-                                if (isCollapsed) setIsCollapsed(false);
-                              }}
-                              className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
-                                isSelected
-                                  ? "border-primary bg-primary/10 shadow-glow ring-2 ring-primary/30"
-                                  : index === 0
-                                    ? "border-primary bg-secondary shadow-glow"
-                                    : "bg-card hover:bg-secondary/50"
-                              }`}
-                            >
-                              <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
-                                {runner.avatar ? (
-                                  <img
-                                    src={runner.avatar}
-                                    alt={runner.name}
-                                    className="size-full object-cover"
-                                  />
-                                ) : (
-                                  runner.name.charAt(0)
-                                )}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 truncate font-semibold">
-                                  {runner.name}
-                                  {bestMatch && (
-                                    <Badge className="shrink-0" variant="default">
-                                      best match
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="size-3.5 text-primary" />{" "}
-                                    {formatDistance(km)} away
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="size-3.5" /> {etaMin} min ETA
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Star className="size-3.5 text-amber-500" />{" "}
-                                    {runner.rating.toFixed(1)}
-                                  </span>
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  Delivery fee: {formatRand(calculateDeliveryFee(km))}
-                                </p>
-                              </div>
-                              <div className="shrink-0 text-right">
-                                {picked.length > 0 && (
-                                  <p className="font-display text-sm font-semibold">
-                                    {formatRand(runnerTotal)}
-                                  </p>
-                                )}
-                                <Badge variant={partial ? "outline" : "secondary"}>
-                                  {picked.length
-                                    ? `has ${have}/${picked.length}`
-                                    : `${runner.stock.length} items`}
-                                </Badge>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-
-                    <div id="describe-order" />
-                    <DescribeOrder
-                      catalog={catalog}
-                      onApply={(items, extras) => {
-                        setQty(Object.fromEntries(items.map((l) => [l.id, l.qty])));
-                        setWish(extras.join(", "));
-                      }}
-                    />
-
-                    <h2 className="mt-6 px-5 text-lg font-semibold">What do you need?</h2>
-                    <div className="grid grid-cols-2 gap-3 px-4 pt-3">
+                    <div className="grid grid-cols-2 gap-2 px-4 pt-3 min-[420px]:grid-cols-3">
                       {catalog.map((item) => {
                         const Icon = item.icon;
                         const count = qty[item.id] ?? 0;
                         const sellers = online.filter((r) => priceFor(r, item.id) !== null).length;
                         return (
-                          <Card
+                          <div
                             key={item.id}
-                            className={`gap-2 p-4 transition-colors ${count ? "border-primary bg-secondary" : ""}`}
+                            className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 ${count ? "border-primary bg-secondary" : "bg-card"}`}
                           >
-                            <Icon className="size-7 text-primary" />
-                            <div>
-                              <p className="font-semibold leading-tight">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {item.unit} ·{" "}
-                                {sellers
-                                  ? `from ${formatRand(Math.min(...online.map((r) => priceFor(r, item.id)).filter((p): p is number => p !== null)))}`
-                                  : "nobody stocked"}
-                              </p>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <Icon className="size-6 shrink-0 text-primary" />
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-semibold leading-tight">
+                                  {item.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{item.unit}</p>
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-1">
                               <Button
                                 size="icon"
-                                variant="outline"
+                                variant="ghost"
                                 aria-label={`Remove one ${item.name}`}
+                                disabled={count === 0}
                                 onClick={() => bump(item.id, -1)}
                               >
                                 <Minus />
                               </Button>
-                              <span className="font-display text-base font-semibold">{count}</span>
+                              <span
+                                className="min-w-5 text-center font-display text-sm font-semibold"
+                                aria-live="polite"
+                              >
+                                {count}
+                              </span>
                               <Button
                                 size="icon"
-                                variant="outline"
+                                variant={count ? "default" : "secondary"}
                                 aria-label={`Add one ${item.name}`}
                                 onClick={() => bump(item.id, 1)}
                               >
                                 <Plus />
                               </Button>
                             </div>
-                          </Card>
+                            {sellers > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                from{" "}
+                                {formatRand(
+                                  Math.min(
+                                    ...online
+                                      .map((r) => priceFor(r, item.id))
+                                      .filter((p): p is number => p !== null),
+                                  ),
+                                )}
+                              </p>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
 
-                    <div className="mx-4 mt-4 space-y-2">
-                      <Label htmlFor="wish">Something else?</Label>
-                      <Input
-                        id="wish"
-                        placeholder="e.g. blueberries"
-                        value={wish}
-                        onChange={(e) => setWish(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Even if nobody has it yet, we tell traders people are asking.
-                      </p>
-                    </div>
+                    <details className="mx-4 mt-4 border-t pt-3">
+                      <summary className="cursor-pointer text-sm font-medium">
+                        Something else / delivery landmark
+                      </summary>
+                      <div className="mx-4 mt-4 space-y-2">
+                        <Label htmlFor="wish">Something else?</Label>
+                        <Input
+                          id="wish"
+                          placeholder="e.g. blueberries"
+                          value={wish}
+                          onChange={(e) => setWish(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Even if nobody has it yet, we tell traders people are asking.
+                        </p>
+                      </div>
 
-                    <div className="mx-4 mt-4 space-y-2">
-                      <Label htmlFor="landmark" className="flex items-center gap-2">
-                        <MapPin className="size-4 text-primary" /> Where should they find you?
-                      </Label>
-                      <Input
-                        id="landmark"
-                        placeholder="e.g. opposite the blue container spaza"
-                        value={landmark}
-                        onChange={(e) => setLandmark(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        A landmark helps the trader reach you — no street number needed.
-                      </p>
-                    </div>
+                      <div className="mx-4 mt-4 space-y-2">
+                        <Label htmlFor="landmark" className="flex items-center gap-2">
+                          <MapPin className="size-4 text-primary" /> Where should they find you?
+                        </Label>
+                        <Input
+                          id="landmark"
+                          placeholder="e.g. opposite the blue container spaza"
+                          value={landmark}
+                          onChange={(e) => setLandmark(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          A landmark helps the trader reach you — no street number needed.
+                        </p>
+                      </div>
+                    </details>
+                    <details className="mt-4 border-t pt-3">
+                      <summary className="mx-4 cursor-pointer text-sm font-medium">
+                        Traders near you · {ranked.length}
+                      </summary>
+
+                      {ranked.length === 0 ? (
+                        <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
+                          <Store className="size-8 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            No Mdeko trader is online around you yet. Pick what you need anyway.
+                          </p>
+                        </Card>
+                      ) : (
+                        <ul className="mx-4 mt-2 space-y-2">
+                          {ranked.map(({ runner, km, have, total: runnerTotal, etaMin }, index) => {
+                            const partial = picked.length > 0 && have < picked.length;
+                            const bestMatch = index === 0 && picked.length > 0 && !partial;
+                            const isSelected = selectedRunnerId === runner.id;
+                            return (
+                              <li
+                                key={runner.id}
+                                onClick={() => {
+                                  setSelectedRunnerId((p) => (p === runner.id ? null : runner.id));
+                                  if (isCollapsed) setIsCollapsed(false);
+                                }}
+                                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-all ${
+                                  isSelected
+                                    ? "border-primary bg-primary/10 shadow-glow ring-2 ring-primary/30"
+                                    : index === 0
+                                      ? "border-primary bg-secondary"
+                                      : "bg-card hover:bg-secondary/50"
+                                }`}
+                              >
+                                <span className="bg-brand flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-primary-foreground">
+                                  {runner.avatar ? (
+                                    <img
+                                      src={runner.avatar}
+                                      alt={runner.name}
+                                      className="size-full object-cover"
+                                    />
+                                  ) : (
+                                    runner.name.charAt(0)
+                                  )}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 truncate font-semibold">
+                                    {runner.name}
+                                    {bestMatch && (
+                                      <Badge className="shrink-0" variant="default">
+                                        best match
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="size-3.5 text-primary" />{" "}
+                                      {formatDistance(km)} away
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="size-3.5" /> {etaMin} min ETA
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Star className="size-3.5 text-accent" />{" "}
+                                      {runner.rating.toFixed(1)}
+                                    </span>
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    Delivery fee: {formatRand(calculateDeliveryFee(km))}
+                                  </p>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  {picked.length > 0 && (
+                                    <p className="font-display text-sm font-semibold">
+                                      {formatRand(runnerTotal)}
+                                    </p>
+                                  )}
+                                  <Badge variant={partial ? "outline" : "secondary"}>
+                                    {picked.length
+                                      ? `has ${have}/${picked.length}`
+                                      : `${runner.stock.length} items`}
+                                  </Badge>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </details>
                   </>
                 )}
 
@@ -906,7 +880,7 @@ function BuyerPage() {
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 font-semibold text-white shadow-sm transition-transform active:scale-[0.98]"
+                          className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground shadow-sm"
                         >
                           <MessageCircle className="size-5" /> WhatsApp {assigned.name}
                         </a>
@@ -1052,7 +1026,10 @@ function BuyerPage() {
                 )}
 
                 {!request && orders.length > 0 && (
-                  <section className="px-4 pb-8">
+                  <details className="mx-4 mt-4 border-t pt-3 pb-4">
+                    <summary className="cursor-pointer text-sm font-medium">
+                      Past waves · {orders.length}
+                    </summary>
                     <h2 className="flex items-center gap-2 px-1 pt-6 pb-2 text-lg font-semibold">
                       <History className="size-5 text-primary" /> Past waves
                     </h2>
@@ -1106,7 +1083,7 @@ function BuyerPage() {
                         );
                       })}
                     </ul>
-                  </section>
+                  </details>
                 )}
               </div>
             </div>
@@ -1114,15 +1091,26 @@ function BuyerPage() {
             {/* Fixed footer — the wave button is always reachable, never covering content */}
             {!request && (
               <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
-                <Button size="xl" variant="wave" className="shadow-glow w-full" onClick={wave}>
-                  <Hand className="animate-wave" /> Raise my hand
+                <Button
+                  size="xl"
+                  variant="wave"
+                  className="shadow-glow w-full"
+                  onClick={wave}
+                  disabled={actions.createWave.isPending || (!picked.length && !wish.trim())}
+                >
+                  <Hand /> {actions.createWave.isPending ? "Sending wave…" : "Raise my hand"}
                   {total > 0 ? ` · ${formatRand(total)}` : ""}
                 </Button>
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  {picked.length || wish.trim()
-                    ? "The nearest trader who has your items sees the wave first."
-                    : "Tap an item above, then raise your hand."}
-                </p>
+                {(picked.length > 0 || wish.trim()) && (
+                  <p
+                    className="mt-1 truncate text-center text-xs text-muted-foreground"
+                    aria-live="polite"
+                  >
+                    {picked.reduce((sum, item) => sum + (qty[item.id] ?? 0), 0)} selected
+                    {wish.trim() ? ` · ${wish.trim()}` : ""}
+                    {total > 0 ? " · estimated incl. delivery" : " · awaiting trader prices"}
+                  </p>
+                )}
                 {queuedCount > 0 && (
                   <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
                     <CloudUpload className="size-3" /> {queuedCount} saved{" "}
@@ -1135,6 +1123,22 @@ function BuyerPage() {
           </>
         )}
       </div>
+
+      <Dialog open={describeOpen} onOpenChange={setDescribeOpen}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+          <DialogTitle>Describe your order</DialogTitle>
+          <DialogDescription>What are you cooking or shopping for?</DialogDescription>
+          <DescribeOrder
+            catalog={catalog}
+            unframed
+            onApply={(items, extras) => {
+              setQty(Object.fromEntries(items.map((l) => [l.id, l.qty])));
+              setWish(extras.join(", "));
+              setDescribeOpen(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <WavePayDialog
         open={payOpen}

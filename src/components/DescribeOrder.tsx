@@ -3,18 +3,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { describeToOrder, type AiOrderLine } from "@/lib/ai-order.functions";
 import type { VeggieItem } from "@/lib/veggie-data";
 
 type Props = {
+  unframed?: boolean;
   catalog: VeggieItem[];
   onApply: (items: AiOrderLine[], extras: string[]) => void;
 };
 
-export default function DescribeOrder({ catalog, onApply }: Props) {
+export default function DescribeOrder({ catalog, onApply, unframed = false }: Props) {
   const run = useServerFn(describeToOrder);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -56,7 +56,13 @@ export default function DescribeOrder({ catalog, onApply }: Props) {
   const nameOf = (id: string) => catalog.find((c) => c.id === id);
 
   return (
-    <Card className="mx-4 mt-6 gap-3 p-4">
+    <div
+      className={
+        unframed
+          ? "flex flex-col gap-3"
+          : "mx-4 mt-6 flex flex-col gap-3 rounded-lg border bg-card p-4"
+      }
+    >
       <Label htmlFor="describe" className="flex items-center gap-2 font-semibold">
         <Wand2 className="size-4 text-primary" /> Just tell us what you need
       </Label>
@@ -93,6 +99,6 @@ export default function DescribeOrder({ catalog, onApply }: Props) {
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
