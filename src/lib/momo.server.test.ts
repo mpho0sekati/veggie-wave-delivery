@@ -5,7 +5,9 @@ import { cleanMomoCredential, readMomoConfig } from "./momo.server";
 const key = "abcdef0123456789abcdef0123456789";
 const user = "12345678-abcd-1234-abcd-123456789abc";
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("MoMo copy-paste cleanup", () => {
   it("removes a directly attached copied line number from a subscription key", () => {
