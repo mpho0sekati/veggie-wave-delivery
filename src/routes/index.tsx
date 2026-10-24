@@ -659,7 +659,11 @@ function BuyerPage() {
                         onClick={locate}
                         disabled={geoStatus === "locating"}
                       >
-                        {geoStatus === "locating" ? <Loader2 className="animate-spin" /> : <MapPin />}
+                        {geoStatus === "locating" ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <MapPin />
+                        )}
                         {geoStatus === "locating" ? "Finding you…" : "Set my location"}
                       </Button>
                     )}
@@ -1077,12 +1081,16 @@ function BuyerPage() {
                     </summary>
                     <ul className="max-h-24 space-y-1 overflow-y-auto py-2 text-muted-foreground">
                       {picked.map((item) => (
-                        <li key={item.id}>{qty[item.id]} × {item.name} · {item.unit}</li>
+                        <li key={item.id}>
+                          {qty[item.id]} × {item.name} · {item.unit}
+                        </li>
                       ))}
                       {wish.trim() && <li>{wish.trim()}</li>}
                     </ul>
                     <p className="pb-2 text-xs text-muted-foreground">
-                      {total > 0 ? "Estimated price, with delivery" : "Your trader will confirm the price"}
+                      {total > 0
+                        ? "Estimated price, with delivery"
+                        : "Your trader will confirm the price"}
                     </p>
                   </details>
                 )}
