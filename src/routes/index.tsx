@@ -458,6 +458,7 @@ function BuyerPage() {
               activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
+              buyerLocated={buyer.located}
               courierPosition={courierPosition}
               isGpsDisconnected={isDisconnected}
               recenterTrigger={recenterTrigger}

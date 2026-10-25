@@ -17,6 +17,7 @@ type Props = {
   activeRunnerId?: string | null;
   waving?: boolean;
   buyerPosition?: { lat: number; lng: number };
+  buyerLocated?: boolean;
   recenterTrigger?: number;
   /** Live courier position for delivery tracking */
   courierPosition?: TrackedPosition | null;
@@ -88,6 +89,7 @@ export default function VeggieMap({
   activeRunnerId,
   waving,
   buyerPosition,
+  buyerLocated = true,
   recenterTrigger,
   courierPosition,
   isGpsDisconnected = false,
@@ -209,12 +211,12 @@ export default function VeggieMap({
   // A first GPS fix moves off the default pin; later fixes never take the camera back.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || buyerCenteredRef.current || userMovedRef.current) return;
+    if (!map || !buyerLocated || buyerCenteredRef.current || userMovedRef.current) return;
     buyerCenteredRef.current = true;
     programmaticMoveRef.current = true;
     map.setView([buyer.lat, buyer.lng], 15, { animate: false });
     programmaticMoveRef.current = false;
-  }, [buyer.lat, buyer.lng]);
+  }, [buyer.lat, buyer.lng, buyerLocated]);
 
   // Courier tracking: one-time fit on arrival, then only nudge when someone leaves the view.
   useEffect(() => {
