@@ -5,10 +5,8 @@ import { createFileRoute } from "@tanstack/react-router";
  * We re-verify with MoMo directly (never trust the callback body) and only then
  * finalize the payment in our database.
  */
-export const Route = createFileRoute("/api/public/momo-callback")({
-  server: {
-    handlers: {
-      POST: async ({ request }) => {
+// MTN sends status callbacks as PUT or POST; both go through the same verified path.
+async function handleCallback({ request }: { request: Request }): Promise<Response> {
         try {
           const raw = await request.text();
           if (raw.length > 4096)
@@ -77,7 +75,13 @@ export const Route = createFileRoute("/api/public/momo-callback")({
           console.error("momo-callback: unhandled error", err);
           return Response.json({ error: "internal-error" }, { status: 500 });
         }
-      },
+}
+
+export const Route = createFileRoute("/api/public/momo-callback")({
+  server: {
+    handlers: {
+      POST: handleCallback,
+      PUT: handleCallback,
     },
   },
 });
