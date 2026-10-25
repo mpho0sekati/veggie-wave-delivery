@@ -23,6 +23,8 @@
 
 ## Active / Backlog
 
+- Fix seller saved-name/profile controls, explicit location recentering and missing incoming waves; verify across buyer and seller accounts.
+
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
 - Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
 
