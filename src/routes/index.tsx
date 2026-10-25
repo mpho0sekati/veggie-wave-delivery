@@ -16,6 +16,8 @@ import {
   WifiOff,
   CloudUpload,
   MessageCircle,
+  ShoppingBasket,
+  Truck,
 } from "lucide-react";
 import AppTabBar from "@/components/AppTabBar";
 import { toast } from "sonner";
@@ -53,7 +55,8 @@ import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
 import { useCourierPositions } from "@/lib/use-courier-tracking";
 import { useWeatherWarning } from "@/lib/use-weather";
 import WavePayDialog from "@/components/WavePayDialog";
-import OrderStepper from "@/components/OrderStepper";
+import JourneyProgress from "@/components/JourneyProgress";
+import { buyerJourneyStep } from "@/lib/journey-progress";
 import DescribeOrder from "@/components/DescribeOrder";
 import ProducePicker from "@/components/ProducePicker";
 import DeliveryCelebration, { useDeliveryCelebrations } from "@/components/DeliveryCelebration";
@@ -521,7 +524,7 @@ function BuyerPage() {
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex max-h-[calc(100dvh-8rem)] w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
           request && isCollapsed
             ? "h-auto"
             : sheetExpanded || request
@@ -599,6 +602,17 @@ function BuyerPage() {
                 </Button>
               </div>
             </div>
+            <JourneyProgress
+              label="Your veggie journey"
+              steps={[
+                { label: "Pick veggies", icon: ShoppingBasket },
+                { label: "Wave", icon: Hand },
+                { label: "Delivery", icon: Truck },
+                { label: "Received", icon: CheckCircle2 },
+              ]}
+              current={buyerJourneyStep(Boolean(picked.length || wish.trim()), request?.status)}
+              className="shrink-0 border-b px-4 py-2"
+            />
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               <div className="px-1 pb-5">
                 {request && geoMessage && (
@@ -761,7 +775,6 @@ function BuyerPage() {
 
                 {request && (
                   <Card className="animate-rise animate-slide-up mx-4 mt-4 gap-4 p-5">
-                    <OrderStepper status={request.status} />
                     <div className="flex items-center gap-2">
                       {request.status === "waving" && (
                         <>
@@ -845,7 +858,9 @@ function BuyerPage() {
                       </p>
                     )}
                     <p className="font-display text-xl font-bold">
-                      {request.status === "waving" ? "Price confirmed when accepted" : formatRand(request.total)}
+                      {request.status === "waving"
+                        ? "Price confirmed when accepted"
+                        : formatRand(request.total)}
                     </p>
 
                     {timedOut && (
@@ -1032,6 +1047,9 @@ function BuyerPage() {
             {/* Fixed footer — the wave button is always reachable, never covering content */}
             {!request && (
               <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
+                <p className="mb-2 text-center text-xs text-muted-foreground" role="status">
+                  {picked.length || wish.trim() ? "Basket ready ✓" : "Your basket is empty"}
+                </p>
                 {(picked.length > 0 || wish.trim()) && (
                   <details className="mb-2 text-sm">
                     <summary className="flex cursor-pointer items-center justify-between gap-2 py-1 font-medium">

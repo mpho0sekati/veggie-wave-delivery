@@ -1,7 +1,9 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Crosshair, Store } from "lucide-react";
+import { Camera, Crosshair, Store, PackageCheck, Radio, Hand, Truck } from "lucide-react";
 import AppTabBar from "@/components/AppTabBar";
+import JourneyProgress from "@/components/JourneyProgress";
+import { traderJourneyStep } from "@/lib/journey-progress";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -215,6 +217,16 @@ function RunnerPage() {
       </header>
       <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[72dvh] max-w-lg overflow-y-auto rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]">
         <div className="p-4 space-y-4">
+          <JourneyProgress
+            label="Your trader journey"
+            steps={[
+              { label: "My stock", icon: PackageCheck },
+              { label: "Go online", icon: Radio },
+              { label: "Take a wave", icon: Hand },
+              { label: "Deliver", icon: Truck },
+            ]}
+            current={traderJourneyStep(Boolean(me?.stock.length), isOnline, active?.status)}
+          />
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
           <div className="flex gap-2">
             <Input
@@ -294,6 +306,17 @@ function RunnerPage() {
           {!active && !nearby.length && !wavesQuery.isError && (
             <p className="text-muted-foreground text-sm">
               {location ? "No nearby waves yet" : "Set your location to see nearby waves"}
+            </p>
+          )}
+          {!active && !marketplaceError && (
+            <p className="text-xs text-muted-foreground" role="status">
+              {!me?.stock.length
+                ? "Your stall has no stock yet"
+                : !isOnline
+                  ? "Stock saved ✓ · Your stall is offline"
+                  : nearby.length
+                    ? `${nearby.length} ${nearby.length === 1 ? "buyer is" : "buyers are"} waving nearby`
+                    : "Stock saved ✓ · Online and ready for buyers"}
             </p>
           )}
           {active && activeWave && (
