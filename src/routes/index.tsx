@@ -567,7 +567,7 @@ function BuyerPage() {
             <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-2">
               <div className="min-w-0">
                 <h1 className="text-lg font-semibold">
-                  {request ? "Your wave" : "What do you need?"}
+                  {request ? "Your wave" : "Fresh veggies, delivered"}
                 </h1>
                 {!request && (
                   <p className="truncate text-xs text-muted-foreground">

@@ -423,9 +423,10 @@ export const getCourierPositions = createServerFn({ method: "POST" })
       .from("courier_positions")
       .select("*")
       .eq("order_id", data.orderId)
-      .order("recorded_at", { ascending: true });
+      .order("recorded_at", { ascending: false })
+      .limit(200);
     if (error) throw new Error(error.message);
-    return positions ?? [];
+    return (positions ?? []).reverse();
   });
 
 /* ------------------------------ WEATHER ------------------------------ */

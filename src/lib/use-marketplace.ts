@@ -10,15 +10,15 @@ export function useMarketplace() {
   const query = useQuery({
     queryKey: ["marketplace", session.userId],
     enabled: Boolean(session.userId),
-    refetchInterval: 4000,
+    refetchInterval: 15000,
     queryFn: async () => {
       const [profiles, stock, catalog, demand] = await Promise.all([
         supabase
           .from("profiles")
           .select("id,name,avatar,online,lat,lng,rating")
           .or(`online.eq.true,id.eq.${session.userId}`),
-        supabase.from("stock").select("*"),
-        supabase.from("catalog_items").select("*").like("id", "custom-%"),
+        supabase.from("stock").select("*").or(`available.eq.true,trader_id.eq.${session.userId}`).limit(2000),
+        supabase.from("catalog_items").select("*").like("id", "custom-%").limit(200),
         supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50),
       ]);
       for (const result of [profiles, stock, catalog, demand]) if (result.error) throw result.error;
