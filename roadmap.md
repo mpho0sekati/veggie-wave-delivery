@@ -25,6 +25,8 @@
 
 ## Active / Backlog
 
+- Current request: verify one real payer-approved MTN MoMo payment in trader My Money and ensure Mdeko score follows confirmed activity; real payment waits for the payer's chosen order/number and phone approval.
+
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
 - Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
 
