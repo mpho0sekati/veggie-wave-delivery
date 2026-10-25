@@ -11,7 +11,12 @@ type Props = {
   className?: string;
 };
 
-type Tab = { to?: "/" | "/runner" | "/finance" | "/auth"; label: string; icon: LucideIcon; onClick?: () => void };
+type Tab = {
+  to?: "/" | "/runner" | "/finance" | "/auth";
+  label: string;
+  icon: LucideIcon;
+  onClick?: () => void;
+};
 
 /** Always-visible icon bar, like Facebook's top tabs. Nothing is hidden in a menu. */
 export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Props) {

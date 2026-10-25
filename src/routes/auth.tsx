@@ -201,12 +201,15 @@ function AuthPage() {
             className="h-12 text-lg"
           />
           <p className="text-xs text-muted-foreground">
-            This number is also your MoMo number for paying{role === "trader" ? " and getting paid" : ""}.
+            This number is also your MoMo number for paying
+            {role === "trader" ? " and getting paid" : ""}.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="auth-pin">{mode === "signup" ? "Make a 4-number PIN" : "Your 4-number PIN"}</Label>
+          <Label htmlFor="auth-pin">
+            {mode === "signup" ? "Make a 4-number PIN" : "Your 4-number PIN"}
+          </Label>
           <Input
             id="auth-pin"
             type="password"
@@ -224,7 +227,9 @@ function AuthPage() {
 
         {mode === "signup" && (
           <div className="space-y-2">
-            <Label htmlFor="auth-name">{role === "trader" ? "Your name or stall name" : "Your name"}</Label>
+            <Label htmlFor="auth-name">
+              {role === "trader" ? "Your name or stall name" : "Your name"}
+            </Label>
             <Input
               id="auth-name"
               placeholder={role === "trader" ? "Mama Joyce Veggies" : "Thabo"}
@@ -237,7 +242,10 @@ function AuthPage() {
         )}
 
         {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {error}
           </p>
         )}
@@ -265,10 +273,20 @@ function AuthPage() {
       <div className="mt-4 w-full rounded-2xl bg-secondary/60 p-3">
         <p className="mb-2 text-center text-xs text-muted-foreground">Judges: try it in one tap</p>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" onClick={() => demoSignIn("buyer")} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => demoSignIn("buyer")}
+            disabled={loading}
+          >
             <ShoppingBasket /> Demo buyer
           </Button>
-          <Button variant="outline" size="sm" onClick={() => demoSignIn("trader")} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => demoSignIn("trader")}
+            disabled={loading}
+          >
             <Store /> Demo trader
           </Button>
         </div>
