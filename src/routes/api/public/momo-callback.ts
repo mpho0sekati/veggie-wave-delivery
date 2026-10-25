@@ -10,14 +10,16 @@ export const Route = createFileRoute("/api/public/momo-callback")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const body = (await request.json()) as {
+          const raw = await request.text();
+          if (raw.length > 4096) return Response.json({ error: "payload-too-large" }, { status: 413 });
+          const body = JSON.parse(raw) as {
             referenceId?: string;
             externalId?: string;
             status?: string;
           };
 
           const reference = body.referenceId ?? body.externalId;
-          if (!reference) {
+          if (typeof reference !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reference)) {
             return Response.json({ error: "missing-reference" }, { status: 400 });
           }
 
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/api/public/momo-callback")({
           if (!payment) {
             return Response.json({ error: "payment-not-found" }, { status: 404 });
           }
+          if (payment.status !== "pending") return Response.json({ ok: true });
 
           const { fetchPaymentStatus } = await import("@/lib/momo.server");
           let momoStatus;

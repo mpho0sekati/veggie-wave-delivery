@@ -275,12 +275,13 @@ export const startMomoPayment = createServerFn({ method: "POST" })
     });
 
     if (!outcome.accepted) {
-      const { data: failed } = await db.rpc("finalize_payment", {
+      const { data: failed, error: finalizeError } = await db.rpc("finalize_payment", {
         _reference: row.reference,
         _status: "failed",
         _provider_status: outcome.providerStatus,
         _failure: "provider-rejected-request",
       });
+      if (finalizeError || !failed) throw new Error("payment-verification-needed");
       const failedRow = failed as unknown as Payment;
       return {
         paymentId: failedRow.id,
