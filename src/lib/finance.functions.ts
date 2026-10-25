@@ -258,7 +258,6 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
 
     // Member since
     const memberSince = profileResult.data?.created_at ?? new Date().toISOString();
-    const role = (profileResult.data?.role as "buyer" | "trader" | null) ?? null;
 
     // Recent 5 orders for the money story
     const recentOrders: RecentOrder[] = allOrders.slice(0, 5).map((o) => ({
@@ -306,6 +305,7 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
       savingsJar,
       recentOrders,
       role,
+      trader,
     };
   });
 
