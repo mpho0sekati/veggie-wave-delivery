@@ -1030,9 +1030,17 @@ function BuyerPage() {
                         >
                           <Hand className="animate-wave" /> Wave Again
                         </Button>
-                        <p className="text-center text-xs text-muted-foreground">
-                          Need something else? The market is waiting.
-                        </p>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => {
+                            finish();
+                            setMapOnly(true);
+                          }}
+                        >
+                          <ArrowLeft /> Back to map
+                        </Button>
                       </div>
                     )}
                   </Card>
