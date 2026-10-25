@@ -14,6 +14,9 @@
 
 ## Active / Backlog
 
+- Judge readiness: audit security and dependencies, harden confirmed gaps, test failure paths and document scale limits.
+- Judge clarity: make the buying and selling purpose immediately clear without adding a tutorial or popup.
+
 - Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
