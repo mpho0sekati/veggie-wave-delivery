@@ -1,5 +1,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { publicEnvDefines } from "./config/public-env";
 
 const netlifyPreset = process.env["NITRO_PRESET"] === "netlify" ? "netlify" : undefined;
 const netlifyNitro = netlifyPreset ? { nitro: { preset: netlifyPreset } } : {};
@@ -14,6 +16,12 @@ export default defineConfig({
       exclude: ["react-dom", "react"],
     },
     plugins: [
+      {
+        name: "mdeko-public-startup-config",
+        config(_config, { mode }) {
+          return { define: publicEnvDefines(loadEnv(mode, process.cwd(), "VITE_")) };
+        },
+      },
       VitePWA({
         strategies: "injectManifest",
         srcDir: "src",
