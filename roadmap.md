@@ -2,6 +2,8 @@
 
 ## Done
 
+- Added optional Install Mdeko navigation control with browser prompt support and phone home-screen instructions; supplied PNG app icons and prevented automatic worker registration.
+
 - Judge readiness: closed direct privileged-RPC access, disabled unsafe standalone payment/manual credit paths, scoped discovery and private paths, patched dependencies; 29 tests and database money/privilege assertions passed. Signed-in phone wave/cancellation and existing trader demo verified. Limits documented in docs/judge-readiness.md.
 - Judge clarity: buyer first screen says Fresh veggies, delivered without a tutorial or popup.
 
