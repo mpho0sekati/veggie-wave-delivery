@@ -2,6 +2,8 @@
 
 ## Done
 
+- Dynamic score freshness: terminal payment verification and marketplace actions refresh My Money, focus/reconnect refresh current activity, reliability samples use deterministic newest-first ordering, and tips track changed inputs. 21 targeted tests passed; signed-in My Money opened successfully, lint and build checks passed. No real MoMo payment was initiated or recorded.
+
 - Seller saved name is editable without retyping; profile saves verify a row changed, saved coordinates keep nearby waves visible before GPS returns, location button recenters above the stock drawer, and incoming-wave queries filter by area before the read limit. Requesting seller account saved profile, received a separate buyer's spinach wave and accepted it; test order cancelled. 45 tests pass.
 
 - Trader My Money keeps the existing layout with recent orders, payment-verified earnings, pending/settled totals, savings and Mdeko activity score. Two-account cash order verified: R22 recorded, R1.10 saved, both confetti moments shown; signed-in dashboard, score dialog and reload checked. MoMo payer-approved test remains pending.
@@ -25,7 +27,7 @@
 
 ## Active / Backlog
 
-- Current request: verify one real payer-approved MTN MoMo payment in trader My Money and ensure Mdeko score follows confirmed activity; real payment waits for the payer's chosen order/number and phone approval.
+- Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
 - Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
