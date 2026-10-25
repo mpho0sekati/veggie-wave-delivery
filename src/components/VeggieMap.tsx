@@ -211,7 +211,7 @@ export default function VeggieMap({
     const map = mapRef.current;
     if (!map || !recenterTrigger) return;
     userMovedRef.current = false;
-    runnersFittedRef.current = false;
+    runnersFittedRef.current = Boolean(recenterPositionRef.current);
     courierFittedRef.current = false;
     fittedRouteSigRef.current = null;
     const position = recenterPositionRef.current ?? lastBuyerRef.current;
@@ -227,6 +227,7 @@ export default function VeggieMap({
     const map = mapRef.current;
     if (!map || !buyerLocated || buyerCenteredRef.current || userMovedRef.current) return;
     buyerCenteredRef.current = true;
+    if (recenterPositionRef.current) runnersFittedRef.current = true;
     programmaticMoveRef.current = true;
     map.setView([buyer.lat, buyer.lng], 15, { animate: false });
     if (recenterPositionRef.current) map.panBy([0, map.getSize().y * 0.3], { animate: false });
