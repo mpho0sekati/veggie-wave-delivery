@@ -160,7 +160,10 @@ function RunnerPage() {
               buyerLocated={Boolean(activeWave?.lat != null || location)}
               recenterPosition={location ?? undefined}
               recenterTrigger={recenterTrigger}
-              onPickPosition={(pos) => { recenterRequested.current = true; onPosition(pos); }}
+              onPickPosition={(pos) => {
+                recenterRequested.current = true;
+                onPosition(pos);
+              }}
               route={route}
               routeLoading={routeLoading}
             />
@@ -172,7 +175,9 @@ function RunnerPage() {
         <div className="flex items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg">
           <Store className="size-6 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{ownProfile?.name || session.name || "My stall"}</p>
+            <p className="truncate font-semibold">
+              {ownProfile?.name || session.name || "My stall"}
+            </p>
             <p className="text-xs text-muted-foreground">
               {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
             </p>
@@ -271,8 +276,19 @@ function RunnerPage() {
           <h2 className="font-semibold text-lg">Waves near you</h2>
           {(wavesQuery.isError || ordersQuery.isError || marketplaceError) && (
             <div role="alert" className="space-y-2">
-              <p className="text-sm text-destructive">Couldn't load your stall or requests. Your saved details haven't changed.</p>
-              <Button variant="outline" onClick={() => { void refresh(); void wavesQuery.refetch(); void ordersQuery.refetch(); }}>Try again</Button>
+              <p className="text-sm text-destructive">
+                Couldn't load your stall or requests. Your saved details haven't changed.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void refresh();
+                  void wavesQuery.refetch();
+                  void ordersQuery.refetch();
+                }}
+              >
+                Try again
+              </Button>
             </div>
           )}
           {!active && !nearby.length && !wavesQuery.isError && (
