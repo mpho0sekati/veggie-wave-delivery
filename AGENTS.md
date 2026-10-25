@@ -13,7 +13,7 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 - **Testing:** Perform end-to-end testing with Playwright scripts before submitting changes.
 - **Buyer presentation:** Keep produce selection in the primary drawer and secondary tools in disclosures or dialogs; this keeps the wave action reachable without changing marketplace behavior.
 - **Produce controls:** Keep the reusable produce picker presentation-only, with quantities and changes supplied by the buyer page; this preserves the existing basket and marketplace rules.
-- **Finance presentation:** Use existing finance hooks for order summaries and savings, with bank, score and record details in dialogs; order value must remain distinct from available funds and bank creditworthiness.
+- **Finance presentation:** Keep trader orders, payment-verified earnings, savings and activity score on My Money using existing finance hooks; distinguish recorded sales, pending settlement and available funds, and keep bank/score/record details in dialogs. Use Johannesburg dates and refresh visible finance data so remote payment updates appear without a confirmation tap.
 - **Location:** Keep buyer and trader coordinates independent; accept valid device coordinates and label low-accuracy fixes as approximate so GPS limitations never silently leave a default pin.
 - **Nearby discovery:** Share the nearby-trader selector between buyer pins, produce availability and trader lists; preserve an assigned trader during delivery and separate explicit recentering from GPS updates so distant traders and live fixes cannot pull the discovery camera away.
 
