@@ -38,6 +38,18 @@ export default function DeliveryCelebration({ moment, onDone }: {
         if (disposed || !canvas.current) return;
         burst = confetti.create(canvas.current, { resize: true });
         const tokens = getComputedStyle(document.documentElement);
+        // canvas-confetti accepts hex, while our theme uses modern CSS colors.
+        const swatch = document.createElement("canvas");
+        swatch.width = swatch.height = 1;
+        const context = swatch.getContext("2d");
+        if (!context) return;
+        const colors = ["--primary", "--accent", "--capitec"].map((token) => {
+          context.clearRect(0, 0, 1, 1);
+          context.fillStyle = tokens.getPropertyValue(token).trim();
+          context.fillRect(0, 0, 1, 1);
+          const pixel = context.getImageData(0, 0, 1, 1).data;
+          return `#${Array.from(pixel.slice(0, 3)).map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+        });
         void burst({
           particleCount: moment === "arrival" ? 35 : 65,
           spread: moment === "arrival" ? 65 : 95,
@@ -45,7 +57,7 @@ export default function DeliveryCelebration({ moment, onDone }: {
           startVelocity: 32,
           ticks: 110,
           gravity: 1.1,
-          colors: ["--primary", "--accent", "--capitec"].map((token) => tokens.getPropertyValue(token).trim()),
+          colors,
           disableForReducedMotion: true,
         });
       }).catch(() => { /* The receipt still appears if animation cannot load. */ });
