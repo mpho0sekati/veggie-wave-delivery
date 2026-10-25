@@ -1,4 +1,10 @@
-export type BuyerJourneyStatus = "waving" | "accepted" | "delivering" | "delivered" | "paid";
+export type BuyerJourneyStatus =
+  | "waving"
+  | "accepted"
+  | "delivering"
+  | "delivered"
+  | "paid"
+  | "cancelled";
 
 export function buyerJourneyStep(hasItems: boolean, status?: BuyerJourneyStatus): number {
   if (status === "paid") return 4;
