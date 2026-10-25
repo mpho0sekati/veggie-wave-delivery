@@ -3,6 +3,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand,
+  ArrowLeft,
   Star,
   Store,
   MapPin,
@@ -259,10 +260,36 @@ function BuyerPage() {
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
-  const mapRunners = useMemo(
-    () => (assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online),
-    [online, assigned],
-  );
+  // Demo barrows drift around the map so it never looks empty. Map-only: they
+  // are never listed, ranked or orderable.
+  const [demoTick, setDemoTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setDemoTick((t) => t + 1), 3000);
+    return () => window.clearInterval(id);
+  }, []);
+  const demoRunners = useMemo<Runner[]>(() => {
+    const names = ["Mama Thandi", "Sipho", "Lerato", "Bra Joe", "Nomsa", "Tumi"];
+    return names.map((name, i) => {
+      const angle = (i / names.length) * Math.PI * 2 + demoTick * 0.04 * (i % 2 ? 1 : -1);
+      const radius = 0.006 + (i % 3) * 0.004;
+      return {
+        id: `demo-${i}`,
+        name,
+        lat: buyer.lat + Math.sin(angle) * radius,
+        lng: buyer.lng + Math.cos(angle) * radius,
+        online: true,
+        rating: 4.5 + (i % 5) / 10,
+        avatar: null,
+        stock: [],
+        earnings: 0,
+      };
+    });
+  }, [buyer.lat, buyer.lng, demoTick]);
+  const mapRunners = useMemo(() => {
+    const real =
+      assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online;
+    return request ? real : [...real, ...demoRunners];
+  }, [online, assigned, demoRunners, request]);
   const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
 
   const ranked = useMemo(() => {
@@ -295,6 +322,7 @@ function BuyerPage() {
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [mapOnly, setMapOnly] = useState(false);
   const [describeOpen, setDescribeOpen] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
@@ -528,14 +556,30 @@ function BuyerPage() {
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div
         className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex max-h-[calc(100dvh-8rem)] w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
-          request && isCollapsed
+          (request && isCollapsed) || (!request && mapOnly)
             ? "h-auto"
             : sheetExpanded || request
               ? "h-[88dvh]"
               : "h-[62dvh] max-h-[620px]"
         }`}
       >
-        {request && isCollapsed ? (
+        {!request && mapOnly ? (
+          <Button
+            variant="ghost"
+            onClick={() => setMapOnly(false)}
+            className="h-auto w-full justify-start gap-3 px-5 py-3 text-left"
+            aria-label="Show veggies"
+          >
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
+              🥬
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">Pick veggies</span>
+              <span className="block text-xs text-muted-foreground">Tap to open your basket</span>
+            </span>
+            <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+          </Button>
+        ) : request && isCollapsed ? (
           <Button
             variant="ghost"
             onClick={() => setIsCollapsed(false)}
@@ -590,6 +634,16 @@ function BuyerPage() {
                 )}
               </div>
               <div className="flex shrink-0 gap-1">
+                {!request && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setMapOnly(true)}
+                    aria-label="Hide and show the full map"
+                  >
+                    <MapPin /> Map
+                  </Button>
+                )}
                 <Button
                   size="icon"
                   variant="ghost"
@@ -977,9 +1031,17 @@ function BuyerPage() {
                         >
                           <Hand className="animate-wave" /> Wave Again
                         </Button>
-                        <p className="text-center text-xs text-muted-foreground">
-                          Need something else? The market is waiting.
-                        </p>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => {
+                            finish();
+                            setMapOnly(true);
+                          }}
+                        >
+                          <ArrowLeft /> Back to map
+                        </Button>
                       </div>
                     )}
                   </Card>

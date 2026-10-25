@@ -21,3 +21,30 @@ export function watchPreviewConnection(connection: PreviewConnection, reload: ()
     connection.off("vite:ws:connect", onConnect);
   };
 }
+/**
+ * Backup for missed reconnect events: when a preview server-function call fails
+ * because its ID is stale, reload once (guarded so it can never loop).
+ */
+export function watchStaleServerFunctions(
+  reload: () => void,
+  storage: Pick<Storage, "getItem" | "setItem"> = window.sessionStorage,
+) {
+  const original = window.fetch;
+  const key = "mdeko-stale-fn-reload";
+  window.fetch = async (...args) => {
+    const response = await original(...args);
+    const url = typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : args[0].url;
+    if (response.status >= 500 && url.includes("/_serverFn/")) {
+      const text = await response.clone().text().catch(() => "");
+      const last = Number(storage.getItem(key) ?? 0);
+      if (text.includes("Invalid server function ID") && Date.now() - last > 30_000) {
+        storage.setItem(key, String(Date.now()));
+        reload();
+      }
+    }
+    return response;
+  };
+  return () => {
+    window.fetch = original;
+  };
+}

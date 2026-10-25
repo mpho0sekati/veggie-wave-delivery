@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { Button } from "../components/ui/button";
 import { reportError } from "../lib/lovable-error-reporting";
-import { watchPreviewConnection } from "../lib/preview-recovery";
+import { watchPreviewConnection, watchStaleServerFunctions } from "../lib/preview-recovery";
 
 function NotFoundComponent() {
   return (
@@ -124,7 +124,13 @@ function RootComponent() {
 
   useEffect(() => {
     if (!import.meta.hot) return;
-    return watchPreviewConnection(import.meta.hot, () => window.location.reload());
+    const reload = () => window.location.reload();
+    const stopConnection = watchPreviewConnection(import.meta.hot, reload);
+    const stopStale = watchStaleServerFunctions(reload);
+    return () => {
+      stopConnection();
+      stopStale();
+    };
   }, []);
 
   return (
