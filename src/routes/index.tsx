@@ -56,6 +56,8 @@ import WavePayDialog from "@/components/WavePayDialog";
 import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
 import ProducePicker from "@/components/ProducePicker";
+import DeliveryCelebration, { useDeliveryCelebrations } from "@/components/DeliveryCelebration";
+import { hasArrived } from "@/lib/delivery-celebrations";
 import { addToOfflineQueue, type QueuedOrder } from "@/lib/offline-queue";
 import { useOnline } from "@/lib/use-online";
 import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
@@ -210,6 +212,8 @@ function BuyerPage() {
     if (!liveWave || !liveOrders) return null;
     return liveOrders.find((o) => o.wave_id === liveWave.id) ?? null;
   }, [liveWave, liveOrders]);
+
+  const celebration = useDeliveryCelebrations(signedIn ? liveOrder : null);
 
   // Live courier tracking for active delivery orders
   const {
@@ -439,6 +443,7 @@ function BuyerPage() {
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
+      <DeliveryCelebration moment={celebration.moment} onDone={celebration.dismiss} />
       {/* Full screen edge-to-edge Leaflet map */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <ClientOnly fallback={<MapSkeleton />}>
@@ -449,6 +454,7 @@ function BuyerPage() {
               waving={request?.status === "waving"}
               buyerPosition={buyer}
               buyerLocated={buyer.located}
+              delivered={Boolean(request && hasArrived(liveOrder))}
               courierPosition={courierPosition}
               isGpsDisconnected={isDisconnected}
               recenterTrigger={recenterTrigger}
@@ -913,6 +919,7 @@ function BuyerPage() {
                                   orderId: request.orderId,
                                   status: "completed",
                                 });
+                              celebration.confirm(request.orderId);
                               toast.success("Order completed");
                             } catch {
                               toast.error("Could not complete this order");
@@ -1126,6 +1133,7 @@ function BuyerPage() {
                   };
                 });
                 actions.refresh();
+                celebration.confirm(orderId);
                 toast.success("Payment confirmed! Enjoy your veggies");
 
                 setPayLoading(false);

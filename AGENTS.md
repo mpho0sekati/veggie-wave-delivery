@@ -4,6 +4,8 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 
 ## Key Directives
 
+- **Delivery celebrations:** Keep animation client-only and presentation-only, deduplicate arrival and confirmation by order, and derive the pin from saved delivery milestones rather than payment alone; this prevents polling replays and premature delivery labels.
+
 - **Home-screen installation:** Keep the optional install control in shared navigation and use real PNG manifest icons; never automatically prompt or register app-shell workers in preview.
 
 - **Runtime & Package Manager:** Use `bun` (`bun run build`, `bun run dev`, `bun run lint`).
