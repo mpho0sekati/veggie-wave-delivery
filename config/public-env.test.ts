@@ -14,11 +14,13 @@ describe("startup public configuration", () => {
   });
 
   it("preserves injected backend settings and excludes private variables", () => {
-    expect(publicEnvDefines({
-      VITE_SUPABASE_URL: "https://draft.example.test",
-      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_draft",
-      SUPABASE_SERVICE_ROLE_KEY: "must-not-be-bundled",
-    })).toEqual({
+    expect(
+      publicEnvDefines({
+        VITE_SUPABASE_URL: "https://draft.example.test",
+        VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_draft",
+        SUPABASE_SERVICE_ROLE_KEY: "must-not-be-bundled",
+      }),
+    ).toEqual({
       "import.meta.env.VITE_SUPABASE_URL": '"https://draft.example.test"',
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": '"sb_publishable_draft"',
     });
@@ -26,13 +28,20 @@ describe("startup public configuration", () => {
 
   it("resolves generated bracket-access variables in the production compiler", () => {
     const defines = publicEnvDefines({});
-    const env = Object.fromEntries(Object.entries(defines).map(([key, value]) => [
-      key.replace("import.meta.env.", ""), JSON.parse(value),
-    ]));
-    const result = transformSync("startup.js", `globalThis.config = [
+    const env = Object.fromEntries(
+      Object.entries(defines).map(([key, value]) => [
+        key.replace("import.meta.env.", ""),
+        JSON.parse(value),
+      ]),
+    );
+    const result = transformSync(
+      "startup.js",
+      `globalThis.config = [
       import.meta.env["VITE_SUPABASE_URL"],
       import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"]
-    ];`, { define: { ...defines, "import.meta.env": JSON.stringify(env) } });
+    ];`,
+      { define: { ...defines, "import.meta.env": JSON.stringify(env) } },
+    );
     const target: { config?: string[] } = {};
     new Function("globalThis", result.code)(target);
     expect(target.config).toEqual([env.VITE_SUPABASE_URL, env.VITE_SUPABASE_PUBLISHABLE_KEY]);
