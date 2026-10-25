@@ -571,7 +571,7 @@ function BuyerPage() {
             aria-label="Show veggies"
           >
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
-              🥬
+              <Salad className="size-6 text-primary" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">Pick veggies</span>
@@ -588,7 +588,7 @@ function BuyerPage() {
             aria-label="Show order details"
           >
             <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
-              {request.status === "waving" ? "👋" : "🚴"}
+              {request.status === "waving" ? <Hand className="size-6 text-primary" /> : <Bike className="size-6 text-primary" />}
               {request.status === "waving" && (
                 <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
               )}
@@ -1114,7 +1114,7 @@ function BuyerPage() {
             {!request && (
               <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
                 <p className="mb-2 text-center text-xs text-muted-foreground" role="status">
-                  {picked.length || wish.trim() ? "Basket ready ✓" : "Your basket is empty"}
+                  {picked.length || wish.trim() ? "Basket ready" : "Your basket is empty"}
                 </p>
                 {(picked.length > 0 || wish.trim()) && (
                   <details className="mb-2 text-sm">

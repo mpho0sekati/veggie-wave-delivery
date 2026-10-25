@@ -315,10 +315,10 @@ function RunnerPage() {
               {!me?.stock.length
                 ? "Your stall has no stock yet"
                 : !isOnline
-                  ? "Stock saved ✓ · Your stall is offline"
+                  ? "Stock saved · Your stall is offline"
                   : nearby.length
                     ? `${nearby.length} ${nearby.length === 1 ? "buyer is" : "buyers are"} waving nearby`
-                    : "Stock saved ✓ · Online and ready for buyers"}
+                    : "Stock saved · Online and ready for buyers"}
             </p>
           )}
           {active && activeWave && (

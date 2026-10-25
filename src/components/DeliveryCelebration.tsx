@@ -75,7 +75,7 @@ export default function DeliveryCelebration({ moment, onDone }: {
     <div className="pointer-events-none fixed inset-0 z-[1500]" data-celebration={moment}>
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden="true" />
       <div role="status" aria-live="polite" className="absolute top-24 left-1/2 w-max max-w-[90%] -translate-x-1/2 rounded-lg border border-primary/20 bg-background px-4 py-3 text-center text-foreground shadow-lift">
-        <span aria-hidden="true" className="mr-2">😌🤏</span>
+        <PartyPopper aria-hidden="true" className="mr-2 inline size-5 text-primary" />
         <span className="font-semibold">{moment === "arrival" ? "Your fresh veggies are here!" : "All done. Enjoy your veggies!"}</span>
       </div>
     </div>,
