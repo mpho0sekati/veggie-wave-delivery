@@ -16,7 +16,7 @@ Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery �
 
 ## Architecture & UML
 
-> These diagrams are generated from the live codebase structure and update automatically as the system evolves. They represent the current state of the application at the time of the last commit.
+> These diagrams are maintained manually; check the code and the judge-readiness evidence below rather than treating them as automatic verification.
 
 ### System Architecture — Component Diagram
 
@@ -31,8 +31,8 @@ flowchart TB
 
     subgraph ServerFns["Server Functions (TanStack Start)"]
         WaveFns["mdeko.functions.ts\ncreateWave · acceptWave\nadvanceOrder · listMyOrders"]
-        PayFns["momo.functions.ts\nstartMomoPayment\nverifyMomoPayment"]
-        FinanceFns["finance.functions.ts\ngetMoneyProfile · getSavingsJar\ndepositToJar · getSmartTip"]
+        PayFns["mdeko.functions.ts\nstartMomoPayment\nverifyMomoPayment"]
+        FinanceFns["finance.functions.ts\ngetMoneyProfile · getSavingsJar\nupdateSavingsTarget · getSmartTip"]
         AIFns["ai-order.functions.ts\nparseOrderDescription"]
     end
 
