@@ -200,10 +200,23 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
     // 5% commission â€” makes the business model visible on screen
     const totalCommission = totalTraded * 0.05;
 
-    const roleResult = await context.supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+    const roleResult = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
     if (roleResult.error) throw new Error("Could not load your money records.");
-    const role = roleResult.data?.role === "trader" ? "trader" : roleResult.data?.role === "buyer" ? "buyer" : null;
-    if ([buyerOrdersResult, traderOrdersResult, paymentsResult, profileResult, savingsResult].some((result) => result.error)) {
+    const role =
+      roleResult.data?.role === "trader"
+        ? "trader"
+        : roleResult.data?.role === "buyer"
+          ? "buyer"
+          : null;
+    if (
+      [buyerOrdersResult, traderOrdersResult, paymentsResult, profileResult, savingsResult].some(
+        (result) => result.error,
+      )
+    ) {
       throw new Error("Could not load your money records.");
     }
 
@@ -225,16 +238,22 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
           .eq("trader_id", userId)
           .is("cancelled_at", null)
           .in("status", ["accepted", "preparing", "ready", "delivering", "delivered"]),
-        context.supabase.from("wave_orders")
+        context.supabase
+          .from("wave_orders")
           .select("id, amount, status, created_at")
           .eq("trader_id", userId)
-          .order("created_at", { ascending: false }).limit(10),
+          .order("created_at", { ascending: false })
+          .limit(10),
       ]);
-      if (settleRes.error || openRes.error || recentRes.error) throw new Error("Could not load your stall records.");
+      if (settleRes.error || openRes.error || recentRes.error)
+        throw new Error("Could not load your stall records.");
       const settlements = settleRes.data ?? [];
       const paymentIds = settlements.map((s) => s.payment_id);
       const { data: payRows, error: payError } = paymentIds.length
-        ? await context.supabase.from("payments").select("id, provider, status").in("id", paymentIds)
+        ? await context.supabase
+            .from("payments")
+            .select("id, provider, status")
+            .in("id", paymentIds)
         : { data: [] as { id: string; provider: string; status: string }[], error: null };
       if (payError) throw new Error("Could not load your sale payments.");
       // Trader reliability = payments on my sales, not my purchases.
@@ -249,7 +268,13 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
       trader = {
         ...ledger,
         openOrders: openRes.count ?? 0,
-        orders: (recentRes.data ?? []).map((order) => ({ id: order.id, amount: Number(order.amount), status: order.status, createdAt: order.created_at, role: "trader" })),
+        orders: (recentRes.data ?? []).map((order) => ({
+          id: order.id,
+          amount: Number(order.amount),
+          status: order.status,
+          createdAt: order.created_at,
+          role: "trader",
+        })),
       };
       totalOrders = ledger.settledCount;
       totalTraded = ledger.recordedEarnings;
@@ -262,19 +287,24 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
 
     // Active in last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const hasOrderInLast30Days = trader ? Boolean(trader.hasRecentSale) : allOrders.some((o) => o.created_at > thirtyDaysAgo);
+    const hasOrderInLast30Days = trader
+      ? Boolean(trader.hasRecentSale)
+      : allOrders.some((o) => o.created_at > thirtyDaysAgo);
 
     // Member since
     const memberSince = profileResult.data?.created_at ?? new Date().toISOString();
 
     // Recent 5 orders for the money story
-    const recentOrders: RecentOrder[] = allOrders.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5).map((o) => ({
-      id: o.id,
-      amount: Number(o.amount),
-      status: o.status,
-      createdAt: o.created_at,
-      role: o.role,
-    }));
+    const recentOrders: RecentOrder[] = allOrders
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, 5)
+      .map((o) => ({
+        id: o.id,
+        amount: Number(o.amount),
+        status: o.status,
+        createdAt: o.created_at,
+        role: o.role,
+      }));
 
     // Savings jar â€” auto-create if missing
     let savingsJar: SavingsJar;

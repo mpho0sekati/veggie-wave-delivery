@@ -638,16 +638,21 @@ function FinancePage() {
         ) : (
           <>
             <section className="border-b py-6">
-              <p className="text-sm text-muted-foreground">{profile.trader ? "Recorded sales" : "Completed order value"}</p>
+              <p className="text-sm text-muted-foreground">
+                {profile.trader ? "Recorded sales" : "Completed order value"}
+              </p>
               <p className="mt-2 break-words font-display text-4xl font-bold tabular-nums">
                 {formatRand(profile.totalTraded)}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {profile.totalOrders} {profile.trader ? "paid" : "completed"} {profile.totalOrders === 1 ? "order" : "orders"}
+                {profile.totalOrders} {profile.trader ? "paid" : "completed"}{" "}
+                {profile.totalOrders === 1 ? "order" : "orders"}
                 {profile.trader ? " · confirmed cash and MoMo" : " · purchases and sales"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {profile.trader ? "Latest 500 sales records, not your available balance." : "Order totals, not your available balance."}
+                {profile.trader
+                  ? "Latest 500 sales records, not your available balance."
+                  : "Order totals, not your available balance."}
               </p>
             </section>
             <section className="border-b py-5" aria-label="Your money journey">
@@ -655,7 +660,10 @@ function FinancePage() {
               <ol className="grid grid-cols-3 gap-2 text-center text-xs">
                 {[
                   { label: "Sales recorded", done: profile.totalOrders > 0 },
-                  { label: "Savings growing", done: (savingsJar?.balance ?? profile.savingsJar.balance) > 0 },
+                  {
+                    label: "Savings growing",
+                    done: (savingsJar?.balance ?? profile.savingsJar.balance) > 0,
+                  },
                   { label: "Sales record", done: profile.totalOrders > 0 },
                 ].map((step, i) => (
                   <li
@@ -714,7 +722,9 @@ function FinancePage() {
                       {score.total}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">Mdeko score · {score.total}/100</span>
+                      <span className="block text-sm font-semibold">
+                        Mdeko score · {score.total}/100
+                      </span>
                       <span className="block text-xs text-muted-foreground">{score.tier}</span>
                       <span className="block text-xs text-muted-foreground">{score.tip}</span>
                     </span>
@@ -727,8 +737,16 @@ function FinancePage() {
             {profile.trader && (
               <section className="border-b py-6" aria-labelledby="orders-title">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 id="orders-title" className="flex items-center gap-2 text-lg font-semibold"><ReceiptText className="size-5 text-primary" />My orders</h2>
-                  <Button asChild variant="ghost" size="sm"><Link to="/runner">My stall<ChevronRight /></Link></Button>
+                  <h2 id="orders-title" className="flex items-center gap-2 text-lg font-semibold">
+                    <ReceiptText className="size-5 text-primary" />
+                    My orders
+                  </h2>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/runner">
+                      My stall
+                      <ChevronRight />
+                    </Link>
+                  </Button>
                 </div>
                 {profile.trader.orders.length ? (
                   <ul className="mt-2 divide-y">
@@ -736,13 +754,30 @@ function FinancePage() {
                       <li key={order.id} className="flex items-center justify-between gap-3 py-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold">Order {order.id.slice(0, 8)}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)} · {order.status === "completed" ? "Complete" : order.status === "delivered" ? "Delivered" : order.status === "delivering" ? "On the way" : order.status === "cancelled" ? "Cancelled" : "In progress"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(order.createdAt)} ·{" "}
+                            {order.status === "completed"
+                              ? "Complete"
+                              : order.status === "delivered"
+                                ? "Delivered"
+                                : order.status === "delivering"
+                                  ? "On the way"
+                                  : order.status === "cancelled"
+                                    ? "Cancelled"
+                                    : "In progress"}
+                          </p>
                         </div>
-                        <strong className="shrink-0 text-sm tabular-nums">{formatRand(order.amount)}</strong>
+                        <strong className="shrink-0 text-sm tabular-nums">
+                          {formatRand(order.amount)}
+                        </strong>
                       </li>
                     ))}
                   </ul>
-                ) : <p className="mt-3 text-sm text-muted-foreground">Your accepted orders will appear here.</p>}
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Your accepted orders will appear here.
+                  </p>
+                )}
               </section>
             )}
             <section className="border-b py-6" aria-labelledby="activity-title">

@@ -18,7 +18,8 @@ export function summarizeTraderLedger(
   const today = day(now);
   const weekStart = now.getTime() - 7 * 864e5;
   const paid = settlements.filter(
-    (settlement) => (settlement.status === "settled" || settlement.status === "pending") &&
+    (settlement) =>
+      (settlement.status === "settled" || settlement.status === "pending") &&
       byId.get(settlement.payment_id)?.status === "successful",
   );
   const sum = (rows: LedgerSettlement[]) =>
@@ -32,6 +33,8 @@ export function summarizeTraderLedger(
     momoSales: sum(paid.filter((row) => byId.get(row.payment_id)?.provider === "mtn-momo")),
     cashSales: sum(paid.filter((row) => byId.get(row.payment_id)?.provider === "cash")),
     settledCount: new Set(paid.map((row) => row.order_id)).size,
-    hasRecentSale: paid.some((row) => new Date(row.created_at).getTime() >= now.getTime() - 30 * 864e5),
+    hasRecentSale: paid.some(
+      (row) => new Date(row.created_at).getTime() >= now.getTime() - 30 * 864e5,
+    ),
   };
 }
