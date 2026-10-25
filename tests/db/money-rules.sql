@@ -11,8 +11,10 @@ BEGIN
    WHERE w.trader_id IS NOT NULL AND w.amount > 0
      AND NOT EXISTS (SELECT 1 FROM public.payments x WHERE x.order_id = w.id)
      AND NOT EXISTS (SELECT 1 FROM public.settlements s WHERE s.order_id = w.id)
+     AND w.cancelled_at IS NULL AND w.status <> 'completed'
    LIMIT 1;
   IF o.id IS NULL THEN RAISE EXCEPTION 'SETUP: no unpaid order to test with'; END IF;
+  UPDATE public.wave_orders SET payment_method = 'mtn-momo' WHERE id = o.id;
 
   -- 1. Starting a payment twice for one order returns the same payment.
   p1 := public.start_payment(o.id, o.buyer_id, gen_random_uuid()::text, 'test-a-' || o.id, '27700000000');
