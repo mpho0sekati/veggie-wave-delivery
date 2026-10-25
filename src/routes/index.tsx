@@ -259,10 +259,36 @@ function BuyerPage() {
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
-  const mapRunners = useMemo(
-    () => (assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online),
-    [online, assigned],
-  );
+  // Demo barrows drift around the map so it never looks empty. Map-only: they
+  // are never listed, ranked or orderable.
+  const [demoTick, setDemoTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setDemoTick((t) => t + 1), 3000);
+    return () => window.clearInterval(id);
+  }, []);
+  const demoRunners = useMemo<Runner[]>(() => {
+    const names = ["Mama Thandi", "Sipho", "Lerato", "Bra Joe", "Nomsa", "Tumi"];
+    return names.map((name, i) => {
+      const angle = (i / names.length) * Math.PI * 2 + demoTick * 0.04 * (i % 2 ? 1 : -1);
+      const radius = 0.006 + (i % 3) * 0.004;
+      return {
+        id: `demo-${i}`,
+        name,
+        lat: buyer.lat + Math.sin(angle) * radius,
+        lng: buyer.lng + Math.cos(angle) * radius,
+        online: true,
+        rating: 4.5 + (i % 5) / 10,
+        avatar: null,
+        stock: [],
+        earnings: 0,
+      };
+    });
+  }, [buyer.lat, buyer.lng, demoTick]);
+  const mapRunners = useMemo(() => {
+    const real =
+      assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online;
+    return request ? real : [...real, ...demoRunners];
+  }, [online, assigned, demoRunners, request]);
   const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
 
   const ranked = useMemo(() => {
@@ -295,6 +321,7 @@ function BuyerPage() {
   const hasRequest = Boolean(request);
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [mapOnly, setMapOnly] = useState(false);
   const [describeOpen, setDescribeOpen] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
