@@ -838,7 +838,9 @@ function BuyerPage() {
                         <span>Find me: {request.landmark}</span>
                       </p>
                     )}
-                    <p className="font-display text-xl font-bold">{formatRand(request.total)}</p>
+                    <p className="font-display text-xl font-bold">
+                      {request.status === "waving" ? "Price confirmed when accepted" : formatRand(request.total)}
+                    </p>
 
                     {timedOut && (
                       <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
