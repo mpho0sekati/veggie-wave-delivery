@@ -80,7 +80,7 @@ function getWeatherType(weathercode: number, precipitation: number[]): WeatherWa
       type: "rain",
       severity: "warning",
       message: "Heavy rain in your area — stay safe, delay if you need to.",
-      icon: "🌧️",
+      icon: "rain",
     };
   }
 
@@ -90,7 +90,7 @@ function getWeatherType(weathercode: number, precipitation: number[]): WeatherWa
       type: "rain",
       severity: "info",
       message: "Light rain in your area — consider bringing an umbrella.",
-      icon: "🌦️",
+      icon: "drizzle",
     };
   }
 
@@ -100,7 +100,7 @@ function getWeatherType(weathercode: number, precipitation: number[]): WeatherWa
       type: "thunderstorm",
       severity: "warning",
       message: "Thunderstorms in your area — take shelter if possible.",
-      icon: "⚡",
+      icon: "storm",
     };
   }
 
@@ -117,7 +117,7 @@ function getTemperatureWarning(temperature: number): WeatherWarning | null {
       type: "cold",
       severity: "warning",
       message: "Extreme cold — dress warmly and take care.",
-      icon: "❄️",
+      icon: "cold",
     };
   }
 
@@ -127,7 +127,7 @@ function getTemperatureWarning(temperature: number): WeatherWarning | null {
       type: "cold",
       severity: "info",
       message: "Cold weather — consider warm clothing.",
-      icon: "🧥",
+      icon: "cool",
     };
   }
 
@@ -137,7 +137,7 @@ function getTemperatureWarning(temperature: number): WeatherWarning | null {
       type: "heat",
       severity: "info",
       message: "Hot weather — remember to stay hydrated.",
-      icon: "☀️",
+      icon: "sun",
     };
   }
 
@@ -147,7 +147,7 @@ function getTemperatureWarning(temperature: number): WeatherWarning | null {
       type: "heat",
       severity: "warning",
       message: "Extreme heat — stay hydrated and take breaks in shade.",
-      icon: "🔥",
+      icon: "hot",
     };
   }
 
@@ -164,7 +164,7 @@ function getWindWarning(windspeed: number): WeatherWarning | null {
       type: "thunderstorm",
       severity: "warning",
       message: "Strong winds — take extra caution, especially on bikes.",
-      icon: "💨",
+      icon: "wind",
     };
   }
 

@@ -12,7 +12,7 @@
  */
 
 export type ScoreTier =
-  "Just Starting 🌱" | "Getting Going 🚀" | "Trusted Member ⭐" | "Champion 🏆";
+  "Just Starting" | "Getting Going" | "Trusted Member" | "Champion";
 
 export type ScoreResult = {
   total: number;
@@ -41,10 +41,10 @@ export function computeCommunityScore(
     orderVolumePts + paymentReliabilityPts + activityConsistencyPts + savingsBehaviourPts;
 
   let tier: ScoreTier;
-  if (total <= 25) tier = "Just Starting 🌱";
-  else if (total <= 50) tier = "Getting Going 🚀";
-  else if (total <= 75) tier = "Trusted Member ⭐";
-  else tier = "Champion 🏆";
+  if (total <= 25) tier = "Just Starting";
+  else if (total <= 50) tier = "Getting Going";
+  else if (total <= 75) tier = "Trusted Member";
+  else tier = "Champion";
 
   // Always show the single most helpful next step
   let tip: string;
@@ -57,7 +57,7 @@ export function computeCommunityScore(
     const needed = Math.max(0, safeTarget - savingsBalance);
     tip = `Save R${needed.toFixed(0)} more to reach your savings goal!`;
   } else {
-    tip = "You're a Champion! Keep trading to stay on top. 🏆";
+    tip = "You're a Champion! Keep trading to stay on top.";
   }
 
   return {
