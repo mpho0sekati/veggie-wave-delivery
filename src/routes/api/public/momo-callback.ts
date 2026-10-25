@@ -11,7 +11,8 @@ export const Route = createFileRoute("/api/public/momo-callback")({
       POST: async ({ request }) => {
         try {
           const raw = await request.text();
-          if (raw.length > 4096) return Response.json({ error: "payload-too-large" }, { status: 413 });
+          if (raw.length > 4096)
+            return Response.json({ error: "payload-too-large" }, { status: 413 });
           const body = JSON.parse(raw) as {
             referenceId?: string;
             externalId?: string;
@@ -19,7 +20,10 @@ export const Route = createFileRoute("/api/public/momo-callback")({
           };
 
           const reference = body.referenceId ?? body.externalId;
-          if (typeof reference !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reference)) {
+          if (
+            typeof reference !== "string" ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reference)
+          ) {
             return Response.json({ error: "missing-reference" }, { status: 400 });
           }
 

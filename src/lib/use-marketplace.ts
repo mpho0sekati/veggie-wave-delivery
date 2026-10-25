@@ -17,7 +17,11 @@ export function useMarketplace() {
           .from("profiles")
           .select("id,name,avatar,online,lat,lng,rating")
           .or(`online.eq.true,id.eq.${session.userId}`),
-        supabase.from("stock").select("*").or(`available.eq.true,trader_id.eq.${session.userId}`).limit(2000),
+        supabase
+          .from("stock")
+          .select("*")
+          .or(`available.eq.true,trader_id.eq.${session.userId}`)
+          .limit(2000),
         supabase.from("catalog_items").select("*").like("id", "custom-%").limit(200),
         supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50),
       ]);
