@@ -23,6 +23,7 @@ import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import OrderStepper from "@/components/OrderStepper";
 import { nearbySellerWaves, sellerPosition } from "@/lib/seller-view";
+import { track } from "@/lib/track";
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 export const Route = createFileRoute("/runner")({
   head: () => ({
@@ -123,7 +124,7 @@ function RunnerPage() {
     if (!active) return;
     try {
       await actions.advanceOrder.mutateAsync({ orderId: active.id, status });
-      track(status === "delivering" ? "went_online" : "order_delivered", status);
+      track("order_delivered", status);
       toast.success(status === "delivering" ? "Delivery started" : "Delivery recorded");
     } catch (e) {
       toast.error(
