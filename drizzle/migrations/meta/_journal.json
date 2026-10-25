@@ -50,6 +50,13 @@
       "when": 1792923591481,
       "tag": "0006_scale_nearby_discovery_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792933002223,
+      "tag": "0007_settle_cash_and_momo_completion",
+      "breakpoints": true
     }
   ]
 }
