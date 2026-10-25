@@ -9,10 +9,10 @@
 - Simplified buyer selection, removed blocking welcome guide, and collapsed secondary tools; selection and layouts verified at 608×543, 390×844, and 1280×1800.
 - Simplified produce picking with large tap-to-add icons, selected checkmarks, basket review and everyday wording; pick/add/remove, saved selections and optional helper verified at 608×543, 390×844 and 1280×1800. All 15 regression tests pass.
 - Cleaned My Money into order value, savings and recent activity with optional bank/score/record dialogs; signed-in savings goal persistence and layouts verified. Full record service returns unavailable; account-summary fallback remains visible.
+- Nearby trader pins, stock availability and lists share real-coordinate discovery; signed-in check showed the existing online stall 55 m away, distant-stall exclusion and camera stability after GPS updates verified. All 20 tests pass.
 
 ## Active / Backlog
 
-- Finish nearby trader pins using shared real coordinates and stop GPS updates from resetting the map.
 - Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
