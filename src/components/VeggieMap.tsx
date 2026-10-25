@@ -215,7 +215,11 @@ export default function VeggieMap({
     courierFittedRef.current = false;
     fittedRouteSigRef.current = null;
     const position = recenterPositionRef.current ?? lastBuyerRef.current;
-    map.setView([position.lat, position.lng], 15, { animate: true });
+    programmaticMoveRef.current = true;
+    map.setView([position.lat, position.lng], 15, { animate: false });
+    // The seller's tall stock drawer covers the centre; keep the location in the exposed map.
+    if (recenterPositionRef.current) map.panBy([0, map.getSize().y * 0.3], { animate: false });
+    programmaticMoveRef.current = false;
   }, [recenterTrigger]);
 
   // A first GPS fix moves off the default pin; later fixes never take the camera back.
@@ -225,6 +229,7 @@ export default function VeggieMap({
     buyerCenteredRef.current = true;
     programmaticMoveRef.current = true;
     map.setView([buyer.lat, buyer.lng], 15, { animate: false });
+    if (recenterPositionRef.current) map.panBy([0, map.getSize().y * 0.3], { animate: false });
     programmaticMoveRef.current = false;
   }, [buyer.lat, buyer.lng, buyerLocated]);
 
