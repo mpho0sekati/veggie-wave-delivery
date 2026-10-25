@@ -21,6 +21,8 @@
 
 ## Active / Backlog
 
+- Complete and verify the trader My Money dashboard with saved orders, settled earnings, savings and activity score while preserving the current layout.
+
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
 - Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
 
