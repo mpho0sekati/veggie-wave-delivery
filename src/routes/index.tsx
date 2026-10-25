@@ -3,6 +3,8 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand,
+  ChevronDown,
+  Search,
   Salad,
   Bike,
   ArrowLeft,
@@ -53,6 +55,7 @@ import { useMarketplace } from "@/lib/use-marketplace";
 import { nearbyTraders } from "@/lib/nearby-traders";
 import { waveView } from "@/lib/wave-view";
 import { useGeolocation } from "@/lib/use-geolocation";
+import { PROVINCES, searchAreas, type Area } from "@/lib/areas";
 import { useSession, signOutEverywhere } from "@/lib/use-session";
 import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
 import { useCourierPositions } from "@/lib/use-courier-tracking";
@@ -325,6 +328,18 @@ function BuyerPage() {
   const [isCollapsed, setIsCollapsed] = useState(hasRequest);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [mapOnly, setMapOnly] = useState(false);
+  const [areaOpen, setAreaOpen] = useState(false);
+  const [areaQuery, setAreaQuery] = useState("");
+  const [areaName, setAreaName] = useState<string | null>(null);
+  const chooseArea = (a: Area) => {
+    stop();
+    onPosition({ lat: a.lat, lng: a.lng });
+    setAreaName(a.name);
+    setAreaOpen(false);
+    setAreaQuery("");
+    setRecenterTrigger((p) => p + 1);
+    toast.success(`Showing ${a.name}`);
+  };
   const [describeOpen, setDescribeOpen] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
   // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
@@ -512,14 +527,20 @@ function BuyerPage() {
           onHelp={() => setDescribeOpen(true)}
         />
         <div className="flex items-center justify-between gap-2 pr-12">
-          <span className="flex items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
-            <Store className="size-4 text-primary" />
-            {geoStatus === "locating"
-              ? "Finding you…"
-              : buyer.located
-                ? `${online.length} traders nearby`
-                : "Set your location"}
-          </span>
+          <button
+            type="button"
+            onClick={() => setAreaOpen(true)}
+            aria-label="Change area"
+            className="flex min-w-0 items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm"
+          >
+            <MapPin className="size-4 shrink-0 text-primary" />
+            <span className="truncate">
+              {geoStatus === "locating"
+                ? "Finding you…"
+                : `${areaName ?? (buyer.located ? "Near me" : "Choose area")} · ${online.length} traders`}
+            </span>
+            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+          </button>
           <Link
             to="/finance"
             className="flex items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-semibold shadow-sm"
@@ -529,6 +550,55 @@ function BuyerPage() {
           </Link>
         </div>
       </header>
+
+      <Dialog open={areaOpen} onOpenChange={setAreaOpen}>
+        <DialogContent className="max-h-[85dvh] max-w-sm overflow-y-auto">
+          <DialogTitle>Change area</DialogTitle>
+          <DialogDescription>Pick a township to see barrows there.</DialogDescription>
+          <div className="relative">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={areaQuery}
+              onChange={(e) => setAreaQuery(e.target.value)}
+              placeholder="Search township"
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="justify-start gap-2"
+            onClick={() => {
+              setAreaName(null);
+              setAreaOpen(false);
+              locate();
+              setRecenterTrigger((p) => p + 1);
+            }}
+          >
+            <Crosshair className="size-4" /> Use my location
+          </Button>
+          {PROVINCES.map((prov) => {
+            const list = searchAreas(areaQuery).filter((a) => a.province === prov);
+            if (!list.length) return null;
+            return (
+              <div key={prov} className="space-y-2">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{prov}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {list.map((a) => (
+                    <Button
+                      key={a.name}
+                      variant={areaName === a.name ? "default" : "secondary"}
+                      className="justify-start gap-1.5"
+                      onClick={() => chooseArea(a)}
+                    >
+                      <MapPin className="size-4" /> {a.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </DialogContent>
+      </Dialog>
 
       {/* Floating map controls */}
       <div className="absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+4.75rem)] right-4 z-10 flex flex-col gap-2">
