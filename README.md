@@ -491,3 +491,15 @@ A GitHub Actions workflow (`.github/workflows/deploy.yml`) deploys to Netlify on
 
 This project is provided as-is for demonstration and development use.
 
+
+## Status & evidence (honest demo notes)
+
+**Working and tested in this build:** buyer waves, trader accepts, stock decrements, delivery tracking, cash and MoMo order flow, 5% savings on settlement, nearby-trader discovery, offline wave queue.
+
+**Live but not yet proven end to end:** MTN MoMo production keys authenticate (token request returns 200), but no real customer payment has been completed yet.
+
+**Demo / sandbox only:** bank accounts and transactions shown under "My bank" come from the bank-link sandbox and are labelled "Demo data" in the app. The Mdeko score is an activity score, not a bank credit score.
+
+**Market figures:** any market size or revenue numbers used in pitches are estimates until backed by a cited source (e.g. Stats SA Quarterly Labour Force Survey for informal-sector employment). Do not present them as facts.
+
+**Known gaps:** order-transition and permission rules live in database routines and are checked by a live-data audit, not by automated tests; the phone-side store is still used as a view cache and offline queue.

@@ -364,6 +364,9 @@ function BankConnection() {
   if (boost && boost.linkedAccounts > 0)
     return (
       <dl className="space-y-3 text-sm">
+        <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+          Demo data · these are test bank accounts from the bank-link sandbox, not real accounts.
+        </p>
         <div className="flex justify-between gap-3">
           <dt>Connected accounts</dt>
           <dd className="font-semibold">{boost.linkedAccounts}</dd>
