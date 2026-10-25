@@ -4,8 +4,14 @@ import type { Runner } from "./veggie-data";
 
 const buyer = { lat: -26.2041, lng: 28.0473, located: true };
 const trader: Runner = {
-  id: "near", name: "Trader", lat: -26.205, lng: 28.048,
-  online: true, rating: 5, earnings: 0, stock: [],
+  id: "near",
+  name: "Trader",
+  lat: -26.205,
+  lng: 28.048,
+  online: true,
+  rating: 5,
+  earnings: 0,
+  stock: [],
 };
 
 describe("nearby traders at real locations", () => {
@@ -33,6 +39,8 @@ describe("nearby traders at real locations", () => {
   });
 
   it("drops invalid coordinates without changing valid coordinates", () => {
-    expect(nearbyTraders([{ ...trader, lat: NaN }, { ...trader, lng: 181 }, trader], buyer)).toEqual([trader]);
+    expect(
+      nearbyTraders([{ ...trader, lat: NaN }, { ...trader, lng: 181 }, trader], buyer),
+    ).toEqual([trader]);
   });
 });

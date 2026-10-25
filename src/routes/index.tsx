@@ -262,7 +262,7 @@ function BuyerPage() {
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
   const mapRunners = useMemo(
-    () => assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online,
+    () => (assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online),
     [online, assigned],
   );
   const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
@@ -490,7 +490,9 @@ function BuyerPage() {
                 subtitle={
                   geoStatus === "locating"
                     ? "Finding your location…"
-                    : buyer.located ? `${online.length} traders nearby` : "Set your location"
+                    : buyer.located
+                      ? `${online.length} traders nearby`
+                      : "Set your location"
                 }
               />
             </div>
