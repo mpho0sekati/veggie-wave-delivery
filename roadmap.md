@@ -27,6 +27,8 @@
 
 ## Active / Backlog
 
+- Add nonblocking learn-by-doing progress and contextual cues to buyer and trader screens; preserve existing order, payment and stock behavior, and verify both screens.
+
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
