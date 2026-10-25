@@ -99,28 +99,7 @@ function RunnerPage() {
     currentPosition,
     active?.status === "delivering",
   );
-  useEffect(() => {
-    const fix = position ?? (meLat != null && meLng != null ? { lat: meLat, lng: meLng } : null);
-    if (activeStatus !== "delivering" || !activeId || !fix || !session.userId) return;
-    let cancelled = false;
-    const report = async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
-      if (cancelled) return;
-      const { error } = await supabase.from("courier_positions").insert({
-        order_id: activeId,
-        trader_id: session.userId ?? "",
-        lat: fix.lat,
-        lng: fix.lng,
-      });
-      if (error) toast.error("Could not share delivery location");
-    };
-    void report();
-    const timer = setInterval(() => void report(), 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [activeId, activeStatus, position, meLat, meLng, session.userId]);
+  // Delivery location is reported once, by useReportCourierPosition above.
   const catalog = catalogWith(state.customItems);
   const nearby = useMemo(
     () =>
