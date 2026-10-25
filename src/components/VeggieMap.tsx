@@ -355,7 +355,14 @@ export default function VeggieMap({
       icon: buyerIcon(Boolean(waving)),
     }).addTo(layer);
 
-    const onlineRunners = runners.filter((r) => r.online);
+    // Cap animated carts so budget phones stay smooth in busy areas; always keep the assigned trader.
+    const MAX_MAP_CARTS = 25;
+    const cosLat = Math.cos((buyer.lat * Math.PI) / 180);
+    const sq = (r: Runner) => (r.lat - buyer.lat) ** 2 + ((r.lng - buyer.lng) * cosLat) ** 2;
+    const sorted = runners.filter((r) => r.online).sort((a, b) => sq(a) - sq(b));
+    const onlineRunners = sorted.slice(0, MAX_MAP_CARTS);
+    const assigned = sorted.find((r) => r.id === activeRunnerId);
+    if (assigned && !onlineRunners.includes(assigned)) onlineRunners.push(assigned);
 
     onlineRunners.forEach((r) => {
       const active = r.id === activeRunnerId;

@@ -134,10 +134,10 @@ export async function requestToPay(args: {
       }),
     });
 
-  let res = await send(await accessToken(cfg));
+  let res = await withBackoff(async () => send(await accessToken(cfg)));
   if (res.status === 401) {
     tokenCache = null; // expired token: mint a fresh one and retry once
-    res = await send(await accessToken(cfg));
+    res = await withBackoff(async () => send(await accessToken(cfg)));
   }
 
   // 202 Accepted is the happy path; 409 means this reference is already in flight.
@@ -146,6 +146,27 @@ export async function requestToPay(args: {
   }
   console.error(`[momo] requestToPay failed ${res.status}`);
   return { accepted: false, providerStatus: `error:${res.status}` };
+}
+
+/**
+ * Retry provider throttling (429) and brief outages (502/503/504) with exponential
+ * backoff + jitter. Safe for requestToPay because the same X-Reference-Id is reused
+ * (MoMo answers 409 for a duplicate), so a retry can never charge twice.
+ */
+export async function withBackoff(
+  call: () => Promise<Response>,
+  { attempts = 3, baseMs = 400 }: { attempts?: number; baseMs?: number } = {},
+): Promise<Response> {
+  let res = await call();
+  for (let i = 1; i < attempts && [429, 502, 503, 504].includes(res.status); i++) {
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    const wait = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 4000)
+      : baseMs * 2 ** (i - 1) + Math.random() * 100;
+    await new Promise((r) => setTimeout(r, wait));
+    res = await call();
+  }
+  return res;
 }
 
 /** Authoritative payment state, straight from MoMo. Never inferred from the client. */
@@ -163,10 +184,10 @@ export async function fetchPaymentStatus(
       },
     });
 
-  let res = await lookup(await accessToken(cfg));
+  let res = await withBackoff(async () => lookup(await accessToken(cfg)));
   if (res.status === 401) {
     tokenCache = null;
-    res = await lookup(await accessToken(cfg));
+    res = await withBackoff(async () => lookup(await accessToken(cfg)));
   }
 
   if (!res.ok) {
