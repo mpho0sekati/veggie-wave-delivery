@@ -13,6 +13,7 @@
 
 ## Active / Backlog
 
+- Fix the opening crash caused by missing browser connection settings and verify startup.
 - Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
