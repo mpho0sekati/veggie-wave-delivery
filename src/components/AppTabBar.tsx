@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Hand, LogIn, LogOut, Store, Wallet, Wand2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import InstallMdeko from "@/components/InstallMdeko";
 
 type Props = {
   signedIn: boolean;
@@ -80,6 +81,7 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
           </button>
         );
       })}
+      <InstallMdeko />
     </nav>
   );
 }
