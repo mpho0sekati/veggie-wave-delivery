@@ -571,6 +571,7 @@ function RecordDetails({ profile }: { profile: ReturnType<typeof useFinanceProfi
 function FinancePage() {
   const session = useSession();
   const { profile, score, isLoading, isError } = useFinanceProfile();
+  const { jar: savingsJar } = useSavingsJar();
   const tipQuery = useSmartTip(profile);
   const [lang, setLang] = useState<Lang>("en");
   const [panel, setPanel] = useState<"score" | "bank" | "record" | null>(null);
