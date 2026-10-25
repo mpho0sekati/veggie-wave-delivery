@@ -524,7 +524,7 @@ function BuyerPage() {
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex max-h-[calc(100dvh-8rem)] w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
           request && isCollapsed
             ? "h-auto"
             : sheetExpanded || request

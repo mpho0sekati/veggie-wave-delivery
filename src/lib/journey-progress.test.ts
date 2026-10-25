@@ -15,6 +15,11 @@ describe("buyer journey", () => {
     expect(buyerJourneyStep(false, "delivered")).toBe(3);
     expect(buyerJourneyStep(false, "paid")).toBe(4);
   });
+  it("does not mark cancelled, failed or refunded orders complete", () => {
+    expect(buyerJourneyStep(true, "cancelled")).toBe(0);
+    expect(buyerJourneyStep(true, "failed")).toBe(0);
+    expect(buyerJourneyStep(true, "refunded")).toBe(0);
+  });
 });
 
 describe("trader journey", () => {

@@ -1,12 +1,7 @@
-export type BuyerJourneyStatus =
-  | "waving"
-  | "accepted"
-  | "delivering"
-  | "delivered"
-  | "paid"
-  | "cancelled";
+import type { WaveStatus } from "./veggie-store";
 
-export function buyerJourneyStep(hasItems: boolean, status?: BuyerJourneyStatus): number {
+export function buyerJourneyStep(hasItems: boolean, status?: WaveStatus): number {
+  if (status === "cancelled" || status === "failed" || status === "refunded") return 0;
   if (status === "paid") return 4;
   if (status === "delivered") return 3;
   if (status === "accepted" || status === "delivering") return 2;
