@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { Button } from "../components/ui/button";
 import { reportError } from "../lib/lovable-error-reporting";
+import { watchPreviewConnection } from "../lib/preview-recovery";
 
 function NotFoundComponent() {
   return (
@@ -120,6 +121,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (!import.meta.hot) return;
+    return watchPreviewConnection(import.meta.hot, () => window.location.reload());
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

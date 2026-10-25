@@ -4,6 +4,8 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 
 ## Key Directives
 
+- **Preview recovery:** Reload the development page only after a lost preview connection reconnects; this discards stale server-function references after restarts without retrying mutations or affecting published sessions.
+
 - **Learn-by-doing presentation:** Derive shared read-only journey strips from existing basket, saved stock, online and order states; never use them to change permissions or marketplace behavior, so guidance cannot create a second source of truth.
 
 - **Delivery celebrations:** Keep animation client-only and presentation-only, deduplicate arrival and confirmation by order, and derive the pin from saved delivery milestones rather than payment alone; this prevents polling replays and premature delivery labels.
