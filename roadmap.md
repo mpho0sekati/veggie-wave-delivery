@@ -2,6 +2,7 @@
 
 ## Done
 
+- Fixed missing browser connection settings at startup; compiler regression tests and signed-in buyer/money opening checks pass with no runtime errors.
 - Fix typecheck build errors (auth.tsx pin field, runner.tsx missing userId).
 
 - Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
@@ -13,7 +14,6 @@
 
 ## Active / Backlog
 
-- Fix the opening crash caused by missing browser connection settings and verify startup.
 - Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
