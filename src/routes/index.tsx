@@ -360,6 +360,7 @@ function BuyerPage() {
     }
 
     try {
+      track("wave_placed", `${picked.length} items`);
       const saved = await actions.createWave.mutateAsync({
         items,
         wish: wish.trim(),
@@ -425,6 +426,7 @@ function BuyerPage() {
     if (!request?.waveId) return;
     try {
       await actions.cancelWave.mutateAsync(request.waveId);
+      track("wave_cancelled", request.status);
       setClosedWave(request.waveId);
       cancelRequest();
       setQty({});
@@ -936,6 +938,7 @@ function BuyerPage() {
                                   status: "completed",
                                 });
                               celebration.confirm(request.orderId);
+                              track("cash_confirmed", liveOrder?.payment_method ?? "");
                               toast.success("Order completed");
                             } catch {
                               toast.error("Could not complete this order");

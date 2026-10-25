@@ -123,6 +123,7 @@ function RunnerPage() {
     if (!active) return;
     try {
       await actions.advanceOrder.mutateAsync({ orderId: active.id, status });
+      track(status === "delivering" ? "went_online" : "order_delivered", status);
       toast.success(status === "delivering" ? "Delivery started" : "Delivery recorded");
     } catch (e) {
       toast.error(
@@ -384,6 +385,7 @@ function RunnerPage() {
                     onClick={async () => {
                       try {
                         await actions.acceptWave.mutateAsync(w.id);
+                        track("wave_accepted");
                         toast.success("Wave accepted");
                       } catch {
                         toast.error("This wave expired, was accepted, or exceeds your stock");
