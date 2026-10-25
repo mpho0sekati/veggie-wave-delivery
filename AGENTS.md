@@ -17,3 +17,4 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 - **Roles:** Read marketplace roles from user_roles and set them through the authenticated setup routine; never use browser storage to authorize trading.
 - **MoMo configuration:** Keep copy-paste cleanup in the server-only MoMo client, remove numeric line labels only when the remainder matches the credential shape, and never log provider response bodies; this preserves valid keys and avoids exposing credentials.
 - **Cell & PIN sign-in:** Buyers and traders sign up with an SA cell number and 4-digit PIN via server functions that derive the real secret server-side; the cell number doubles as the MoMo number and bank linking stays optional.
+- **Navigation:** Main screens share one always-visible icon tab bar instead of a hidden menu, so every tool is one tap away.
