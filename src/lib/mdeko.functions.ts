@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Tables } from "@/integrations/supabase/types";
+import { toPaymentStatus } from "./payment-status";
 
 export type Wave = Tables<"waves">;
 export type Order = Tables<"wave_orders">;
@@ -332,12 +333,7 @@ export const verifyMomoPayment = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: updated, error: finalizeError } = await db.rpc("finalize_payment", {
       _reference: existing.reference,
-      _status:
-        result.status === "SUCCESSFUL"
-          ? "successful"
-          : result.status === "FAILED"
-            ? "failed"
-            : "pending",
+      _status: toPaymentStatus(result.status),
       _provider_status: result.providerStatus,
       _failure: result.reason as string,
     });
