@@ -35,7 +35,9 @@ export function useFinanceProfile() {
     queryKey: ["finance", "profile", session.userId],
     queryFn: () => profileFn(),
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes — data doesn't change that fast
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 
   const score: ScoreResult | null = profileQuery.data
@@ -74,7 +76,10 @@ export function useSmartTip(profile: MoneyProfile | null) {
 
   return useQuery<string>({
     queryKey: ["finance", "smart-tip", session.userId],
-    queryFn: () => tipFn({ data: tipInput! }),
+    queryFn: () => {
+      if (!tipInput) throw new Error("Money profile is not ready.");
+      return tipFn({ data: tipInput });
+    },
     enabled: Boolean(session.userId) && !session.loading && tipInput !== null,
     staleTime: 60 * 60 * 1000, // 1 hour — AI calls are expensive, cache them
     retry: 1,
@@ -92,7 +97,9 @@ export function useSavingsJar() {
     queryKey: ["finance", "savings-jar", session.userId],
     queryFn: () => jarFn(),
     enabled: Boolean(session.userId) && !session.loading,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 
   const refresh = () => {

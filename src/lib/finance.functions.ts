@@ -131,6 +131,8 @@ export type TraderDashboard = {
   cashSales: number;
   openOrders: number;
   settledCount: number;
+  hasRecentSale: boolean;
+  recordedEarnings: number;
   orders: RecentOrder[];
 };
 
@@ -250,7 +252,7 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
         orders: (recentRes.data ?? []).map((order) => ({ id: order.id, amount: Number(order.amount), status: order.status, createdAt: order.created_at, role: "trader" })),
       };
       totalOrders = ledger.settledCount;
-      totalTraded = ledger.settledEarnings;
+      totalTraded = ledger.recordedEarnings;
     }
 
     // MoMo success rate
