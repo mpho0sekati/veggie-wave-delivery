@@ -1,3 +1,4 @@
+import { Hand, ShoppingCart } from "lucide-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ function OnboardingPage() {
               onClick={() => setStep("buyer-details")}
               className="h-16 flex-col items-center justify-center gap-2"
             >
-              <span className="text-2xl">👋</span>
+              <Hand className="size-6" />
               <span>I want to buy fresh veggies</span>
             </Button>
 
@@ -92,7 +93,7 @@ function OnboardingPage() {
               onClick={() => setStep("trader-details")}
               className="h-16 flex-col items-center justify-center gap-2"
             >
-              <span className="text-2xl">🛒</span>
+              <ShoppingCart className="size-6" />
               <span>I'm a trader selling produce</span>
             </Button>
           </div>

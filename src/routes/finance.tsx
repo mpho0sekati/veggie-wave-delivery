@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ArrowDownLeft,
+  Check,
   ArrowUpRight,
   Building2,
   CheckCircle2,
@@ -671,7 +672,7 @@ function FinancePage() {
                     key={step.label}
                     className={`rounded-lg border p-2 ${step.done ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground"}`}
                   >
-                    <span className="block font-bold">{step.done ? "✓" : i + 1}</span>
+                    <span className="block font-bold">{step.done ? <Check className="mx-auto size-4" /> : i + 1}</span>
                     {step.label}
                   </li>
                 ))}

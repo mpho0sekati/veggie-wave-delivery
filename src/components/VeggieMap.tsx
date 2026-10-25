@@ -45,12 +45,12 @@ function runnerIcon(active: boolean, name: string, rating: number, avatar?: stri
     className: "",
     html: `<div class="cart-marker ${active ? "active" : ""}">
       <div class="cart-ring"></div>
-      <div class="cart-bubble"><span class="cart-emoji">🛒</span></div>
+      <div class="cart-bubble"><span class="cart-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span></div>
       <div class="uber-marker-runner ${active ? "active" : ""}">
         ${avatarHtml}
         <div class="flex flex-col text-left leading-none pr-1">
           <span class="text-[0.7rem] font-bold truncate max-w-[80px]">${escapeHtml(name)}</span>
-          <span class="text-[0.7rem] opacity-80 mt-0.5">★ ${rating.toFixed(1)}</span>
+          <span class="text-[0.7rem] opacity-80 mt-0.5"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:-1px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${rating.toFixed(1)}</span>
         </div>
       </div>
     </div>`,
@@ -74,7 +74,7 @@ function buyerIcon(waving: boolean, delivered: boolean) {
     html: `<div class="uber-marker-buyer ${waving ? "waving" : ""} ${delivered ? "delivered" : ""}">
       <div class="dot"></div>
       <div class="pulse"></div>
-      <span class="label">${delivered ? "Delivered ✓" : "Pickup"}</span>
+      <span class="label">${delivered ? "Delivered" : "Pickup"}</span>
     </div>`,
     iconSize: [60, 60],
     iconAnchor: [30, 30],
@@ -84,7 +84,7 @@ function buyerIcon(waving: boolean, delivered: boolean) {
 function courierIcon(isDisconnected = false) {
   return L.divIcon({
     className: "",
-    html: `<div class="marker-courier ${isDisconnected ? "marker-courier-disconnected" : ""}"><span>🚴</span></div>`,
+    html: `<div class="marker-courier ${isDisconnected ? "marker-courier-disconnected" : ""}"><span><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg></span></div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 20],
   });
@@ -391,7 +391,7 @@ export default function VeggieMap({
         .bindPopup(
           `<div class="p-1 text-center font-sans">` +
             `<strong class="text-sm font-semibold">${escapeHtml(r.name)}</strong>` +
-            `<div class="text-xs text-muted-foreground mt-0.5">Trader · ★ ${r.rating.toFixed(1)}</div>` +
+            `<div class="text-xs text-muted-foreground mt-0.5">Trader · <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:-1px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${r.rating.toFixed(1)}</div>` +
             `<div class="text-xs font-medium text-primary mt-1">${dist} away</div>` +
             `</div>`,
         );
