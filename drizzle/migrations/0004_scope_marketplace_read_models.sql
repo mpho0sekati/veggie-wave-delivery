@@ -1,0 +1,6 @@
+DROP POLICY IF EXISTS "Stock visible to signed-in users" ON public.stock;
+CREATE POLICY "Own stock and online trader stock" ON public.stock FOR SELECT TO authenticated USING (trader_id = (SELECT auth.uid()) OR EXISTS (SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id WHERE p.id=stock.trader_id AND p.online AND r.role='trader'));
+DROP POLICY IF EXISTS "Demand visible to signed-in users" ON public.demand;
+CREATE POLICY "Traders read aggregate demand" ON public.demand FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id=(SELECT auth.uid()) AND r.role='trader'));
+DROP POLICY IF EXISTS "Signed-in users add catalog items" ON public.catalog_items;
+CREATE POLICY "Traders submit valid catalog items" ON public.catalog_items FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id=(SELECT auth.uid()) AND r.role='trader') AND length(trim(name)) BETWEEN 1 AND 80 AND length(unit) BETWEEN 1 AND 30 AND price >= 0 AND price <= 100000);

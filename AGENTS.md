@@ -19,3 +19,7 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 - **Cell & PIN sign-in:** Buyers and traders sign up with an SA cell number and 4-digit PIN via server functions that derive the real secret server-side; the cell number doubles as the MoMo number and bank linking stays optional.
 - **Navigation:** Main screens share one always-visible icon tab bar instead of a hidden menu, so every tool is one tap away.
 - **Startup configuration:** Resolve browser connection settings through the public-only Vite configuration helper, preserving injected values before using the connected-project fallback; this prevents missing build variables from crashing startup without editing generated clients or exposing private credentials.
+- **Privileged database routines:** Only the authenticated profile setup routine is browser-executable; order, payment and delivery routines are service-only behind verified server functions to prevent caller-supplied identity impersonation.
+- **Judge demo:** Public demo entry points never create, reset or enumerate auth users; demo accounts are shared test identities, not evidence of private-user isolation.
+- **Read budgets:** Bound marketplace and courier-history reads and retain recent tracking points; marketplace polling is slower than order polling to reduce repeated discovery traffic.
+- **Money integrity:** Manual typed deposits and deprecated standalone payment endpoints cannot credit funds or charge a payer; verified stored-order payments and settlement events are the only money-changing paths.

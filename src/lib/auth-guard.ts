@@ -48,9 +48,9 @@ export function clearUserRole() {
  */
 export function useAuthGuard() {
   const session = useSession();
-  const role = getUserRole();
+  const role = session.role;
   const isAuthenticated = Boolean(session.userId);
-  const isOnboarded = role !== null && role !== "unspecified";
+  const isOnboarded = role !== null;
 
   return {
     isAuthenticated,

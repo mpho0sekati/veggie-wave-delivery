@@ -275,12 +275,13 @@ export const startMomoPayment = createServerFn({ method: "POST" })
     });
 
     if (!outcome.accepted) {
-      const { data: failed } = await db.rpc("finalize_payment", {
+      const { data: failed, error: finalizeError } = await db.rpc("finalize_payment", {
         _reference: row.reference,
         _status: "failed",
         _provider_status: outcome.providerStatus,
         _failure: "provider-rejected-request",
       });
+      if (finalizeError || !failed) throw new Error("payment-verification-needed");
       const failedRow = failed as unknown as Payment;
       return {
         paymentId: failedRow.id,
@@ -423,9 +424,10 @@ export const getCourierPositions = createServerFn({ method: "POST" })
       .from("courier_positions")
       .select("*")
       .eq("order_id", data.orderId)
-      .order("recorded_at", { ascending: true });
+      .order("recorded_at", { ascending: false })
+      .limit(200);
     if (error) throw new Error(error.message);
-    return positions ?? [];
+    return (positions ?? []).reverse();
   });
 
 /* ------------------------------ WEATHER ------------------------------ */

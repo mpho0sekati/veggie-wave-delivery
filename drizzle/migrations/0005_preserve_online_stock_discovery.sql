@@ -1,0 +1,3 @@
+DROP POLICY IF EXISTS "Own stock and online trader stock" ON public.stock;
+CREATE POLICY "Own stock and online trader stock" ON public.stock FOR SELECT TO authenticated USING (trader_id=(SELECT auth.uid()) OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=stock.trader_id AND p.online AND p.role='trader'));
+COMMENT ON POLICY "Own stock and online trader stock" ON public.stock IS 'Discovery uses the protected profile role mirror; user_roles only exposes the caller row.';

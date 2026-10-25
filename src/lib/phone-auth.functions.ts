@@ -6,7 +6,8 @@ type Input = { cell: string; pin: string; name?: string; role?: "buyer" | "trade
 async function secretFor(msisdn: string, pin: string): Promise<string> {
   // The real sign-in secret is derived on the server, so the 4-digit PIN alone
   // can't be used against the sign-in service directly.
-  const pepper = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
+  const pepper = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  if (!pepper) throw new Error("AUTH_UNAVAILABLE");
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(pepper),

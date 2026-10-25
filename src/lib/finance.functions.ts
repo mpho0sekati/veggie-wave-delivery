@@ -75,45 +75,10 @@ export const depositToJar = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z.object({ amount: z.number().positive("Amount must be positive") }).parse(input),
   )
-  .handler(async ({ data, context }): Promise<SavingsJar> => {
-    const db = await admin();
-    const userId = context.userId;
-
-    // Fetch current balance first so we can increment correctly
-    const { data: existing } = await db
-      .from("savings_pots")
-      .select("balance, target_amount, name")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const currentBalance = existing ? Number(existing.balance) : 0;
-    const newBalance = currentBalance + data.amount;
-
-    // Upsert with the correctly incremented balance
-    const { data: row, error } = await db
-      .from("savings_pots")
-      .upsert(
-        {
-          user_id: userId,
-          balance: newBalance,
-          target_amount: existing?.target_amount ?? 500,
-          name: existing?.name ?? "My Savings Jar",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" },
-      )
-      .select("*")
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    return {
-      userId: row.user_id,
-      balance: Number(row.balance),
-      targetAmount: Number(row.target_amount),
-      name: row.name,
-      updatedAt: row.updated_at,
-    };
+  .handler(async (): Promise<SavingsJar> => {
+    // A typed amount is not proof that money was received. Only verified
+    // settlement events may credit this ledger until a funded deposit exists.
+    throw new Error("Savings are added from verified sales; manual deposits are not available.");
   });
 
 export const updateSavingsTarget = createServerFn({ method: "POST" })

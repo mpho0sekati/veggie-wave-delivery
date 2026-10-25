@@ -2,6 +2,9 @@
 
 ## Done
 
+- Judge readiness: closed direct privileged-RPC access, disabled unsafe standalone payment/manual credit paths, scoped discovery and private paths, patched dependencies; 29 tests and database money/privilege assertions passed. Signed-in phone wave/cancellation and existing trader demo verified. Limits documented in docs/judge-readiness.md.
+- Judge clarity: buyer first screen says Fresh veggies, delivered without a tutorial or popup.
+
 - Fixed missing browser connection settings at startup; compiler regression tests and signed-in buyer/money opening checks pass with no runtime errors.
 - Fix typecheck build errors (auth.tsx pin field, runner.tsx missing userId).
 
@@ -13,6 +16,9 @@
 - Nearby trader pins, stock availability and lists share real-coordinate discovery; signed-in check showed the existing online stall 55 m away, distant-stall exclusion and camera stability after GPS updates verified. All 20 tests pass.
 
 ## Active / Backlog
+
+- Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
+- Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
 
 - Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.

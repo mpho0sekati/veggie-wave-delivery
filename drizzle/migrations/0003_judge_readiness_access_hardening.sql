@@ -1,0 +1,18 @@
+DO $$ DECLARE f record; BEGIN FOR f IN SELECT p.oid::regprocedure AS signature FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef AND p.proname <> 'setup_marketplace_profile' LOOP EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', f.signature); EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f.signature); END LOOP; END $$;
+REVOKE EXECUTE ON FUNCTION public.setup_marketplace_profile(text, public.app_role) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.setup_marketplace_profile(text, public.app_role) TO authenticated, service_role;
+DROP POLICY IF EXISTS "Signed-in users bump demand" ON public.demand;
+DROP POLICY IF EXISTS "Signed-in users log demand" ON public.demand;
+REVOKE INSERT, UPDATE, DELETE ON public.demand FROM anon, authenticated;
+GRANT ALL ON public.demand TO service_role;
+DROP POLICY IF EXISTS "Learned shortcuts visible to signed-in users" ON public.learned_paths;
+REVOKE SELECT ON public.learned_paths FROM anon, authenticated;
+GRANT ALL ON public.learned_paths TO service_role;
+REVOKE UPDATE ON public.profiles FROM authenticated;
+GRANT UPDATE(name, avatar, online, lat, lng, updated_at) ON public.profiles TO authenticated;
+CREATE INDEX IF NOT EXISTS judge_waves_open_expiry_idx ON public.waves(expires_at, created_at) WHERE status='created';
+CREATE INDEX IF NOT EXISTS judge_courier_order_recent_idx ON public.courier_positions(order_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS judge_orders_buyer_created_idx ON public.wave_orders(buyer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS judge_orders_trader_created_idx ON public.wave_orders(trader_id, created_at DESC);
+COMMENT ON TABLE public.demand IS 'Shared aggregate read model; writes only through server-owned wave trigger.';
+COMMENT ON TABLE public.learned_paths IS 'Private delivery-derived coordinates; server-authorized route lookup only.';

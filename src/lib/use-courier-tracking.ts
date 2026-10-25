@@ -247,7 +247,7 @@ export function useCourierPositions(orderId: string | null) {
             lng: newPosition.lng,
             trader_id: newPosition.trader_id,
           });
-          setPositions((prev) => [...prev, newPosition]);
+          setPositions((prev) => [...prev, newPosition].slice(-200));
 
           lastPingTimestampRef.current = Date.now();
           setIsDisconnected(false);
@@ -296,7 +296,8 @@ export function useCourierPositions(orderId: string | null) {
         .from("courier_positions")
         .select("*")
         .eq("order_id", orderId)
-        .order("recorded_at", { ascending: true });
+        .order("recorded_at", { ascending: false })
+        .limit(200);
 
       if (error) {
         trackingLogger.error("Failed to load initial positions", { error });
@@ -305,10 +306,11 @@ export function useCourierPositions(orderId: string | null) {
 
       if (data && data.length > 0) {
         trackingLogger.info("Initial positions loaded", { count: data.length });
-        setPositions(data);
-        const last = data[data.length - 1];
-        lastPingTimestampRef.current = Date.now();
-        setIsDisconnected(false);
+        setPositions([...data].reverse());
+        const last = data[0];
+        if (!last) return;
+        lastPingTimestampRef.current = Date.parse(last.recorded_at);
+        setIsDisconnected(Date.now() - Date.parse(last.recorded_at) > 30000);
 
         if (buyerPosition) {
           const dist = distanceKm(last, buyerPosition);
