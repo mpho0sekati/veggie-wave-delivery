@@ -3,6 +3,7 @@ import { Hand, LogIn, LogOut, Store, Wallet, Wand2, type LucideIcon } from "luci
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import InstallMdeko from "@/components/InstallMdeko";
+import UpdateMdeko from "@/components/UpdateMdeko";
 
 type Props = {
   signedIn: boolean;
@@ -81,6 +82,7 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
           </button>
         );
       })}
+      <UpdateMdeko />
       <InstallMdeko />
     </nav>
   );

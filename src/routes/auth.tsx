@@ -136,7 +136,14 @@ function AuthPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-8">
+    <main className="relative mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-8">
+      <button
+        type="button"
+        onClick={() => (window.history.length > 1 ? window.history.back() : navigate({ to: "/" }))}
+        className="absolute left-4 top-4 flex items-center gap-1 rounded-full bg-secondary px-3 py-2 text-sm font-medium"
+      >
+        ← Back
+      </button>
       <div className="mb-6">
         <BrandMark subtitle="Fresh veggies, delivered to you" />
       </div>

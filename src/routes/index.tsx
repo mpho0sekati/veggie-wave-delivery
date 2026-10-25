@@ -55,6 +55,7 @@ import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
 import { useCourierPositions } from "@/lib/use-courier-tracking";
 import { useWeatherWarning } from "@/lib/use-weather";
 import WavePayDialog from "@/components/WavePayDialog";
+import { track } from "@/lib/track";
 import JourneyProgress from "@/components/JourneyProgress";
 import { buyerJourneyStep } from "@/lib/journey-progress";
 import DescribeOrder from "@/components/DescribeOrder";
@@ -359,6 +360,7 @@ function BuyerPage() {
     }
 
     try {
+      track("wave_placed", `${picked.length} items`);
       const saved = await actions.createWave.mutateAsync({
         items,
         wish: wish.trim(),
@@ -424,6 +426,7 @@ function BuyerPage() {
     if (!request?.waveId) return;
     try {
       await actions.cancelWave.mutateAsync(request.waveId);
+      track("wave_cancelled", request.status);
       setClosedWave(request.waveId);
       cancelRequest();
       setQty({});
@@ -935,6 +938,7 @@ function BuyerPage() {
                                   status: "completed",
                                 });
                               celebration.confirm(request.orderId);
+                              track("cash_confirmed", liveOrder?.payment_method ?? "");
                               toast.success("Order completed");
                             } catch {
                               toast.error("Could not complete this order");
@@ -1126,11 +1130,14 @@ function BuyerPage() {
             throw new Error("order-not-accepted");
           }
           setPayLoading(true);
+          const low = `Not enough money in MoMo? You need at least R${(request?.total ?? 0).toFixed(2)}. Top up or pay cash.`;
+          track("payment_started", `momo:${request?.total ?? 0}`);
           try {
             // The amount is taken from the saved order on the server, never from this page.
             const started = await actions.startPayment.mutateAsync({ orderId, msisdn });
             if (started.status === "failed") {
-              toast.error("MTN MoMo turned the request down — try again");
+              track("payment_failed", `rejected:${started.providerStatus ?? ""}`);
+              toast.error(`MTN MoMo turned the request down. ${low}`, { duration: 8000 });
               setPayLoading(false);
               throw new Error("payment-rejected");
             }
@@ -1143,6 +1150,7 @@ function BuyerPage() {
               await new Promise((r) => setTimeout(r, 2000));
               const result = await actions.verifyPayment(orderId);
               if (result?.status === "successful") {
+                track("payment_completed", "momo");
                 updateState((prev) => {
                   if (!prev.request) return prev;
                   return {
@@ -1158,18 +1166,22 @@ function BuyerPage() {
                 return;
               }
               if (result?.status === "failed") {
-                toast.error("Payment was declined on your phone");
+                track("payment_failed", `declined:${result.providerStatus ?? ""}`);
+                toast.error(`Payment was declined. ${low}`, { duration: 8000 });
                 setPayLoading(false);
                 return;
               }
             }
-            toast.error("Payment timeout — check your MoMo app and try again");
+            track("payment_timeout");
+            toast.error("No answer from MoMo. Check your phone for the PIN prompt, or pay cash.", {
+              duration: 8000,
+            });
           } catch (err) {
             console.error("[momo] payment error", err);
             toast.error(
               err instanceof Error && err.message.includes("momo-not-configured")
                 ? "MTN MoMo is not connected yet. Choose cash on delivery."
-                : "Payment failed — please try again",
+                : `Payment did not go through. ${low}`,
             );
             throw err;
           }

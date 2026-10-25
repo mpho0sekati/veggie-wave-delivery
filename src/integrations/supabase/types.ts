@@ -156,6 +156,30 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          event: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          event: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          event?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learned_paths: {
         Row: {
           created_at: string
