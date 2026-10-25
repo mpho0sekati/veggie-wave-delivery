@@ -4,6 +4,8 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 
 ## Key Directives
 
+- **Learn-by-doing presentation:** Derive shared read-only journey strips from existing basket, saved stock, online and order states; never use them to change permissions or marketplace behavior, so guidance cannot create a second source of truth.
+
 - **Delivery celebrations:** Keep animation client-only and presentation-only, deduplicate arrival and confirmation by order, and derive the pin from saved delivery milestones rather than payment alone; this prevents polling replays and premature delivery labels.
 
 - **Home-screen installation:** Keep the optional install control in shared navigation and use real PNG manifest icons; never automatically prompt or register app-shell workers in preview.
