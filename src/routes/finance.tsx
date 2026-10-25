@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useSession } from "@/lib/use-session";
+import { useSession, signOutEverywhere } from "@/lib/use-session";
+import AppTabBar from "@/components/AppTabBar";
 import {
   useFinanceProfile,
   useSmartTip,
@@ -585,11 +586,6 @@ function FinancePage() {
     <main className="min-h-dvh bg-background">
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
-          <Button asChild variant="ghost" size="icon" className="size-11 shrink-0">
-            <Link to="/" aria-label="Back to veggies">
-              <ArrowLeft />
-            </Link>
-          </Button>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-primary">Mdeko</p>
             <h1 className="text-xl font-semibold">My Money</h1>
@@ -604,6 +600,13 @@ function FinancePage() {
           >
             <Globe />
           </Button>
+        </div>
+        <div className="mx-auto max-w-xl px-3 pb-2">
+          <AppTabBar
+            signedIn={Boolean(session.userId)}
+            onSignOut={signOutEverywhere}
+            className="shadow-none"
+          />
         </div>
       </header>
       <div className="mx-auto max-w-xl px-5 pb-12">
