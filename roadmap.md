@@ -12,6 +12,7 @@
 
 ## Active / Backlog
 
+- Finish nearby trader pins using shared real coordinates and stop GPS updates from resetting the map.
 - Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.

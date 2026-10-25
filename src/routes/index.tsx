@@ -54,6 +54,7 @@ import {
   useAppState,
 } from "@/lib/veggie-store";
 import { useMarketplace } from "@/lib/use-marketplace";
+import { nearbyTraders } from "@/lib/nearby-traders";
 import { waveView } from "@/lib/wave-view";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useSession, signOutEverywhere } from "@/lib/use-session";
@@ -183,7 +184,6 @@ function BuyerPage() {
 
   const onPosition = useCallback((pos: { lat: number; lng: number }) => {
     setBuyerLocation(pos);
-    setRecenterTrigger((prev) => prev + 1);
   }, []);
   const { status: geoStatus, locate, stop, message: geoMessage } = useGeolocation(onPosition);
 
@@ -260,7 +260,11 @@ function BuyerPage() {
   }, [signedIn, liveWave, liveOrder, closedWave]);
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
-  const online = runners.filter((r) => r.online);
+  const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
+  const mapRunners = useMemo(
+    () => assigned && !online.some((r) => r.id === assigned.id) ? [...online, assigned] : online,
+    [online, assigned],
+  );
   const picked = useMemo(() => catalog.filter((c) => (qty[c.id] ?? 0) > 0), [catalog, qty]);
 
   const ranked = useMemo(() => {
@@ -450,7 +454,7 @@ function BuyerPage() {
         <ClientOnly fallback={<MapSkeleton />}>
           <Suspense fallback={<MapSkeleton />}>
             <VeggieMap
-              runners={runners}
+              runners={mapRunners}
               activeRunnerId={request?.runnerId ?? selectedRunnerId ?? null}
               waving={request?.status === "waving"}
               buyerPosition={buyer}
@@ -486,7 +490,7 @@ function BuyerPage() {
                 subtitle={
                   geoStatus === "locating"
                     ? "Finding your location…"
-                    : `${online.length} traders nearby`
+                    : buyer.located ? `${online.length} traders nearby` : "Set your location"
                 }
               />
             </div>
@@ -718,7 +722,11 @@ function BuyerPage() {
                         <Card className="mx-4 mt-2 items-center gap-2 p-8 text-center">
                           <Store className="size-8 text-muted-foreground" />
                           <p className="text-sm text-muted-foreground">
-                            No Mdeko trader is online around you yet. Pick what you need anyway.
+                            {!signedIn
+                              ? "Sign in to see traders near you."
+                              : !buyer.located
+                                ? "Set your location to see traders near you."
+                                : "No Mdeko trader is online around you yet. Pick what you need anyway."}
                           </p>
                         </Card>
                       ) : (
