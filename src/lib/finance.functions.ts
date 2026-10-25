@@ -10,6 +10,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { summarizeTraderLedger } from "./trader-finance";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -130,6 +131,7 @@ export type TraderDashboard = {
   cashSales: number;
   openOrders: number;
   settledCount: number;
+  orders: RecentOrder[];
 };
 
 export type MoneyProfile = {
@@ -176,7 +178,7 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
         context.supabase.from("payments").select("status").eq("buyer_id", userId).limit(50),
 
         // Profile: member since date
-        context.supabase.from("profiles").select("created_at, role").eq("id", userId).maybeSingle(),
+        context.supabase.from("profiles").select("created_at").eq("id", userId).maybeSingle(),
 
         // Savings jar
         context.supabase.from("savings_pots").select("*").eq("user_id", userId).maybeSingle(),
@@ -191,76 +193,80 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
       ...traderOrders.map((o) => ({ ...o, role: "trader" as const })),
     ];
 
-    const totalOrders = allOrders.length;
-    const totalTraded = allOrders.reduce((sum, o) => sum + Number(o.amount), 0);
+    let totalOrders = allOrders.length;
+    let totalTraded = allOrders.reduce((sum, o) => sum + Number(o.amount), 0);
     // 5% commission â€” makes the business model visible on screen
     const totalCommission = totalTraded * 0.05;
 
-    const role = (profileResult.data?.role as "buyer" | "trader" | null) ?? null;
+    const roleResult = await context.supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+    if (roleResult.error) throw new Error("Could not load your money records.");
+    const role = roleResult.data?.role === "trader" ? "trader" : roleResult.data?.role === "buyer" ? "buyer" : null;
+    if ([buyerOrdersResult, traderOrdersResult, paymentsResult, profileResult, savingsResult].some((result) => result.error)) {
+      throw new Error("Could not load your money records.");
+    }
 
     // Trader ledger: settlements are written only by verified MoMo callbacks/status
     // checks or buyer-confirmed cash, so this is the real earnings record.
     let trader: TraderDashboard | null = null;
     let payments: { status: string }[] = paymentsResult.data ?? [];
     if (role === "trader") {
-      const [settleRes, openRes] = await Promise.all([
-        db
+      const [settleRes, openRes, recentRes] = await Promise.all([
+        context.supabase
           .from("settlements")
           .select("order_id, net, status, created_at, payment_id")
           .eq("trader_id", userId)
           .order("created_at", { ascending: false })
           .limit(500),
-        db
+        context.supabase
           .from("wave_orders")
           .select("id", { count: "exact", head: true })
           .eq("trader_id", userId)
           .is("cancelled_at", null)
           .in("status", ["accepted", "preparing", "ready", "delivering", "delivered"]),
+        context.supabase.from("wave_orders")
+          .select("id, amount, status, created_at")
+          .eq("trader_id", userId)
+          .order("created_at", { ascending: false }).limit(10),
       ]);
+      if (settleRes.error || openRes.error || recentRes.error) throw new Error("Could not load your stall records.");
       const settlements = settleRes.data ?? [];
       const paymentIds = settlements.map((s) => s.payment_id);
-      const { data: payRows } = paymentIds.length
-        ? await db.from("payments").select("id, provider, status").in("id", paymentIds)
-        : { data: [] as { id: string; provider: string; status: string }[] };
-      const providerById = new Map((payRows ?? []).map((p) => [p.id, p.provider]));
+      const { data: payRows, error: payError } = paymentIds.length
+        ? await context.supabase.from("payments").select("id, provider, status").in("id", paymentIds)
+        : { data: [] as { id: string; provider: string; status: string }[], error: null };
+      if (payError) throw new Error("Could not load your sale payments.");
       // Trader reliability = payments on my sales, not my purchases.
-      const { data: salePayments } = await db
+      const { data: salePayments, error: saleError } = await context.supabase
         .from("payments")
         .select("status, wave_orders!inner(trader_id)")
         .eq("wave_orders.trader_id", userId)
         .limit(100);
-      if (salePayments?.length) payments = salePayments;
-
-      const now = new Date();
-      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      const startWeek = new Date(now.getTime() - 7 * 864e5).toISOString();
-      const sum = (rows: typeof settlements) => rows.reduce((t, s) => t + Number(s.net), 0);
+      if (saleError) throw new Error("Could not load your sale payments.");
+      payments = salePayments ?? [];
+      const ledger = summarizeTraderLedger(settlements, payRows ?? []);
       trader = {
-        todayEarnings: sum(settlements.filter((s) => s.created_at >= startToday)),
-        weekEarnings: sum(settlements.filter((s) => s.created_at >= startWeek)),
-        settledEarnings: sum(settlements.filter((s) => s.status === "settled")),
-        pendingEarnings: sum(settlements.filter((s) => s.status === "pending")),
-        momoSales: sum(settlements.filter((s) => providerById.get(s.payment_id) !== "cash")),
-        cashSales: sum(settlements.filter((s) => providerById.get(s.payment_id) === "cash")),
+        ...ledger,
         openOrders: openRes.count ?? 0,
-        settledCount: settlements.length,
+        orders: (recentRes.data ?? []).map((order) => ({ id: order.id, amount: Number(order.amount), status: order.status, createdAt: order.created_at, role: "trader" })),
       };
+      totalOrders = ledger.settledCount;
+      totalTraded = ledger.settledEarnings;
     }
 
     // MoMo success rate
     const totalPayments = payments.length;
     const successfulPayments = payments.filter((p) => p.status === "successful").length;
-    const momoSuccessRate = totalPayments > 0 ? successfulPayments / totalPayments : 1;
+    const momoSuccessRate = totalPayments > 0 ? successfulPayments / totalPayments : 0;
 
     // Active in last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const hasOrderInLast30Days = allOrders.some((o) => o.created_at > thirtyDaysAgo);
+    const hasOrderInLast30Days = trader ? Boolean(trader.hasRecentSale) : allOrders.some((o) => o.created_at > thirtyDaysAgo);
 
     // Member since
     const memberSince = profileResult.data?.created_at ?? new Date().toISOString();
 
     // Recent 5 orders for the money story
-    const recentOrders: RecentOrder[] = allOrders.slice(0, 5).map((o) => ({
+    const recentOrders: RecentOrder[] = allOrders.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5).map((o) => ({
       id: o.id,
       amount: Number(o.amount),
       status: o.status,
