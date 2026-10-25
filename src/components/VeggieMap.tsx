@@ -18,6 +18,7 @@ type Props = {
   waving?: boolean;
   buyerPosition?: { lat: number; lng: number };
   buyerLocated?: boolean;
+  delivered?: boolean;
   recenterTrigger?: number;
   /** Live courier position for delivery tracking */
   courierPosition?: TrackedPosition | null;
@@ -66,13 +67,13 @@ function escapeHtml(value: string) {
   );
 }
 
-function buyerIcon(waving: boolean) {
+function buyerIcon(waving: boolean, delivered: boolean) {
   return L.divIcon({
     className: "",
-    html: `<div class="uber-marker-buyer ${waving ? "waving" : ""}">
+    html: `<div class="uber-marker-buyer ${waving ? "waving" : ""} ${delivered ? "delivered" : ""}">
       <div class="dot"></div>
       <div class="pulse"></div>
-      <span class="label">Pickup</span>
+      <span class="label">${delivered ? "Delivered ✓" : "Pickup"}</span>
     </div>`,
     iconSize: [60, 60],
     iconAnchor: [30, 30],
@@ -94,6 +95,7 @@ export default function VeggieMap({
   waving,
   buyerPosition,
   buyerLocated = true,
+  delivered = false,
   recenterTrigger,
   courierPosition,
   isGpsDisconnected = false,
@@ -352,7 +354,7 @@ export default function VeggieMap({
     }).addTo(layer);
 
     L.marker([buyer.lat, buyer.lng], {
-      icon: buyerIcon(Boolean(waving)),
+      icon: buyerIcon(Boolean(waving), delivered),
     }).addTo(layer);
 
     // Cap animated carts so budget phones stay smooth in busy areas; always keep the assigned trader.
@@ -411,7 +413,7 @@ export default function VeggieMap({
       fitSmooth(map, L.latLngBounds(points));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runners is intentionally omitted; runnersKey is its stable proxy
-  }, [runnersKey, activeRunnerId, waving, buyer.lat, buyer.lng]);
+  }, [runnersKey, activeRunnerId, waving, delivered, buyer.lat, buyer.lng]);
 
   return (
     <div
