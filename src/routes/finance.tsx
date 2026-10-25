@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner";
 import { useSession, signOutEverywhere } from "@/lib/use-session";
 import AppTabBar from "@/components/AppTabBar";
+import GroupRestock from "@/components/GroupRestock";
 import {
   useFinanceProfile,
   useSmartTip,
@@ -733,6 +734,7 @@ function FinancePage() {
                 )}
               </section>
             )}
+            {profile.trader && <GroupRestock />}
             <SavingsSection role={profile.role ?? session.role} t={t} />
             {profile.trader && (
               <section className="border-b py-6" aria-labelledby="orders-title">
