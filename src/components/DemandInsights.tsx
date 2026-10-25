@@ -57,12 +57,27 @@ export default function DemandInsights({ state, runnerId, onAdded }: Props) {
     toast.success(`${label} added to catalog`);
   };
 
+  const tip = rows.find((r) => r.item && !r.iHaveIt && r.requests > 0);
+
   return (
     <Card className="mx-4 mt-4 gap-3 p-5">
       <div className="flex items-center gap-2">
         <TrendingUp className="size-5 text-primary" />
         <h2 className="text-lg font-semibold">What&apos;s in demand</h2>
       </div>
+      {tip?.item && (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3">
+          <Sparkles className="size-5 shrink-0 text-primary" />
+          <p className="flex-1 text-sm">
+            <strong>{tip.requests}</strong> {tip.requests === 1 ? "person" : "people"} waved for{" "}
+            <strong>{tip.item.name}</strong>
+            {tip.stockedBy === 0 ? " and nobody is selling it." : "."} Add it?
+          </p>
+          <Button size="sm" onClick={() => void add(tip.item!.id)}>
+            Add
+          </Button>
+        </div>
+      )}
       {!rows.length && (
         <p className="text-sm text-muted-foreground">
           Nothing recorded yet. As people wave, you&apos;ll see here what they ask for most and what

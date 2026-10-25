@@ -643,6 +643,24 @@ function FinancePage() {
                 Order totals, not your available balance.
               </p>
             </section>
+            <section className="border-b py-5" aria-label="Your money journey">
+              <p className="mb-3 text-sm font-medium">Your money journey</p>
+              <ol className="grid grid-cols-3 gap-2 text-center text-xs">
+                {[
+                  { label: "Sales recorded", done: profile.totalOrders > 0 },
+                  { label: "Savings growing", done: profile.totalOrders > 0 },
+                  { label: "Bank-ready record", done: profile.totalOrders >= 5 },
+                ].map((step, i) => (
+                  <li
+                    key={step.label}
+                    className={`rounded-lg border p-2 ${step.done ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground"}`}
+                  >
+                    <span className="block font-bold">{step.done ? "✓" : i + 1}</span>
+                    {step.label}
+                  </li>
+                ))}
+              </ol>
+            </section>
             <SavingsSection role={profile.role ?? session.role} t={t} />
             <section className="border-b py-6" aria-labelledby="activity-title">
               <div className="flex items-center justify-between gap-2">
