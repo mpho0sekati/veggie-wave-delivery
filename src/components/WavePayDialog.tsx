@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Smartphone, Wallet, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -42,6 +43,16 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Fill in the cell number the person signed up with, so they never type it twice.
+  useEffect(() => {
+    if (!open || phone) return;
+    import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      const { data } = await supabase.auth.getSession();
+      const saved = data.session?.user.user_metadata?.phone;
+      if (typeof saved === "string" && /^27\d{9}$/.test(saved)) setPhone(`0${saved.slice(2)}`);
+    });
+  }, [open, phone]);
 
   payLogger.info("WavePayDialog rendered", { open, amount, traderName });
 
@@ -165,6 +176,13 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
               </>
             )}
           </Button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Have a bank account?{" "}
+            <Link to="/finance" className="font-medium text-primary underline">
+              Add your bank (optional)
+            </Link>
+          </p>
         </div>
       </DialogContent>
     </Dialog>
