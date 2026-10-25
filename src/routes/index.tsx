@@ -535,7 +535,7 @@ function BuyerPage() {
           >
             <MapPin className="size-4 shrink-0 text-primary" />
             <span className="truncate">
-              {geoStatus === "locating"
+              {geoStatus === "locating" && !areaName
                 ? "Finding you…"
                 : `${areaName ?? (buyer.located ? "Near me" : "Choose area")} · ${online.length} traders`}
             </span>
