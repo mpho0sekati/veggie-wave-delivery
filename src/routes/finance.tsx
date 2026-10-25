@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  ArrowLeft,
   ArrowDownLeft,
   ArrowUpRight,
   Building2,
