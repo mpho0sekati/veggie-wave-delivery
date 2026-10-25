@@ -472,79 +472,31 @@ function BuyerPage() {
         </ClientOnly>
       </div>
 
-      {/* Uber-style floating round menu button */}
-      <header className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="size-12 rounded-full border bg-background shadow-lg"
-              aria-label="Open menu"
-            >
-              <Menu className="size-6" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <div className="px-2 py-2">
-              <BrandMark
-                subtitle={
-                  geoStatus === "locating"
-                    ? "Finding your location…"
-                    : buyer.located
-                      ? `${online.length} traders nearby`
-                      : "Set your location"
-                }
-              />
-            </div>
-            <div className="border-t px-2 py-3 text-sm">
-              <p className="flex justify-between gap-3">
-                <span>Mdeko Pay</span>
-                <strong>{formatRand(walletBalance)}</strong>
-              </p>
-              {communityCredit > 0 && (
-                <p className="mt-1 flex justify-between gap-3 text-muted-foreground">
-                  <span>Community Credit</span>
-                  <span>{formatRand(communityCredit)}</span>
-                </p>
-              )}
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setDescribeOpen(true)}>
-              <Wand2 /> Help me make a list
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/runner">
-                <Store /> Sell veggies
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/finance">
-                <Wallet /> My Money
-              </Link>
-            </DropdownMenuItem>
-            {signedIn ? (
-              <DropdownMenuItem
-                onClick={async () => {
-                  await signOutEverywhere();
-                  toast.success("Signed out");
-                  navigate({ to: "/auth" });
-                }}
-              >
-                <LogOut /> Sign out
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem asChild>
-                <Link to="/auth">Sign in</Link>
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Always-visible icon bar — nothing hidden in a menu */}
+      <header className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 mx-auto max-w-lg space-y-2">
+        <AppTabBar
+          signedIn={signedIn}
+          onSignOut={signOutEverywhere}
+          onHelp={() => setDescribeOpen(true)}
+        />
+        <div className="flex items-center justify-between gap-2 pr-12">
+          <span className="flex items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
+            <Store className="size-4 text-primary" />
+            {geoStatus === "locating"
+              ? "Finding you…"
+              : buyer.located
+                ? `${online.length} traders nearby`
+                : "Set your location"}
+          </span>
+          <Link
+            to="/finance"
+            className="flex items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-semibold shadow-sm"
+          >
+            <Wallet className="size-4 text-primary" />
+            {formatRand(walletBalance + communityCredit)}
+          </Link>
+        </div>
       </header>
-
-      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-1/2 z-10 -translate-x-1/2 rounded-lg border bg-background/95 px-3 py-2 shadow-sm">
-        <BrandMark />
-      </div>
 
       {/* Floating map controls */}
       <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 flex flex-col gap-2">
