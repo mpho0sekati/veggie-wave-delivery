@@ -26,6 +26,7 @@ Buyers choose veggie icons and raise a hand. Nearby online traders accept an ite
 - `tests/db/judge-security.sql`: privilege assertions pass against the connected database, without customer-data changes.
 - `tests/db/money-rules.sql`: repeat-start payment ID, server-calculated amount, duplicate-settlement rejection, exactly R5 savings on R100 net, stranger isolation and buyer read access tested inside a rolled-back transaction.
 - Browser checks: public purpose, signed-in buyer and My Money, trader access gating and invalid cell input; no page exceptions in that run.
+- Phone-sized browser check (390×844): a normal signed-in buyer picked carrots, submitted a real wave, saw it read back as Your wave, and cancelled it; the existing trader demo opened its stock screen without horizontal overflow. This did not exercise trader acceptance or live payment.
 
 ## Honest limits before public launch
 
