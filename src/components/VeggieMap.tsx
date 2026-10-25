@@ -41,15 +41,19 @@ function runnerIcon(active: boolean, name: string, rating: number, avatar?: stri
 
   return L.divIcon({
     className: "",
-    html: `<div class="uber-marker-runner ${active ? "active" : ""}">
-      ${avatarHtml}
-      <div class="flex flex-col text-left leading-none pr-1">
-        <span class="text-[0.7rem] font-bold truncate max-w-[80px]">${escapeHtml(name)}</span>
-        <span class="text-[0.7rem] opacity-80 mt-0.5">★ ${rating.toFixed(1)}</span>
+    html: `<div class="cart-marker ${active ? "active" : ""}">
+      <div class="cart-ring"></div>
+      <div class="cart-bubble"><span class="cart-emoji">🛒</span></div>
+      <div class="uber-marker-runner ${active ? "active" : ""}">
+        ${avatarHtml}
+        <div class="flex flex-col text-left leading-none pr-1">
+          <span class="text-[0.7rem] font-bold truncate max-w-[80px]">${escapeHtml(name)}</span>
+          <span class="text-[0.7rem] opacity-80 mt-0.5">★ ${rating.toFixed(1)}</span>
+        </div>
       </div>
     </div>`,
-    iconSize: [110, 36],
-    iconAnchor: [55, 18],
+    iconSize: [110, 84],
+    iconAnchor: [55, 26],
   });
 }
 
