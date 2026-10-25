@@ -15,7 +15,14 @@ export function discoveryBox(origin: { lat: number; lng: number }, radiusKm = DI
   const lng = Math.round(origin.lng * 100) / 100;
   const dLat = radiusKm / 111;
   const dLng = radiusKm / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
-  return { lat, lng, minLat: lat - dLat, maxLat: lat + dLat, minLng: lng - dLng, maxLng: lng + dLng };
+  return {
+    lat,
+    lng,
+    minLat: lat - dLat,
+    maxLat: lat + dLat,
+    minLng: lng - dLng,
+    maxLng: lng + dLng,
+  };
 }
 
 export function useMarketplace(origin?: { lat: number; lng: number; located: boolean }) {
@@ -42,6 +49,8 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
     refetchInterval: 15000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
+      const userId = session.userId;
+      if (!userId) throw new Error("Sign in to load your marketplace.");
       let profilesQuery = supabase
         .from("profiles")
         .select("id,name,avatar,online,lat,lng,rating")
@@ -58,7 +67,7 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
         supabase
           .from("profiles")
           .select("id,name,avatar,online,lat,lng,rating")
-          .eq("id", session.userId!)
+          .eq("id", userId)
           .limit(1),
         supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50),
       ]);
@@ -118,15 +127,26 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
       })),
     }));
   }, [query.data, catalogQuery.data, session.userId]);
-  return { session, refresh: query.refetch, error: query.error };
+  return {
+    session,
+    refresh: query.refetch,
+    error: query.error,
+    ownProfile: query.data?.profiles.find((profile) => profile.id === session.userId) ?? null,
+  };
 }
 
 export async function saveTraderProfile(
   userId: string,
   patch: { name?: string; online?: boolean; lat?: number; lng?: number; avatar?: string },
 ) {
-  const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", userId)
+    .select("id")
+    .maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("Your profile could not be saved. Please sign in again.");
 }
 export async function saveTraderStock(
   userId: string,

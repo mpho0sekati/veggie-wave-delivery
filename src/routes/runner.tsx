@@ -1,5 +1,5 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Crosshair, Store } from "lucide-react";
 import AppTabBar from "@/components/AppTabBar";
 import { toast } from "sonner";
@@ -13,13 +13,14 @@ import { useGeolocation } from "@/lib/use-geolocation";
 import { useMdekoActions, useMyOrders, useOpenWaves } from "@/lib/use-mdeko";
 import { useAppState } from "@/lib/veggie-store";
 import { waveView } from "@/lib/wave-view";
-import { catalogWith, distanceKm, formatRand } from "@/lib/veggie-data";
+import { catalogWith, formatRand } from "@/lib/veggie-data";
 import { useReportCourierPosition } from "@/lib/use-courier-tracking";
 import { useRoute } from "@/lib/use-route";
 import { useWaveAlert } from "@/lib/use-wave-alert";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import OrderStepper from "@/components/OrderStepper";
+import { nearbySellerWaves, sellerPosition } from "@/lib/seller-view";
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 export const Route = createFileRoute("/runner")({
   head: () => ({
@@ -38,14 +39,21 @@ export const Route = createFileRoute("/runner")({
   component: RunnerPage,
 });
 function RunnerPage() {
-  const { session, refresh } = useMarketplace();
+  const { session, refresh, ownProfile, error: marketplaceError } = useMarketplace();
   const state = useAppState();
   const actions = useMdekoActions();
-  const { data: waves = [] } = useOpenWaves(Boolean(session.userId && session.role === "trader"));
-  const { data: orders = [] } = useMyOrders(Boolean(session.userId));
+  const wavesQuery = useOpenWaves(Boolean(session.userId && session.role === "trader"));
+  const waves = wavesQuery.data ?? [];
+  const ordersQuery = useMyOrders(Boolean(session.userId));
+  const orders = ordersQuery.data ?? [];
   const me = state.runners.find((r) => r.id === session.userId);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [name, setName] = useState("");
+  const [name, setName] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
+  const recenterRequested = useRef(false);
+  const location = sellerPosition(position, ownProfile);
+  const displayName = name ?? ownProfile?.name ?? session.name;
   const file = useRef<HTMLInputElement | null>(null);
   const active = orders.find(
     (o) => o.trader_id === session.userId && !o.cancelled_at && o.status !== "completed",
@@ -53,8 +61,6 @@ function RunnerPage() {
   const activeWaveId = active?.wave_id;
   const activeId = active?.id;
   const activeStatus = active?.status;
-  const meLat = me?.lat;
-  const meLng = me?.lng;
   const [activeWave, setActiveWave] = useState<(typeof waves)[number] | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +83,10 @@ function RunnerPage() {
   const onPosition = useCallback(
     (pos: { lat: number; lng: number }) => {
       setPosition(pos);
+      if (recenterRequested.current) {
+        recenterRequested.current = false;
+        setRecenterTrigger((value) => value + 1);
+      }
       if (session.userId && session.role === "trader")
         void saveTraderProfile(session.userId, pos)
           .then(() => refresh())
@@ -86,7 +96,7 @@ function RunnerPage() {
   );
   const { locate, message } = useGeolocation(onPosition);
   // While online, refresh the trader's shared location every minute so buyers keep seeing them.
-  const isOnline = Boolean(me?.online);
+  const isOnline = Boolean(ownProfile?.online);
   useEffect(() => {
     if (!isOnline) return;
     const timer = setInterval(() => locate(), 60_000);
@@ -103,28 +113,9 @@ function RunnerPage() {
   );
   // Delivery location is reported once, by useReportCourierPosition above.
   const catalog = catalogWith(state.customItems);
-  const nearby = useMemo(
-    () =>
-      waves
-        .filter(
-          (w) =>
-            w.lat != null &&
-            w.lng != null &&
-            position &&
-            distanceKm(position, { lat: w.lat, lng: w.lng }) <= 5,
-        )
-        .sort((a, b) => {
-          if (!position || a.lat == null || a.lng == null || b.lat == null || b.lng == null)
-            return 0;
-          return (
-            distanceKm(position, { lat: a.lat, lng: a.lng }) -
-            distanceKm(position, { lat: b.lat, lng: b.lng })
-          );
-        }),
-    [waves, position],
-  );
+  const nearby = nearbySellerWaves(waves, location);
   // Whistle + vibrate when a new wave lands nearby and the trader is free to take it.
-  useWaveAlert(nearby.length, Boolean(me?.online) && !active);
+  useWaveAlert(nearby.length, isOnline && !active);
 
   const advance = async (status: "delivering" | "delivered") => {
     if (!active) return;
@@ -164,8 +155,15 @@ function RunnerPage() {
               buyerPosition={
                 activeWave?.lat != null && activeWave.lng != null
                   ? { lat: activeWave.lat, lng: activeWave.lng }
-                  : (position ?? undefined)
+                  : (location ?? undefined)
               }
+              buyerLocated={Boolean(activeWave?.lat != null || location)}
+              recenterPosition={location ?? undefined}
+              recenterTrigger={recenterTrigger}
+              onPickPosition={(pos) => {
+                recenterRequested.current = true;
+                onPosition(pos);
+              }}
               route={route}
               routeLoading={routeLoading}
             />
@@ -177,21 +175,23 @@ function RunnerPage() {
         <div className="flex items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg">
           <Store className="size-6 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{me?.name || session.name || "My stall"}</p>
+            <p className="truncate font-semibold">
+              {ownProfile?.name || session.name || "My stall"}
+            </p>
             <p className="text-xs text-muted-foreground">
-              {me?.online ? "Online — buyers can see you" : "Offline — turn on to get orders"}
+              {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
             </p>
           </div>
           <Switch
             aria-label="Available for deliveries"
-            checked={me?.online ?? false}
+            checked={isOnline}
             onCheckedChange={async (online) => {
-              if (!session.userId || !position) {
+              if (!session.userId || (online && !location)) {
                 toast.error("Set your location first");
                 return;
               }
               try {
-                await saveTraderProfile(session.userId, { online, ...position });
+                await saveTraderProfile(session.userId, { online, ...(location ?? {}) });
                 await refresh();
               } catch {
                 toast.error("Could not update availability");
@@ -203,7 +203,11 @@ function RunnerPage() {
             size="icon"
             variant="secondary"
             className="rounded-full"
-            onClick={locate}
+            onClick={() => {
+              recenterRequested.current = true;
+              if (location) setRecenterTrigger((value) => value + 1);
+              locate();
+            }}
           >
             <Crosshair />
           </Button>
@@ -215,23 +219,31 @@ function RunnerPage() {
           <div className="flex gap-2">
             <Input
               aria-label="Stall name"
-              placeholder={me?.name || "Stall name"}
-              value={name}
+              placeholder="Stall name"
+              value={displayName}
               onChange={(e) => setName(e.target.value)}
             />
             <Button
               onClick={async () => {
-                if (!session.userId || !name.trim()) return;
+                if (!session.userId || !displayName.trim()) {
+                  toast.error("Type your stall name first");
+                  return;
+                }
+                setSavingName(true);
                 try {
-                  await saveTraderProfile(session.userId, { name: name.trim() });
+                  await saveTraderProfile(session.userId, { name: displayName.trim() });
                   await refresh();
+                  setName(null);
                   toast.success("Name saved");
                 } catch {
                   toast.error("Could not save name");
+                } finally {
+                  setSavingName(false);
                 }
               }}
+              disabled={savingName}
             >
-              Save
+              {savingName ? "Saving…" : "Save"}
             </Button>
           </div>
           <input
@@ -262,9 +274,26 @@ function RunnerPage() {
             {me?.avatar ? "Change photo" : "Add profile photo"}
           </Button>
           <h2 className="font-semibold text-lg">Waves near you</h2>
-          {!active && !nearby.length && (
+          {(wavesQuery.isError || ordersQuery.isError || marketplaceError) && (
+            <div role="alert" className="space-y-2">
+              <p className="text-sm text-destructive">
+                Couldn't load your stall or requests. Your saved details haven't changed.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void refresh();
+                  void wavesQuery.refetch();
+                  void ordersQuery.refetch();
+                }}
+              >
+                Try again
+              </Button>
+            </div>
+          )}
+          {!active && !nearby.length && !wavesQuery.isError && (
             <p className="text-muted-foreground text-sm">
-              {position ? "No nearby waves yet" : "Set your location to see nearby waves"}
+              {location ? "No nearby waves yet" : "Set your location to see nearby waves"}
             </p>
           )}
           {active && activeWave && (
@@ -328,7 +357,7 @@ function RunnerPage() {
                   </ul>
                   {view.wish && <p>{view.wish}</p>}
                   <Button
-                    disabled={!canFill || actions.acceptWave.isPending || !me?.online}
+                    disabled={!canFill || actions.acceptWave.isPending || !isOnline}
                     onClick={async () => {
                       try {
                         await actions.acceptWave.mutateAsync(w.id);

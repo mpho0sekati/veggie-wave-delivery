@@ -83,6 +83,15 @@ export const getMyWave = createServerFn({ method: "POST" })
 export const listOpenWaves = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Wave[]> => {
+    const { data: profile, error: profileError } = await context.supabase
+      .from("profiles")
+      .select("lat,lng")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (profileError) throw new Error("Could not load your saved location.");
+    if (profile?.lat == null || profile.lng == null) return [];
+    const latSpan = 5 / 111;
+    const lngSpan = 5 / (111 * Math.max(0.2, Math.cos((profile.lat * Math.PI) / 180)));
     const db = await admin();
     await db.rpc("expire_waves");
     const { data, error } = await context.supabase
@@ -90,6 +99,10 @@ export const listOpenWaves = createServerFn({ method: "POST" })
       .select("*")
       .eq("status", "created")
       .gt("expires_at", new Date().toISOString())
+      .gte("lat", profile.lat - latSpan)
+      .lte("lat", profile.lat + latSpan)
+      .gte("lng", profile.lng - lngSpan)
+      .lte("lng", profile.lng + lngSpan)
       .order("created_at", { ascending: true })
       .limit(50);
     if (error) throw new Error(error.message);

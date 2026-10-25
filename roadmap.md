@@ -2,6 +2,8 @@
 
 ## Done
 
+- Seller saved name is editable without retyping; profile saves verify a row changed, saved coordinates keep nearby waves visible before GPS returns, location button recenters above the stock drawer, and incoming-wave queries filter by area before the read limit. Requesting seller account saved profile, received a separate buyer's spinach wave and accepted it; test order cancelled. 45 tests pass.
+
 - Trader My Money keeps the existing layout with recent orders, payment-verified earnings, pending/settled totals, savings and Mdeko activity score. Two-account cash order verified: R22 recorded, R1.10 saved, both confetti moments shown; signed-in dashboard, score dialog and reload checked. MoMo payer-approved test remains pending.
 
 - Delivered map pin and two short nonblocking celebrations added; two-account cash delivery, arrival/confirmation bursts, polling and reload deduplication verified. 38 tests pass; live MoMo payment remains untested.

@@ -20,6 +20,7 @@ type Props = {
   buyerLocated?: boolean;
   delivered?: boolean;
   recenterTrigger?: number;
+  recenterPosition?: { lat: number; lng: number };
   /** Live courier position for delivery tracking */
   courierPosition?: TrackedPosition | null;
   /** GPS stream disconnect state */
@@ -97,6 +98,7 @@ export default function VeggieMap({
   buyerLocated = true,
   delivered = false,
   recenterTrigger,
+  recenterPosition,
   courierPosition,
   isGpsDisconnected = false,
   routeLoading = false,
@@ -124,6 +126,8 @@ export default function VeggieMap({
   const fittedRouteSigRef = useRef<string | null>(null);
   const lastBuyerRef = useRef(buyer);
   lastBuyerRef.current = buyer;
+  const recenterPositionRef = useRef(recenterPosition);
+  recenterPositionRef.current = recenterPosition;
   const buyerCenteredRef = useRef(false);
 
   /** Fit bounds while flagging the move as programmatic so we don't count it as user intent. */
@@ -207,11 +211,15 @@ export default function VeggieMap({
     const map = mapRef.current;
     if (!map || !recenterTrigger) return;
     userMovedRef.current = false;
-    runnersFittedRef.current = false;
+    runnersFittedRef.current = Boolean(recenterPositionRef.current);
     courierFittedRef.current = false;
     fittedRouteSigRef.current = null;
-    const position = lastBuyerRef.current;
-    map.setView([position.lat, position.lng], 15, { animate: true });
+    const position = recenterPositionRef.current ?? lastBuyerRef.current;
+    programmaticMoveRef.current = true;
+    map.setView([position.lat, position.lng], 15, { animate: false });
+    // The seller's tall stock drawer covers the centre; keep the location in the exposed map.
+    if (recenterPositionRef.current) map.panBy([0, map.getSize().y * 0.3], { animate: false });
+    programmaticMoveRef.current = false;
   }, [recenterTrigger]);
 
   // A first GPS fix moves off the default pin; later fixes never take the camera back.
@@ -219,8 +227,10 @@ export default function VeggieMap({
     const map = mapRef.current;
     if (!map || !buyerLocated || buyerCenteredRef.current || userMovedRef.current) return;
     buyerCenteredRef.current = true;
+    if (recenterPositionRef.current) runnersFittedRef.current = true;
     programmaticMoveRef.current = true;
     map.setView([buyer.lat, buyer.lng], 15, { animate: false });
+    if (recenterPositionRef.current) map.panBy([0, map.getSize().y * 0.3], { animate: false });
     programmaticMoveRef.current = false;
   }, [buyer.lat, buyer.lng, buyerLocated]);
 
