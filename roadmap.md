@@ -2,6 +2,8 @@
 
 ## Done
 
+- Learn-by-doing: buyer and trader icon steps follow existing basket, stock, online and delivery states, with small live feedback and no popups. Signed-in produce selection/removal and saved trader readiness checked at 1280×1800, 390×844 and 625×543; navigation stays visible, 16 targeted tests pass, lint clean and build OK.
+
 - Dynamic score freshness: terminal payment verification and marketplace actions refresh My Money, focus/reconnect refresh current activity, reliability samples use deterministic newest-first ordering, and tips track changed inputs. 21 targeted tests passed; signed-in My Money opened successfully, lint and build checks passed. No real MoMo payment was initiated or recorded.
 
 - Seller saved name is editable without retyping; profile saves verify a row changed, saved coordinates keep nearby waves visible before GPS returns, location button recenters above the stock drawer, and incoming-wave queries filter by area before the read limit. Requesting seller account saved profile, received a separate buyer's spinach wave and accepted it; test order cancelled. 45 tests pass.
@@ -26,8 +28,6 @@
 - Nearby trader pins, stock availability and lists share real-coordinate discovery; signed-in check showed the existing online stall 55 m away, distant-stall exclusion and camera stability after GPS updates verified. All 20 tests pass.
 
 ## Active / Backlog
-
-- Add nonblocking learn-by-doing progress and contextual cues to buyer and trader screens; preserve existing order, payment and stock behavior, and verify both screens.
 
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
