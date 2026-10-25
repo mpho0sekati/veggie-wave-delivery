@@ -22,3 +22,4 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 - **Privileged database routines:** Only the authenticated profile setup routine is browser-executable; order, payment and delivery routines are service-only behind verified server functions to prevent caller-supplied identity impersonation.
 - **Judge demo:** Public demo entry points never create, reset or enumerate auth users; demo accounts are shared test identities, not evidence of private-user isolation.
 - **Read budgets:** Bound marketplace and courier-history reads and retain recent tracking points; marketplace polling is slower than order polling to reduce repeated discovery traffic.
+- **Money integrity:** Manual typed deposits and deprecated standalone payment endpoints cannot credit funds or charge a payer; verified stored-order payments and settlement events are the only money-changing paths.
