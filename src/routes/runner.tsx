@@ -1,11 +1,13 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Camera, Crosshair, Wallet } from "lucide-react";
+import { Camera, Crosshair, Store } from "lucide-react";
+import AppTabBar from "@/components/AppTabBar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { signOutEverywhere } from "@/lib/use-session";
 import { useMarketplace, saveTraderProfile } from "@/lib/use-marketplace";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useMdekoActions, useMyOrders, useOpenWaves } from "@/lib/use-mdeko";
@@ -170,14 +172,16 @@ function RunnerPage() {
           </Suspense>
         </ClientOnly>
       </div>
-      <header className="absolute inset-x-4 top-4 z-10 flex items-center justify-between gap-2 rounded-xl border bg-background p-3 shadow-lg">
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{me?.name || session.name || "My stall"}</p>
-          <p className="text-xs text-muted-foreground">
-            Trader · {me?.online ? "Available" : "Offline"}
-          </p>
-        </div>
-        <div className="flex flex-col items-center">
+      <header className="absolute inset-x-3 top-3 z-10 mx-auto max-w-lg space-y-2">
+        <AppTabBar signedIn={Boolean(session.userId)} onSignOut={signOutEverywhere} />
+        <div className="flex items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg">
+          <Store className="size-6 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{me?.name || session.name || "My stall"}</p>
+            <p className="text-xs text-muted-foreground">
+              {me?.online ? "Online — buyers can see you" : "Offline — turn on to get orders"}
+            </p>
+          </div>
           <Switch
             aria-label="Available for deliveries"
             checked={me?.online ?? false}
@@ -194,29 +198,17 @@ function RunnerPage() {
               }
             }}
           />
-          <span className="mt-0.5 text-[0.6rem] text-muted-foreground">
-            {me?.online ? "Online" : "Go online"}
-          </span>
+          <Button
+            aria-label="Find my location"
+            size="icon"
+            variant="secondary"
+            className="rounded-full"
+            onClick={locate}
+          >
+            <Crosshair />
+          </Button>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/finance">
-            <Wallet /> Money
-          </Link>
-        </Button>
-        <Button asChild variant="secondary" size="sm">
-          <Link to="/" aria-label="Switch to buyer view">
-            <ArrowLeft className="size-4" /> Buy
-          </Link>
-        </Button>
       </header>
-      <Button
-        aria-label="Recenter location"
-        size="icon"
-        className="absolute right-4 top-24 z-10 rounded-full"
-        onClick={locate}
-      >
-        <Crosshair />
-      </Button>
       <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[72dvh] max-w-lg overflow-y-auto rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]">
         <div className="p-4 space-y-4">
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
