@@ -66,6 +66,17 @@ describe("trader money ledger", () => {
     expect(result.todayEarnings).toBe(100);
     expect(result.weekEarnings).toBe(130);
   });
+  it("records verified MoMo revenue separately from final settlement", () => {
+    const result = summarizeTraderLedger(
+      [{ order_id: "1", payment_id: "momo", net: 95, status: "pending", created_at: now.toISOString() }],
+      payments,
+      now,
+    );
+    expect(result.recordedEarnings).toBe(95);
+    expect(result.momoSales).toBe(95);
+    expect(result.settledEarnings).toBe(0);
+    expect(result.pendingEarnings).toBe(95);
+  });
   it("does not treat an unverified settlement as earnings", () => {
     const result = summarizeTraderLedger(
       [
