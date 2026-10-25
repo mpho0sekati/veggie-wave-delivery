@@ -117,7 +117,7 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
         lastAt: new Date(d.last_at).getTime(),
       })),
     }));
-  }, [query.data, session.userId]);
+  }, [query.data, catalogQuery.data, session.userId]);
   return { session, refresh: query.refetch, error: query.error };
 }
 

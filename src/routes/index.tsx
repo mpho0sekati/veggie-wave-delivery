@@ -107,14 +107,14 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 });
 
 function BuyerPage() {
-  useMarketplace();
+  const buyer = useAppState((s) => s.buyer);
+  useMarketplace(buyer);
   const walletBalance = useAppState((s) => s.wallet.balance);
   const communityCredit = useAppState((s) => s.wallet.stokvel_credit);
   const runners = useAppState((s) => s.runners);
   const request = useAppState((s) => s.request);
   const orders = useAppState((s) => s.orders);
   const customItems = useAppState((s) => s.customItems);
-  const buyer = useAppState((s) => s.buyer);
 
   // Cart persists in localStorage so signing in never wipes the buyer's basket.
   const [qty, setQty] = useState<Record<string, number>>({});
