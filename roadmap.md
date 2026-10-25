@@ -2,6 +2,7 @@
 
 ## Done
 
+- Fixed missing browser connection settings at startup; compiler regression tests and signed-in buyer/money opening checks pass with no runtime errors.
 - Fix typecheck build errors (auth.tsx pin field, runner.tsx missing userId).
 
 - Buyer/seller shared profiles, stock, acceptance, cash delivery and persisted status verified across separate accounts.
