@@ -20,6 +20,7 @@ type Props = {
   buyerLocated?: boolean;
   delivered?: boolean;
   recenterTrigger?: number;
+  recenterPosition?: { lat: number; lng: number };
   /** Live courier position for delivery tracking */
   courierPosition?: TrackedPosition | null;
   /** GPS stream disconnect state */
@@ -97,6 +98,7 @@ export default function VeggieMap({
   buyerLocated = true,
   delivered = false,
   recenterTrigger,
+  recenterPosition,
   courierPosition,
   isGpsDisconnected = false,
   routeLoading = false,
@@ -124,6 +126,8 @@ export default function VeggieMap({
   const fittedRouteSigRef = useRef<string | null>(null);
   const lastBuyerRef = useRef(buyer);
   lastBuyerRef.current = buyer;
+  const recenterPositionRef = useRef(recenterPosition);
+  recenterPositionRef.current = recenterPosition;
   const buyerCenteredRef = useRef(false);
 
   /** Fit bounds while flagging the move as programmatic so we don't count it as user intent. */
@@ -210,7 +214,7 @@ export default function VeggieMap({
     runnersFittedRef.current = false;
     courierFittedRef.current = false;
     fittedRouteSigRef.current = null;
-    const position = lastBuyerRef.current;
+    const position = recenterPositionRef.current ?? lastBuyerRef.current;
     map.setView([position.lat, position.lng], 15, { animate: true });
   }, [recenterTrigger]);
 
