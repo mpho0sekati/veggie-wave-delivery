@@ -1,11 +1,13 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Camera, Crosshair, Wallet } from "lucide-react";
+import { Camera, Crosshair, Store } from "lucide-react";
+import AppTabBar from "@/components/AppTabBar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { signOutEverywhere } from "@/lib/use-session";
 import { useMarketplace, saveTraderProfile } from "@/lib/use-marketplace";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useMdekoActions, useMyOrders, useOpenWaves } from "@/lib/use-mdeko";
