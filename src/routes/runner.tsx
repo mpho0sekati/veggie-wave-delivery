@@ -83,6 +83,13 @@ function RunnerPage() {
     [session.userId, session.role, refresh],
   );
   const { locate, message } = useGeolocation(onPosition);
+  // While online, refresh the trader's shared location every minute so buyers keep seeing them.
+  const isOnline = Boolean(me?.online);
+  useEffect(() => {
+    if (!isOnline) return;
+    const timer = setInterval(() => locate(), 60_000);
+    return () => clearInterval(timer);
+  }, [isOnline, locate]);
   const { currentPosition } = useReportCourierPosition(
     active?.id ?? null,
     active?.status === "delivering",
