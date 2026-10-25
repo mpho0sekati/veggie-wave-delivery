@@ -19,6 +19,8 @@
 
 ## Active / Backlog
 
+- Add delivered map pin and once-per-order arrival and confirmation/payment celebrations; verify transitions and buyer flow.
+
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
 - Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
 
