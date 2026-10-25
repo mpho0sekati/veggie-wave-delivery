@@ -13,20 +13,11 @@ import {
   Clock,
   ChevronUp,
   Loader2,
-  LogOut,
-  Menu,
   WifiOff,
   CloudUpload,
-  Wand2,
   MessageCircle,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import AppTabBar from "@/components/AppTabBar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -62,7 +53,6 @@ import { useMdekoActions, useMyOrders, useMyWave } from "@/lib/use-mdeko";
 import { useCourierPositions } from "@/lib/use-courier-tracking";
 import { useWeatherWarning } from "@/lib/use-weather";
 import WavePayDialog from "@/components/WavePayDialog";
-import BrandMark from "@/components/BrandMark";
 import OrderStepper from "@/components/OrderStepper";
 import DescribeOrder from "@/components/DescribeOrder";
 import ProducePicker from "@/components/ProducePicker";
@@ -499,7 +489,7 @@ function BuyerPage() {
       </header>
 
       {/* Floating map controls */}
-      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+4.75rem)] right-4 z-10 flex flex-col gap-2">
         <Button
           size="icon"
           variant="secondary"
