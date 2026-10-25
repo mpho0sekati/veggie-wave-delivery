@@ -858,7 +858,9 @@ function BuyerPage() {
                       </p>
                     )}
                     <p className="font-display text-xl font-bold">
-                      {request.status === "waving" ? "Price confirmed when accepted" : formatRand(request.total)}
+                      {request.status === "waving"
+                        ? "Price confirmed when accepted"
+                        : formatRand(request.total)}
                     </p>
 
                     {timedOut && (
