@@ -18,9 +18,13 @@ export default function InstallMdeko() {
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)");
     const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
-    const update = () => setInstalled(standalone.matches || navigatorWithStandalone.standalone === true);
+    const update = () =>
+      setInstalled(standalone.matches || navigatorWithStandalone.standalone === true);
     update();
-    setIos(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+    setIos(
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1),
+    );
     const available = (event: Event) => {
       event.preventDefault();
       setPrompt(event as InstallPrompt);
@@ -80,9 +84,26 @@ export default function InstallMdeko() {
           <DialogTitle>Install Mdeko</DialogTitle>
           <DialogDescription>Keep Mdeko on your home screen.</DialogDescription>
           <ol className="list-decimal space-y-3 pl-5 text-sm">
-            <li>Open veggie-wave-delivery.lovable.app in {ios ? "Safari" : "Chrome or your phone’s browser"}.</li>
-            <li>{ios ? <span>Tap <Share className="inline size-4" aria-hidden /> Share, then <strong>Add to Home Screen</strong>.</span> : <span>Open the browser menu, then tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</span>}</li>
-            <li>Tap <strong>{ios ? "Add" : "Install or Add"}</strong>.</li>
+            <li>
+              Open veggie-wave-delivery.lovable.app in{" "}
+              {ios ? "Safari" : "Chrome or your phone’s browser"}.
+            </li>
+            <li>
+              {ios ? (
+                <span>
+                  Tap <Share className="inline size-4" aria-hidden /> Share, then{" "}
+                  <strong>Add to Home Screen</strong>.
+                </span>
+              ) : (
+                <span>
+                  Open the browser menu, then tap <strong>Install app</strong> or{" "}
+                  <strong>Add to Home screen</strong>.
+                </span>
+              )}
+            </li>
+            <li>
+              Tap <strong>{ios ? "Add" : "Install or Add"}</strong>.
+            </li>
           </ol>
           <Button onClick={() => setOpen(false)}>Got it</Button>
         </DialogContent>
