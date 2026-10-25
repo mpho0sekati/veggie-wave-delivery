@@ -3,6 +3,8 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hand,
+  Salad,
+  Bike,
   ArrowLeft,
   Star,
   Store,

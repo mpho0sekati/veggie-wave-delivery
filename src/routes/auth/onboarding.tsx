@@ -1,3 +1,4 @@
+import { Hand, ShoppingCart } from "lucide-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
