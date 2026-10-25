@@ -134,10 +134,13 @@ export async function requestToPay(args: {
       }),
     });
 
-  let res = await send(await accessToken(cfg));
+  let res = await withBackoff(() => send(tokenOrThrow()));
+  async function tokenOrThrow() {
+    return accessToken(cfg);
+  }
   if (res.status === 401) {
     tokenCache = null; // expired token: mint a fresh one and retry once
-    res = await send(await accessToken(cfg));
+    res = await withBackoff(async () => send(await accessToken(cfg)));
   }
 
   // 202 Accepted is the happy path; 409 means this reference is already in flight.
