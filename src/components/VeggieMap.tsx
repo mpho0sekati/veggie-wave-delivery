@@ -8,6 +8,7 @@ import { animateMarker } from "@/lib/marker-animator";
 import RouteLoadingBanner from "@/components/RouteLoadingBanner";
 import { createLogger } from "@/lib/logger";
 import { Navigation2, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const mapLogger = createLogger("VeggieMap");
 
@@ -16,6 +17,7 @@ type Props = {
   activeRunnerId?: string | null;
   waving?: boolean;
   buyerPosition?: { lat: number; lng: number };
+  buyerLocated?: boolean;
   recenterTrigger?: number;
   /** Live courier position for delivery tracking */
   courierPosition?: TrackedPosition | null;
@@ -87,6 +89,7 @@ export default function VeggieMap({
   activeRunnerId,
   waving,
   buyerPosition,
+  buyerLocated = true,
   recenterTrigger,
   courierPosition,
   isGpsDisconnected = false,
@@ -113,6 +116,9 @@ export default function VeggieMap({
   const runnersFittedRef = useRef(false);
   const courierFittedRef = useRef(false);
   const fittedRouteSigRef = useRef<string | null>(null);
+  const lastBuyerRef = useRef(buyer);
+  lastBuyerRef.current = buyer;
+  const buyerCenteredRef = useRef(false);
 
   /** Fit bounds while flagging the move as programmatic so we don't count it as user intent. */
   const fitSmooth = (map: L.Map, bounds: L.LatLngBounds) => {
@@ -193,13 +199,24 @@ export default function VeggieMap({
   // Explicit recenter (header crosshair) hands camera control back to the app.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || recenterTrigger === 0) return;
+    if (!map || !recenterTrigger) return;
     userMovedRef.current = false;
     runnersFittedRef.current = false;
     courierFittedRef.current = false;
     fittedRouteSigRef.current = null;
-    map.setView([buyer.lat, buyer.lng], 15, { animate: true });
-  }, [buyer.lat, buyer.lng, recenterTrigger]);
+    const position = lastBuyerRef.current;
+    map.setView([position.lat, position.lng], 15, { animate: true });
+  }, [recenterTrigger]);
+
+  // A first GPS fix moves off the default pin; later fixes never take the camera back.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !buyerLocated || buyerCenteredRef.current || userMovedRef.current) return;
+    buyerCenteredRef.current = true;
+    programmaticMoveRef.current = true;
+    map.setView([buyer.lat, buyer.lng], 15, { animate: false });
+    programmaticMoveRef.current = false;
+  }, [buyer.lat, buyer.lng, buyerLocated]);
 
   // Courier tracking: one-time fit on arrival, then only nudge when someone leaves the view.
   useEffect(() => {
@@ -398,7 +415,9 @@ export default function VeggieMap({
 
       {/* Follow-the-courier toggle — Uber keeps this single control on the map */}
       {courierPosition && (
-        <button
+        <Button
+          size="icon"
+          variant="secondary"
           onClick={() => setFollowMode(!followMode)}
           className={`absolute top-20 left-4 z-500 flex size-10 items-center justify-center rounded-full border bg-background/95 shadow-lg backdrop-blur-sm transition-colors hover:bg-background ${
             followMode ? "ring-2 ring-primary" : ""
@@ -406,7 +425,7 @@ export default function VeggieMap({
           aria-label={followMode ? "Stop following courier" : "Follow courier"}
         >
           <Navigation2 className={`size-5 ${followMode ? "text-primary" : ""}`} />
-        </button>
+        </Button>
       )}
 
       {/* Compass fallback while the seller has no routed path yet */}
