@@ -35,9 +35,10 @@ export function watchStaleServerFunctions(
     const response = await original(...args);
     const url = typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : args[0].url;
     if (response.status >= 500 && url.includes("/_serverFn/")) {
-      const text = await response.clone().text().catch(() => "");
+      // During a preview restart the server may answer stale calls with a bare 500
+      // (no "Invalid server function ID" text), so any 5xx triggers one guarded reload.
       const last = Number(storage.getItem(key) ?? 0);
-      if (text.includes("Invalid server function ID") && Date.now() - last > 30_000) {
+      if (Date.now() - last > 30_000) {
         storage.setItem(key, String(Date.now()));
         reload();
       }
