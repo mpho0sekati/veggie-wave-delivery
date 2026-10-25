@@ -121,6 +121,17 @@ export type RecentOrder = {
   role: "buyer" | "trader";
 };
 
+export type TraderDashboard = {
+  todayEarnings: number;
+  weekEarnings: number;
+  settledEarnings: number;
+  pendingEarnings: number;
+  momoSales: number;
+  cashSales: number;
+  openOrders: number;
+  settledCount: number;
+};
+
 export type MoneyProfile = {
   totalOrders: number;
   totalTraded: number;
@@ -131,6 +142,7 @@ export type MoneyProfile = {
   savingsJar: SavingsJar;
   recentOrders: RecentOrder[];
   role: "buyer" | "trader" | null;
+  trader: TraderDashboard | null;
 };
 
 export const getMoneyProfile = createServerFn({ method: "POST" })
@@ -184,8 +196,58 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
     // 5% commission â€” makes the business model visible on screen
     const totalCommission = totalTraded * 0.05;
 
+    const role = (profileResult.data?.role as "buyer" | "trader" | null) ?? null;
+
+    // Trader ledger: settlements are written only by verified MoMo callbacks/status
+    // checks or buyer-confirmed cash, so this is the real earnings record.
+    let trader: TraderDashboard | null = null;
+    let payments: { status: string }[] = paymentsResult.data ?? [];
+    if (role === "trader") {
+      const [settleRes, openRes] = await Promise.all([
+        db
+          .from("settlements")
+          .select("order_id, net, status, created_at, payment_id")
+          .eq("trader_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        db
+          .from("wave_orders")
+          .select("id", { count: "exact", head: true })
+          .eq("trader_id", userId)
+          .is("cancelled_at", null)
+          .in("status", ["accepted", "preparing", "ready", "delivering", "delivered"]),
+      ]);
+      const settlements = settleRes.data ?? [];
+      const paymentIds = settlements.map((s) => s.payment_id);
+      const { data: payRows } = paymentIds.length
+        ? await db.from("payments").select("id, provider, status").in("id", paymentIds)
+        : { data: [] as { id: string; provider: string; status: string }[] };
+      const providerById = new Map((payRows ?? []).map((p) => [p.id, p.provider]));
+      // Trader reliability = payments on my sales, not my purchases.
+      const { data: salePayments } = await db
+        .from("payments")
+        .select("status, wave_orders!inner(trader_id)")
+        .eq("wave_orders.trader_id", userId)
+        .limit(100);
+      if (salePayments?.length) payments = salePayments;
+
+      const now = new Date();
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const startWeek = new Date(now.getTime() - 7 * 864e5).toISOString();
+      const sum = (rows: typeof settlements) => rows.reduce((t, s) => t + Number(s.net), 0);
+      trader = {
+        todayEarnings: sum(settlements.filter((s) => s.created_at >= startToday)),
+        weekEarnings: sum(settlements.filter((s) => s.created_at >= startWeek)),
+        settledEarnings: sum(settlements.filter((s) => s.status === "settled")),
+        pendingEarnings: sum(settlements.filter((s) => s.status === "pending")),
+        momoSales: sum(settlements.filter((s) => providerById.get(s.payment_id) !== "cash")),
+        cashSales: sum(settlements.filter((s) => providerById.get(s.payment_id) === "cash")),
+        openOrders: openRes.count ?? 0,
+        settledCount: settlements.length,
+      };
+    }
+
     // MoMo success rate
-    const payments = paymentsResult.data ?? [];
     const totalPayments = payments.length;
     const successfulPayments = payments.filter((p) => p.status === "successful").length;
     const momoSuccessRate = totalPayments > 0 ? successfulPayments / totalPayments : 1;
@@ -196,7 +258,6 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
 
     // Member since
     const memberSince = profileResult.data?.created_at ?? new Date().toISOString();
-    const role = (profileResult.data?.role as "buyer" | "trader" | null) ?? null;
 
     // Recent 5 orders for the money story
     const recentOrders: RecentOrder[] = allOrders.slice(0, 5).map((o) => ({
@@ -244,6 +305,7 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
       savingsJar,
       recentOrders,
       role,
+      trader,
     };
   });
 

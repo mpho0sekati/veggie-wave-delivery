@@ -49,7 +49,7 @@ describe("MoMo copy-paste cleanup", () => {
       apiKey: key,
       targetEnvironment: "mtnsouthafrica",
       currency: "ZAR",
-      callbackUrl: undefined,
+      callbackUrl: "https://veggie-wave-delivery.lovable.app/api/public/momo-callback",
     });
   });
 

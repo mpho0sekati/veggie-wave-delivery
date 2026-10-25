@@ -667,6 +667,58 @@ function FinancePage() {
                 ))}
               </ol>
             </section>
+            {profile.trader && (
+              <section className="border-b py-6" aria-labelledby="stall-title">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 id="stall-title" className="text-lg font-semibold">
+                    My stall earnings
+                  </h2>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/runner">
+                      {profile.trader.openOrders} open{" "}
+                      {profile.trader.openOrders === 1 ? "order" : "orders"}
+                      <ChevronRight />
+                    </Link>
+                  </Button>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2">
+                  {[
+                    { label: "Today", value: profile.trader.todayEarnings },
+                    { label: "Last 7 days", value: profile.trader.weekEarnings },
+                    { label: "Paid by MoMo", value: profile.trader.momoSales },
+                    { label: "Paid in cash", value: profile.trader.cashSales },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-lg border bg-card p-3">
+                      <dt className="text-xs text-muted-foreground">{s.label}</dt>
+                      <dd className="mt-1 text-lg font-semibold tabular-nums">
+                        {formatRand(s.value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {profile.trader.settledCount} paid{" "}
+                  {profile.trader.settledCount === 1 ? "sale" : "sales"} recorded · only confirmed
+                  MoMo or cash payments count.
+                </p>
+                {score && (
+                  <button
+                    type="button"
+                    onClick={() => setPanel("score")}
+                    className="mt-4 flex w-full items-center gap-3 rounded-lg border bg-secondary/50 p-3 text-left"
+                  >
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground tabular-nums">
+                      {score.total}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{score.tier}</span>
+                      <span className="block text-xs text-muted-foreground">{score.tip}</span>
+                    </span>
+                    <ChevronRight className="size-5 text-muted-foreground" />
+                  </button>
+                )}
+              </section>
+            )}
             <SavingsSection role={profile.role ?? session.role} t={t} />
             <section className="border-b py-6" aria-labelledby="activity-title">
               <div className="flex items-center justify-between gap-2">

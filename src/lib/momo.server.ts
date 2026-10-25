@@ -57,8 +57,23 @@ export function readMomoConfig(): MomoConfig {
     apiKey,
     targetEnvironment,
     currency,
-    callbackUrl: process.env["MOMO_CALLBACK_URL"]?.trim() || undefined,
+    callbackUrl: resolveCallbackUrl(process.env["MOMO_CALLBACK_URL"]),
   };
+}
+
+export const DEFAULT_MOMO_CALLBACK_URL =
+  "https://veggie-wave-delivery.lovable.app/api/public/momo-callback";
+
+/** Use a configured https callback; otherwise the published callback route. */
+export function resolveCallbackUrl(raw: string | undefined): string {
+  const value = raw?.trim() ?? "";
+  try {
+    const url = new URL(value);
+    if (url.protocol === "https:") return url.toString();
+  } catch {
+    /* fall through */
+  }
+  return DEFAULT_MOMO_CALLBACK_URL;
 }
 
 /** South African MSISDN, no plus sign: 27 + 9 digits. */
