@@ -38,6 +38,8 @@ export function useFinanceProfile() {
     staleTime: 15_000,
     refetchInterval: 15_000,
     refetchIntervalInBackground: false,
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
   });
 
   const score: ScoreResult | null = profileQuery.data
@@ -75,7 +77,7 @@ export function useSmartTip(profile: MoneyProfile | null) {
     : null;
 
   return useQuery<string>({
-    queryKey: ["finance", "smart-tip", session.userId],
+    queryKey: ["finance", "smart-tip", session.userId, tipInput],
     queryFn: () => {
       if (!tipInput) throw new Error("Money profile is not ready.");
       return tipFn({ data: tipInput });

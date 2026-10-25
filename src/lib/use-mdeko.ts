@@ -66,6 +66,7 @@ function useRefreshLive() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["mdeko"] });
+    void queryClient.invalidateQueries({ queryKey: ["finance"] });
   };
 }
 
@@ -114,7 +115,11 @@ export function useMdekoActions() {
     acceptWave: acceptWaveMutation,
     advanceOrder: advanceOrderMutation,
     startPayment: startPaymentMutation,
-    verifyPayment: (orderId: string) => verify({ data: { orderId } }),
+    verifyPayment: async (orderId: string) => {
+      const payment = await verify({ data: { orderId } });
+      if (payment?.status === "successful" || payment?.status === "failed") refresh();
+      return payment;
+    },
     chooseCash: useMutation({
       mutationFn: (orderId: string) => cash({ data: { orderId } }),
       onSuccess: refresh,

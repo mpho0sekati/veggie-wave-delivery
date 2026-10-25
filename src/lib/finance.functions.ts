@@ -177,7 +177,13 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
           .limit(50),
 
         // Payments: MoMo success rate
-        context.supabase.from("payments").select("status").eq("buyer_id", userId).limit(50),
+        context.supabase
+          .from("payments")
+          .select("status")
+          .eq("buyer_id", userId)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(50),
 
         // Profile: member since date
         context.supabase.from("profiles").select("created_at").eq("id", userId).maybeSingle(),
@@ -261,6 +267,8 @@ export const getMoneyProfile = createServerFn({ method: "POST" })
         .from("payments")
         .select("status, wave_orders!inner(trader_id)")
         .eq("wave_orders.trader_id", userId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(100);
       if (saleError) throw new Error("Could not load your sale payments.");
       payments = salePayments ?? [];
