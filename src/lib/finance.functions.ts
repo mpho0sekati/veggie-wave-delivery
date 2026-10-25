@@ -121,6 +121,17 @@ export type RecentOrder = {
   role: "buyer" | "trader";
 };
 
+export type TraderDashboard = {
+  todayEarnings: number;
+  weekEarnings: number;
+  settledEarnings: number;
+  pendingEarnings: number;
+  momoSales: number;
+  cashSales: number;
+  openOrders: number;
+  settledCount: number;
+};
+
 export type MoneyProfile = {
   totalOrders: number;
   totalTraded: number;
@@ -131,6 +142,7 @@ export type MoneyProfile = {
   savingsJar: SavingsJar;
   recentOrders: RecentOrder[];
   role: "buyer" | "trader" | null;
+  trader: TraderDashboard | null;
 };
 
 export const getMoneyProfile = createServerFn({ method: "POST" })
