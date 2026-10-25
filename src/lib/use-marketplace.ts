@@ -5,38 +5,83 @@ import { updateState } from "./veggie-store";
 import { useSession } from "./use-session";
 import type { Runner } from "./veggie-data";
 
-export function useMarketplace() {
+/** Discovery radius box: a little wider than the 5 km suitability limit. */
+export const DISCOVERY_RADIUS_KM = 6;
+export const MAX_DISCOVERY_TRADERS = 100;
+
+/** Round the origin to ~1 km cells so small GPS jitter reuses the cached query. */
+export function discoveryBox(origin: { lat: number; lng: number }, radiusKm = DISCOVERY_RADIUS_KM) {
+  const lat = Math.round(origin.lat * 100) / 100;
+  const lng = Math.round(origin.lng * 100) / 100;
+  const dLat = radiusKm / 111;
+  const dLng = radiusKm / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+  return { lat, lng, minLat: lat - dLat, maxLat: lat + dLat, minLng: lng - dLng, maxLng: lng + dLng };
+}
+
+export function useMarketplace(origin?: { lat: number; lng: number; located: boolean }) {
   const session = useSession();
+  const box = origin?.located ? discoveryBox(origin) : null;
+  // Catalog of custom items changes rarely: cache for 30 minutes instead of polling.
+  const catalogQuery = useQuery({
+    queryKey: ["catalog-custom"],
+    enabled: Boolean(session.userId),
+    staleTime: 30 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_items")
+        .select("*")
+        .like("id", "custom-%")
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const query = useQuery({
-    queryKey: ["marketplace", session.userId],
+    queryKey: ["marketplace", session.userId, box?.lat, box?.lng],
     enabled: Boolean(session.userId),
     refetchInterval: 15000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
-      const [profiles, stock, catalog, demand] = await Promise.all([
+      let profilesQuery = supabase
+        .from("profiles")
+        .select("id,name,avatar,online,lat,lng,rating")
+        .eq("online", true);
+      if (box) {
+        profilesQuery = profilesQuery
+          .gte("lat", box.minLat)
+          .lte("lat", box.maxLat)
+          .gte("lng", box.minLng)
+          .lte("lng", box.maxLng);
+      }
+      const [nearby, own, demand] = await Promise.all([
+        profilesQuery.limit(MAX_DISCOVERY_TRADERS),
         supabase
           .from("profiles")
           .select("id,name,avatar,online,lat,lng,rating")
-          .or(`online.eq.true,id.eq.${session.userId}`),
-        supabase
-          .from("stock")
-          .select("*")
-          .or(`available.eq.true,trader_id.eq.${session.userId}`)
-          .limit(2000),
-        supabase.from("catalog_items").select("*").like("id", "custom-%").limit(200),
+          .eq("id", session.userId!)
+          .limit(1),
         supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50),
       ]);
-      for (const result of [profiles, stock, catalog, demand]) if (result.error) throw result.error;
-      return {
-        profiles: profiles.data ?? [],
-        stock: stock.data ?? [],
-        catalog: catalog.data ?? [],
-        demand: demand.data ?? [],
-      };
+      for (const result of [nearby, own, demand]) if (result.error) throw result.error;
+      const byId = new Map<string, NonNullable<typeof nearby.data>[number]>();
+      for (const p of [...(nearby.data ?? []), ...(own.data ?? [])]) byId.set(p.id, p);
+      const profiles = [...byId.values()];
+      // Only stock for traders actually in view, not the whole country.
+      const stock = await supabase
+        .from("stock")
+        .select("*")
+        .in(
+          "trader_id",
+          profiles.map((p) => p.id),
+        )
+        .limit(2000);
+      if (stock.error) throw stock.error;
+      return { profiles, stock: stock.data ?? [], demand: demand.data ?? [] };
     },
   });
   useEffect(() => {
     if (!query.data) return;
-    const data = query.data;
+    const data = { ...query.data, catalog: catalogQuery.data ?? [] };
     const runners: Runner[] = data.profiles
       .filter((p) => p.lat != null && p.lng != null)
       .map((p) => ({
