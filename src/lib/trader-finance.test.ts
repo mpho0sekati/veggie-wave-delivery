@@ -68,7 +68,15 @@ describe("trader money ledger", () => {
   });
   it("records verified MoMo revenue separately from final settlement", () => {
     const result = summarizeTraderLedger(
-      [{ order_id: "1", payment_id: "momo", net: 95, status: "pending", created_at: now.toISOString() }],
+      [
+        {
+          order_id: "1",
+          payment_id: "momo",
+          net: 95,
+          status: "pending",
+          created_at: now.toISOString(),
+        },
+      ],
       payments,
       now,
     );
