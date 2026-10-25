@@ -1,5 +1,5 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Crosshair, Store } from "lucide-react";
 import AppTabBar from "@/components/AppTabBar";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import { useGeolocation } from "@/lib/use-geolocation";
 import { useMdekoActions, useMyOrders, useOpenWaves } from "@/lib/use-mdeko";
 import { useAppState } from "@/lib/veggie-store";
 import { waveView } from "@/lib/wave-view";
-import { catalogWith, distanceKm, formatRand } from "@/lib/veggie-data";
+import { catalogWith, formatRand } from "@/lib/veggie-data";
 import { useReportCourierPosition } from "@/lib/use-courier-tracking";
 import { useRoute } from "@/lib/use-route";
 import { useWaveAlert } from "@/lib/use-wave-alert";
