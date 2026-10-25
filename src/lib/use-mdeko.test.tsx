@@ -9,13 +9,24 @@ vi.mock("@tanstack/react-query", () => ({
   useMutation: (options: unknown) => options,
 }));
 vi.mock("./mdeko.functions", () => ({
-  acceptWave: vi.fn(), chooseCash: vi.fn(), confirmCash: vi.fn(), cancelWave: vi.fn(),
-  advanceOrder: vi.fn(), createWave: vi.fn(), getMyWave: vi.fn(), listMyOrders: vi.fn(),
-  listMySettlements: vi.fn(), listOpenWaves: vi.fn(), startMomoPayment: vi.fn(),
+  acceptWave: vi.fn(),
+  chooseCash: vi.fn(),
+  confirmCash: vi.fn(),
+  cancelWave: vi.fn(),
+  advanceOrder: vi.fn(),
+  createWave: vi.fn(),
+  getMyWave: vi.fn(),
+  listMyOrders: vi.fn(),
+  listMySettlements: vi.fn(),
+  listOpenWaves: vi.fn(),
+  startMomoPayment: vi.fn(),
   verifyMomoPayment: mocks.verify,
 }));
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 describe("verified payment refresh", () => {
   it("refreshes My Money after a verified successful payment", async () => {

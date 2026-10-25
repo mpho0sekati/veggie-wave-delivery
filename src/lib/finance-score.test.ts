@@ -18,7 +18,9 @@ describe("score follows verified sale activity", () => {
       [{ id: "payment", provider: "mtn-momo", status: "pending" }],
       now,
     );
-    expect(computeCommunityScore(ledger.settledCount, 0, ledger.hasRecentSale, 0, 500).total).toBe(0);
+    expect(computeCommunityScore(ledger.settledCount, 0, ledger.hasRecentSale, 0, 500).total).toBe(
+      0,
+    );
   });
 
   it("verified MoMo payment updates sale, payment and activity points", () => {
