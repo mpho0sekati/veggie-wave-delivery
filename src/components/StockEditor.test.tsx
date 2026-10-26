@@ -37,7 +37,10 @@ describe("stock saving", () => {
         customItems={[]}
       />,
     );
-    expect(screen.getByLabelText("Your price for Carrots")).toHaveValue("31.75");
-    expect(screen.getByLabelText("Quantity for Carrots")).toHaveValue(0);
+    const price = screen.getByLabelText("Your price for Carrots");
+    const quantity = screen.getByLabelText("Quantity for Carrots");
+    if (!(price instanceof HTMLInputElement) || !(quantity instanceof HTMLInputElement)) throw new Error("Missing stock inputs");
+    expect(price.value).toBe("31.75");
+    expect(quantity.valueAsNumber).toBe(0);
   });
 });
