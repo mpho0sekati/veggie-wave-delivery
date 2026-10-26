@@ -2,6 +2,8 @@
 
 ## Done
 
+- FNB options on My Money: eWallet guidance beside earnings/savings explicitly says not connected; First Business Zero and funding links open official FNB pages; lender record downloads locally without bank submission. Signed-in account's six-order full record downloaded successfully; desktop and 320/393px phone dialogs checked with no runtime errors. 11 targeted tests, changed-file lint and build pass; repository-wide lint still has unrelated existing failures. Live FNB payouts and credit submissions are not integrated.
+
 - Mobile layout: all navigation icons fit equal-width tracks; buyer/seller drawers reserve header clearance, completed orders use content height, and area/dialog controls wrap within phone screens. Signed-in buyer basket and area switching checked at 320×720, 393×852, 393×600 and desktop; existing test trader and My Money checked on phones. No horizontal overflow or runtime errors; 14 targeted tests pass and build OK.
 
 - Learn-by-doing: buyer and trader icon steps follow existing basket, stock, online and delivery states, with small live feedback and no popups. Signed-in produce selection/removal and saved trader readiness checked at 1280×1800, 390×844 and 625×543; navigation stays visible, 16 targeted tests pass, lint clean and build OK.
@@ -36,7 +38,7 @@
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
 - Large-scale capacity remains unverified; needs an isolated load-test environment, regional pagination and courier retention before claiming a user capacity.
 
-- Full financial-record service verification is blocked by the existing service returning unavailable; account summary is shown instead.
+- Full financial-record service now reads successfully for the requesting account; account-summary fallback remains for service failures.
 - Live MoMo payment and settlement verification waits for a payer-approved test transaction.
 - Verify remaining finance screens against real MoMo settlements.
 - Order status updates now poll every four seconds across phones.

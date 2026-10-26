@@ -4,6 +4,8 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 
 ## Key Directives
 
+- **FNB options:** Keep FNB account/funding links and eWallet guidance presentation-only; lender exports download existing authenticated records locally and must never imply a partnership, payout, loan approval or automatic bank submission.
+
 - **Preview recovery:** Reload the development page only after a lost preview connection reconnects; this discards stale server-function references after restarts without retrying mutations or affecting published sessions.
 
 - **Learn-by-doing presentation:** Derive shared read-only journey strips from existing basket, saved stock, online and order states; never use them to change permissions or marketplace behavior, so guidance cannot create a second source of truth.
