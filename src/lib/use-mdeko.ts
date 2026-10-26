@@ -68,6 +68,7 @@ function useRefreshLive() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["mdeko"] });
     void queryClient.invalidateQueries({ queryKey: ["finance"] });
+    void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
   };
 }
 

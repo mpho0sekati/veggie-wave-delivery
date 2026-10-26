@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { updateState } from "./veggie-store";
 import { useSession } from "./use-session";
@@ -27,6 +27,7 @@ export function discoveryBox(origin: { lat: number; lng: number }, radiusKm = DI
 
 export function useMarketplace(origin?: { lat: number; lng: number; located: boolean }) {
   const session = useSession();
+  const queryClient = useQueryClient();
   const box = origin?.located ? discoveryBox(origin) : null;
   // Catalog of custom items changes rarely: cache for 30 minutes instead of polling.
   const catalogQuery = useQuery({
@@ -115,6 +116,9 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
     updateState((prev) => ({
       ...prev,
       runners,
+      ...(prev.userId !== session.userId
+        ? { request: null, orders: [], wallet: { balance: 0, pin_hash: "", stokvel_credit: 0 } }
+        : {}),
       userId: session.userId,
       customItems: data.catalog.map((c) => ({
         id: c.id,
@@ -135,9 +139,20 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
   }, [query.data, catalogQuery.data, session.userId]);
   return {
     session,
-    refresh: query.refetch,
+    refresh: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["mdeko"] });
+      return query.refetch();
+    },
     error: query.error,
     ownProfile: query.data?.profiles.find((profile) => profile.id === session.userId) ?? null,
+    ownStock: (query.data?.stock ?? [])
+      .filter((line) => line.trader_id === session.userId)
+      .map((line) => ({
+        itemId: line.item_id,
+        price: Number(line.price),
+        quantity: line.quantity,
+        available: line.available,
+      })),
   };
 }
 
