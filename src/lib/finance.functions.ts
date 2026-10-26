@@ -392,7 +392,7 @@ export const getSmartTip = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<string> => {
     const FALLBACK =
-      "Keep trading regularly â€” every order builds your financial history on Mdeko. ðŸ’š";
+      "Keep trading regularly — every order builds your financial history on Mdeko.";
 
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) return FALLBACK;
@@ -422,7 +422,7 @@ ${summary}
 
 Give ONE short, practical tip in plain English. Maximum 2 sentences.
 Focus on what they can do THIS WEEK to earn more, save more, or trade smarter.
-Write like you're talking to a friend â€” not a banker. No jargon. No emojis except one at the end.`;
+Write like you're talking to a friend — not a banker. No jargon. No emojis except one at the end.`;
 
     try {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -638,10 +638,12 @@ export const exportFinancialRecord = createServerFn({ method: "POST" })
         .order("created_at", { ascending: false })
         .limit(100),
       context.supabase.from("profiles").select("name, created_at").eq("id", userId).maybeSingle(),
-      context.supabase.from("payments").select("status").eq("buyer_id", userId).limit(50),
+      context.supabase.from("payments").select("status, wave_orders!inner(buyer_id,trader_id)").or(`buyer_id.eq.${userId},trader_id.eq.${userId}`, { referencedTable: "wave_orders" }).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100),
       context.supabase.from("savings_pots").select("balance").eq("user_id", userId).maybeSingle(),
     ]);
 
+    if (ordersResult.error || profileResult.error || paymentsResult.error || savingsResult.error)
+      throw new Error("Could not load your financial record. Please try again.");
     const orders = ordersResult.data ?? [];
     const payments = paymentsResult.data ?? [];
     const totalTraded = orders.reduce((s, o) => s + Number(o.amount), 0);

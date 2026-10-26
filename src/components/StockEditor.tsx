@@ -13,7 +13,7 @@ type Props = {
   stock: (StockLine & { available?: boolean })[];
   customItems: CustomItem[];
   highlightItemId?: string | null;
-  onSaved?: () => void;
+  onSaved?: () => void | Promise<unknown>;
   onSavingChange?: (saving: boolean) => void;
 };
 
@@ -57,7 +57,7 @@ const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor(
       await saveTraderStock(runnerId, id, next.price, next.available, next.quantity);
       latest.current = [...latest.current.filter((line) => line.itemId !== id), next];
       failed.current = false;
-      onSaved?.();
+      await onSaved?.();
     });
     pending.current = task.catch(() => {
       failed.current = true;

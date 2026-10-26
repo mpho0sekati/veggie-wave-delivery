@@ -69,6 +69,15 @@ function RunnerPage() {
   const [panel, setPanel] = useState<"orders" | "stock">("stock");
   const stockEditor = useRef<StockEditorHandle>(null);
   const [stockSaving, setStockSaving] = useState(false);
+  const initialViewSet = useRef(false);
+  useEffect(() => {
+    if (!ownProfile || initialViewSet.current) return;
+    initialViewSet.current = true;
+    if (ownProfile.online) {
+      setPanel("orders");
+      setDrawerOpen(Boolean(activeId));
+    }
+  }, [ownProfile, activeId]);
   const recenterRequested = useRef(false);
   const location = sellerPosition(position, ownProfile);
   const displayName = name ?? ownProfile?.name ?? session.name;
@@ -566,7 +575,7 @@ function RunnerPage() {
                   runnerId={session.userId}
                   stock={ownStock}
                   customItems={state.customItems}
-                  onSaved={() => void refresh()}
+                onSaved={refresh}
                   onSavingChange={setStockSaving}
                 />
               )}
