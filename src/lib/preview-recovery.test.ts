@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  watchPreviewConnection,
-  watchStaleServerFunctions,
-} from "./preview-recovery";
+import { watchPreviewConnection, watchStaleServerFunctions } from "./preview-recovery";
 
 function connectionFixture() {
   const listeners = new Map<string, Set<() => void>>();
@@ -68,10 +65,7 @@ describe("stale server function reloads", () => {
   }
 
   function stubFetch(status: number) {
-    vi.stubGlobal(
-      "window",
-      { fetch: vi.fn(async () => new Response("boom", { status })) },
-    );
+    vi.stubGlobal("window", { fetch: vi.fn(async () => new Response("boom", { status })) });
   }
 
   it("reloads a second time when the first reload did not clear the failure", async () => {
