@@ -2,6 +2,10 @@
 
 ## Done
 
+- End-to-end wave flow fixed: signed-out buyers now see real online traders (public discovery policies), the trader map shows pulsing customer wave pins that open the accept list, disabled accept buttons explain missing stock, an unanswered MoMo request no longer traps an order (cash switch allowed after 3 minutes), a clearly-labelled demo approval completes payment through the same verified path for showcases, and the buyer wave timer matches the 10-minute server expiry. Verified in a real browser: signed-out discovery returns traders, a wave placed next to the trader shows the pin and accept card, 84 tests pass, build OK.
+
+
+
 - Blank-screen crash on a dead session fixed: an expired token is now answered as rejected sign-in (401) instead of a server error, the browser signs itself out once with a readable notice, and the backup reload for failing calls is capped at two. Verified with an expired token (401, no reload loop, signed-out screen shown, no page errors); 80 tests pass.
 
 
