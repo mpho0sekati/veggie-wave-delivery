@@ -447,7 +447,7 @@ function BuyerPage() {
       toast.success("Hand raised — traders nearby can see you waving");
     } catch (err) {
       console.error("[mdeko] wave failed", err);
-      toast.error("Could not send your wave — please try again");
+      toast.error(err instanceof Error && err.message.includes("current delivery") ? err.message : "Could not send your wave — please try again");
     }
   }, [
     picked,
