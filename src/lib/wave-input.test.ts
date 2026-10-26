@@ -8,6 +8,8 @@ describe("deliverable waves", () => {
     expect(waveInputSchema.safeParse(input).success).toBe(true);
   });
   it("requires an itemized veggie even when an extra wish is supplied", () => {
-    expect(waveInputSchema.safeParse({ ...input, items: [], wish: "Blueberries" }).success).toBe(false);
+    expect(waveInputSchema.safeParse({ ...input, items: [], wish: "Blueberries" }).success).toBe(
+      false,
+    );
   });
 });

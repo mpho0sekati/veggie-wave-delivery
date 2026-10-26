@@ -256,7 +256,10 @@ function BuyerPage() {
       return;
     }
     if (!liveWave) return;
-    if ((!liveOrder || liveOrder.status === "completed" || liveOrder.cancelled_at) && (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id)) {
+    if (
+      (!liveOrder || liveOrder.status === "completed" || liveOrder.cancelled_at) &&
+      (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id)
+    ) {
       updateState((prev) => ({ ...prev, request: null }));
       return;
     }
@@ -447,7 +450,11 @@ function BuyerPage() {
       toast.success("Hand raised — traders nearby can see you waving");
     } catch (err) {
       console.error("[mdeko] wave failed", err);
-      toast.error(err instanceof Error && err.message.includes("current delivery") ? err.message : "Could not send your wave — please try again");
+      toast.error(
+        err instanceof Error && err.message.includes("current delivery")
+          ? err.message
+          : "Could not send your wave — please try again",
+      );
     }
   }, [
     picked,

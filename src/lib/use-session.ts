@@ -46,7 +46,13 @@ export function useSession(): Session {
         .maybeSingle();
       if (cancelled) return;
       if (profileError || roleError) {
-        setSession((previous) => ({ ...previous, loading: false, userId: user.id, email: user.email ?? null, error: "Could not load your saved profile. Retrying…" }));
+        setSession((previous) => ({
+          ...previous,
+          loading: false,
+          userId: user.id,
+          email: user.email ?? null,
+          error: "Could not load your saved profile. Retrying…",
+        }));
         retry = setTimeout(() => void load(), 5000);
         return;
       }

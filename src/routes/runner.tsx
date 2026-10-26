@@ -217,7 +217,12 @@ function RunnerPage() {
       );
     }
   };
-  if (session.error) return <main className="flex min-h-dvh items-center justify-center p-6"><p role="status">{session.error}</p></main>;
+  if (session.error)
+    return (
+      <main className="flex min-h-dvh items-center justify-center p-6">
+        <p role="status">{session.error}</p>
+      </main>
+    );
   if (!session.loading && (!session.userId || session.role !== "trader"))
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-6">

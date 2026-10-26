@@ -48,7 +48,14 @@ export const createWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => waveInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<Wave> => {
-    const { data: active, error: activeError } = await context.supabase.from("wave_orders").select("id").eq("buyer_id", context.userId).is("cancelled_at", null).neq("status", "completed").limit(1).maybeSingle();
+    const { data: active, error: activeError } = await context.supabase
+      .from("wave_orders")
+      .select("id")
+      .eq("buyer_id", context.userId)
+      .is("cancelled_at", null)
+      .neq("status", "completed")
+      .limit(1)
+      .maybeSingle();
     if (activeError) throw new Error(activeError.message);
     if (active) throw new Error("Finish your current delivery before sending another wave.");
     const db = await admin();

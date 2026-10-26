@@ -27,7 +27,9 @@ export function discoveryBox(origin: { lat: number; lng: number }, radiusKm = DI
 
 export function useMarketplace(origin?: { lat: number; lng: number; located: boolean }) {
   const session = useSession();
-  const assignedTraderId = useAppState((state) => state.userId === session.userId ? state.request?.runnerId ?? null : null);
+  const assignedTraderId = useAppState((state) =>
+    state.userId === session.userId ? (state.request?.runnerId ?? null) : null,
+  );
   const queryClient = useQueryClient();
   const box = origin?.located ? discoveryBox(origin) : null;
   // Catalog of custom items changes rarely: cache for 30 minutes instead of polling.
@@ -78,11 +80,18 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
         userId
           ? supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50)
           : empty,
-        assignedTraderId && userId ? supabase.from("profiles").select("id,name,avatar,online,lat,lng,rating").eq("id", assignedTraderId).limit(1) : empty,
+        assignedTraderId && userId
+          ? supabase
+              .from("profiles")
+              .select("id,name,avatar,online,lat,lng,rating")
+              .eq("id", assignedTraderId)
+              .limit(1)
+          : empty,
       ]);
       for (const result of [nearby, own, demand, assigned]) if (result.error) throw result.error;
       const byId = new Map<string, NonNullable<typeof nearby.data>[number]>();
-      for (const p of [...(nearby.data ?? []), ...(own.data ?? []), ...(assigned.data ?? [])]) byId.set(p.id, p);
+      for (const p of [...(nearby.data ?? []), ...(own.data ?? []), ...(assigned.data ?? [])])
+        byId.set(p.id, p);
       const profiles = [...byId.values()];
       // Only stock for traders actually in view, not the whole country.
       const stock = await supabase
