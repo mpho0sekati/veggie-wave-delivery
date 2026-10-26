@@ -13,13 +13,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { Button } from "../components/ui/button";
 import { reportError } from "../lib/lovable-error-reporting";
-import { toast } from "sonner";
-import { supabase } from "../integrations/supabase/client";
-import {
-  watchPreviewConnection,
-  watchRejectedSession,
-  watchStaleServerFunctions,
-} from "../lib/preview-recovery";
+import { watchPreviewConnection, watchStaleServerFunctions } from "../lib/preview-recovery";
 
 function NotFoundComponent() {
   return (

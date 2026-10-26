@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { watchPreviewConnection, watchRejectedSession } from "./preview-recovery";
+import { describe, expect, it, vi } from "vitest";
+import { watchPreviewConnection } from "./preview-recovery";
 
 function connectionFixture() {
   const listeners = new Map<string, Set<() => void>>();
