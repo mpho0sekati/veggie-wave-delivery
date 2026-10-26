@@ -2,6 +2,9 @@
 
 ## Done
 
+- Blank-screen crash on a dead session fixed: an expired token is now answered as rejected sign-in (401) instead of a server error, the browser signs itself out once with a readable notice, and the backup reload for failing calls is capped at two. Verified with an expired token (401, no reload loop, signed-out screen shown, no page errors); 80 tests pass.
+
+
 - eWallet demo uses recorded Mdeko savings, blocks overspending, accepts exact amounts and shows local simulated deductions without changing real funds. Eight tests and changed-file lint pass; signed-in account had R0 and correctly blocked withdrawal. Positive-balance UI completion remains unverified until an account has recorded savings.
 
 - FNB options on My Money: eWallet guidance beside earnings/savings explicitly says not connected; First Business Zero and funding links open official FNB pages; lender record downloads locally without bank submission. Signed-in account's six-order full record downloaded successfully; desktop and 320/393px phone dialogs checked with no runtime errors. 11 targeted tests, changed-file lint and build pass; repository-wide lint still has unrelated existing failures. Live FNB payouts and credit submissions are not integrated.
