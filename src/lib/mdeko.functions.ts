@@ -414,7 +414,7 @@ export const demoApproveMomoPayment = createServerFn({ method: "POST" })
       _reference: row.reference,
       _status: "successful",
       _provider_status: "demo-auto-approved",
-      _failure: null,
+      _failure: "",
     });
     if (finalizeError) throw new Error(finalizeError.message);
     const done = finalized as unknown as Payment;
