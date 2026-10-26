@@ -46,9 +46,7 @@ async function admin() {
 
 export const createWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) =>
-    waveInputSchema.parse(input),
-  )
+  .validator((input: unknown) => waveInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<Wave> => {
     const db = await admin();
     const { data: wave, error } = await db.rpc("create_wave", {

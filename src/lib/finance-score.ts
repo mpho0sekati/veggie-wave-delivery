@@ -11,8 +11,7 @@
  *   Saving money        20 pts  — are you putting money away?
  */
 
-export type ScoreTier =
-  "Just Starting" | "Getting Going" | "Trusted Member" | "Champion";
+export type ScoreTier = "Just Starting" | "Getting Going" | "Trusted Member" | "Champion";
 
 export type ScoreResult = {
   total: number;

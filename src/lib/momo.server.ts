@@ -175,9 +175,10 @@ export async function withBackoff(
   let res = await call();
   for (let i = 1; i < attempts && [429, 502, 503, 504].includes(res.status); i++) {
     const retryAfter = Number(res.headers.get("Retry-After"));
-    const wait = Number.isFinite(retryAfter) && retryAfter > 0
-      ? Math.min(retryAfter * 1000, 4000)
-      : baseMs * 2 ** (i - 1) + Math.random() * 100;
+    const wait =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 4000)
+        : baseMs * 2 ** (i - 1) + Math.random() * 100;
     await new Promise((r) => setTimeout(r, wait));
     res = await call();
   }

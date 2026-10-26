@@ -19,14 +19,10 @@ type Props = {
 
 export type StockEditorHandle = { flush: () => Promise<void> };
 
-const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor({
-  runnerId,
-  stock,
-  customItems,
-  highlightItemId,
-  onSaved,
-  onSavingChange,
-}, ref) {
+const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor(
+  { runnerId, stock, customItems, highlightItemId, onSaved, onSavingChange },
+  ref,
+) {
   const catalog = catalogWith(customItems);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -42,12 +38,22 @@ const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor({
     },
   }));
 
-  const save = (id: string, patch: { price?: number; quantity?: number; available?: boolean }, fallback: number) => {
+  const save = (
+    id: string,
+    patch: { price?: number; quantity?: number; available?: boolean },
+    fallback: number,
+  ) => {
     setSaving(true);
     onSavingChange?.(true);
     const task = pending.current.then(async () => {
       const old = latest.current.find((line) => line.itemId === id);
-      const next = { itemId: id, price: old?.price ?? fallback, quantity: old?.quantity ?? 1, available: old?.available ?? Boolean(old), ...patch };
+      const next = {
+        itemId: id,
+        price: old?.price ?? fallback,
+        quantity: old?.quantity ?? 1,
+        available: old?.available ?? Boolean(old),
+        ...patch,
+      };
       await saveTraderStock(runnerId, id, next.price, next.available, next.quantity);
       latest.current = [...latest.current.filter((line) => line.itemId !== id), next];
       failed.current = false;
@@ -70,7 +76,11 @@ const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor({
 
   const toggle = async (id: string, on: boolean, fallback: number) => {
     try {
-      await save(id, { available: on, ...(on && (lineFor(id)?.quantity ?? 0) === 0 ? { quantity: 1 } : {}) }, fallback);
+      await save(
+        id,
+        { available: on, ...(on && (lineFor(id)?.quantity ?? 0) === 0 ? { quantity: 1 } : {}) },
+        fallback,
+      );
     } catch {
       toast.error("Could not save stock");
     }
@@ -83,7 +93,11 @@ const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor({
     }
     try {
       await save(id, { price: Math.round(value * 100) / 100 }, value);
-      setDraft((prev) => { const next = { ...prev }; delete next[id]; return next; });
+      setDraft((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       toast.success("Price saved");
     } catch {
       toast.error("Could not save price");
@@ -117,7 +131,9 @@ const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {line?.quantity === 0 && on ? "Sold out · add quantity" : `per ${item.unit} · market ${formatRand(item.price)}`}
+                  {line?.quantity === 0 && on
+                    ? "Sold out · add quantity"
+                    : `per ${item.unit} · market ${formatRand(item.price)}`}
                 </p>
               </div>
               {on && (
@@ -170,7 +186,9 @@ const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor({
         })}
       </ul>
       <p className="text-xs text-muted-foreground">
-        {saving ? "Saving stock…" : `${stock.filter((line) => line.available !== false && (line.quantity ?? 0) > 0).length} of ${catalog.length} items in stock · changes saved automatically`}
+        {saving
+          ? "Saving stock…"
+          : `${stock.filter((line) => line.available !== false && (line.quantity ?? 0) > 0).length} of ${catalog.length} items in stock · changes saved automatically`}
       </p>
       {stock.length === 0 && (
         <Button

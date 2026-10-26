@@ -35,9 +35,13 @@ const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
     const result = await next();
     // A token for a removed account passes the expiry check but is rejected by
     // auth; answer it as a rejected sign-in (401), never as a server crash.
-    const response = (result as { response?: Response }).response ?? (result as unknown as Response);
+    const response =
+      (result as { response?: Response }).response ?? (result as unknown as Response);
     if (bearer && response instanceof Response && response.status >= 500) {
-      const text = await response.clone().text().catch(() => "");
+      const text = await response
+        .clone()
+        .text()
+        .catch(() => "");
       if (/Unauthorized/i.test(text)) {
         return new Response("Unauthorized", {
           status: 401,

@@ -1,4 +1,9 @@
-export type Area = { name: string; province: "Gauteng" | "Western Cape" | "KwaZulu-Natal"; lat: number; lng: number };
+export type Area = {
+  name: string;
+  province: "Gauteng" | "Western Cape" | "KwaZulu-Natal";
+  lat: number;
+  lng: number;
+};
 
 /** Township centres a buyer can jump to when GPS is off or they order for someone else. */
 export const AREAS: Area[] = [
@@ -24,5 +29,7 @@ export const PROVINCES = ["Gauteng", "Western Cape", "KwaZulu-Natal"] as const;
 export function searchAreas(query: string): Area[] {
   const q = query.trim().toLowerCase();
   if (!q) return AREAS;
-  return AREAS.filter((a) => a.name.toLowerCase().includes(q) || a.province.toLowerCase().includes(q));
+  return AREAS.filter(
+    (a) => a.name.toLowerCase().includes(q) || a.province.toLowerCase().includes(q),
+  );
 }

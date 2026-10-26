@@ -19,9 +19,15 @@ const order = {
 } as unknown as Order;
 describe("shared order readback", () => {
   it("keeps an approved prepaid order active until delivery and confirmation", () => {
-    expect(waveView(wave, { ...order, payment_method: "mtn-momo", status: "preparing" }).status).toBe("accepted");
-    expect(waveView(wave, { ...order, payment_method: "mtn-momo", status: "delivered" }).status).toBe("delivered");
-    expect(waveView(wave, { ...order, payment_method: "mtn-momo", status: "completed" }).status).toBe("paid");
+    expect(
+      waveView(wave, { ...order, payment_method: "mtn-momo", status: "preparing" }).status,
+    ).toBe("accepted");
+    expect(
+      waveView(wave, { ...order, payment_method: "mtn-momo", status: "delivered" }).status,
+    ).toBe("delivered");
+    expect(
+      waveView(wave, { ...order, payment_method: "mtn-momo", status: "completed" }).status,
+    ).toBe("paid");
   });
   it("restores the buyer landmark for the trader after refresh", () => {
     expect(waveView({ ...wave, note: "Blue spaza gate" }, order).landmark).toBe("Blue spaza gate");

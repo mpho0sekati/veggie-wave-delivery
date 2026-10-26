@@ -251,7 +251,7 @@ function BuyerPage() {
   useEffect(() => setClosedWave(localStorage.getItem("mdeko-closed-wave")), []);
   useEffect(() => {
     if (session.loading) return;
-    if (!signedIn || waveQuery.isSuccess && !liveWave) {
+    if (!signedIn || (waveQuery.isSuccess && !liveWave)) {
       updateState((prev) => ({ ...prev, request: null }));
       return;
     }
@@ -949,7 +949,8 @@ function BuyerPage() {
                                 : `${assigned?.name ?? "Your trader"} is on the way`}
                             </p>
                             {request.status === "accepted" &&
-                            liveOrder?.payment_method !== "cash" && liveOrder?.status === "accepted" ? (
+                            liveOrder?.payment_method !== "cash" &&
+                            liveOrder?.status === "accepted" ? (
                               <p className="text-xs text-muted-foreground">
                                 Choose how to pay below so they can start delivering
                               </p>
@@ -960,7 +961,11 @@ function BuyerPage() {
                               </p>
                             ) : (
                               <p className="text-xs text-muted-foreground">
-                                {request.status === "accepted" ? liveOrder?.payment_method === "cash" ? "Cash selected · your trader is preparing your veggies" : "Payment approved · your trader is preparing your veggies" : "Waiting for their live location…"}
+                                {request.status === "accepted"
+                                  ? liveOrder?.payment_method === "cash"
+                                    ? "Cash selected · your trader is preparing your veggies"
+                                    : "Payment approved · your trader is preparing your veggies"
+                                  : "Waiting for their live location…"}
                               </p>
                             )}
                           </div>
@@ -1091,7 +1096,9 @@ function BuyerPage() {
                     {request.status === "delivered" && (
                       <>
                         {liveOrder?.payment_method !== "cash" && (
-                          <p className="text-sm text-primary">Payment approved · confirm your veggies arrived</p>
+                          <p className="text-sm text-primary">
+                            Payment approved · confirm your veggies arrived
+                          </p>
                         )}
                         <Button
                           variant="outline"
@@ -1218,7 +1225,13 @@ function BuyerPage() {
             {!request && (
               <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
                 <p className="mb-2 text-center text-xs text-muted-foreground" role="status">
-                  {marketplaceError || waveQuery.isError || ordersQuery.isError ? "Connection interrupted — your saved order is safe" : !buyer.located ? "Choose your delivery area" : picked.length ? "Basket ready" : "Your basket is empty"}
+                  {marketplaceError || waveQuery.isError || ordersQuery.isError
+                    ? "Connection interrupted — your saved order is safe"
+                    : !buyer.located
+                      ? "Choose your delivery area"
+                      : picked.length
+                        ? "Basket ready"
+                        : "Your basket is empty"}
                 </p>
                 {(picked.length > 0 || wish.trim()) && (
                   <details className="mb-2 text-sm">

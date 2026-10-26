@@ -28,7 +28,9 @@ describe("delivery celebrations", () => {
   });
   it("does not clock the pin for a prepaid or cancelled delivery", () => {
     expect(hasArrived({ ...delivery, status: "accepted" })).toBe(false);
-    expect(hasArrived({ ...delivery, status: "delivered", cancelled_at: "2026-10-25" })).toBe(false);
+    expect(hasArrived({ ...delivery, status: "delivered", cancelled_at: "2026-10-25" })).toBe(
+      false,
+    );
     expect(hasArrived({ ...delivery, status: "delivered" })).toBe(true);
   });
   it("gives each new order its own two moments", () => {
@@ -36,6 +38,9 @@ describe("delivery celebrations", () => {
     gate.observe(delivery);
     gate.observe({ ...delivery, id: "order-2" });
     expect(gate.observe({ ...delivery, status: "completed" })).toEqual(["arrival", "confirmation"]);
-    expect(gate.observe({ ...delivery, id: "order-2", status: "completed" })).toEqual(["arrival", "confirmation"]);
+    expect(gate.observe({ ...delivery, id: "order-2", status: "completed" })).toEqual([
+      "arrival",
+      "confirmation",
+    ]);
   });
 });

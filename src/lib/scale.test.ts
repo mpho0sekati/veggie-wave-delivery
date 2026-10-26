@@ -9,7 +9,9 @@ describe("scale guards", () => {
   });
   it("retries MoMo throttling then stops at 3 attempts", async () => {
     let n = 0;
-    const res = await withBackoff(async () => (n++, new Response(null, { status: 429 })), { baseMs: 1 });
+    const res = await withBackoff(async () => (n++, new Response(null, { status: 429 })), {
+      baseMs: 1,
+    });
     expect(n).toBe(3);
     expect(res.status).toBe(429);
   });

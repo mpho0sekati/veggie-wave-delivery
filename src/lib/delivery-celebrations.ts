@@ -8,7 +8,8 @@ export type DeliverySnapshot = {
 
 export function hasArrived(order: DeliverySnapshot | null | undefined): boolean {
   return Boolean(
-    order && !order.cancelled_at &&
+    order &&
+    !order.cancelled_at &&
     (order.delivered_at || order.status === "delivered" || order.status === "completed"),
   );
 }
@@ -31,10 +32,13 @@ export class DeliveryCelebrationGate {
     const confirmed = order.status === "completed";
     // Existing history on opening is a baseline, not a new delivery event.
     if (!this.orders.has(order.id)) {
-      this.orders.set(order.id, new Set([
-        ...(arrived ? ["arrival" as const] : []),
-        ...(confirmed ? ["confirmation" as const] : []),
-      ]));
+      this.orders.set(
+        order.id,
+        new Set([
+          ...(arrived ? ["arrival" as const] : []),
+          ...(confirmed ? ["confirmation" as const] : []),
+        ]),
+      );
       return [];
     }
     const moments: CelebrationMoment[] = [];

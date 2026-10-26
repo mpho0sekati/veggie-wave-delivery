@@ -56,7 +56,12 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
         const active = t.to !== undefined && path === t.to;
         const inner = (
           <>
-            <t.icon className={cn("size-5 shrink-0 sm:size-6", active ? "text-primary" : "text-muted-foreground")} />
+            <t.icon
+              className={cn(
+                "size-5 shrink-0 sm:size-6",
+                active ? "text-primary" : "text-muted-foreground",
+              )}
+            />
             <span
               className={cn(
                 "text-[10px] font-medium leading-4 sm:text-[11px]",

@@ -58,7 +58,10 @@ export function watchStaleServerFunctions(
     if (response.status < 500 || !url.includes("/_serverFn/")) return;
     // A rejected sign-in (e.g. the account was removed) comes back as a 500 that
     // says "Unauthorized". Reloading can never fix it; the app signs out instead.
-    const text = await response.clone().text().catch(() => "");
+    const text = await response
+      .clone()
+      .text()
+      .catch(() => "");
     if (/Unauthorized/i.test(text)) return;
     // During a preview restart the server may answer stale calls with a bare 500
     // (no "Invalid server function ID" text), so any 5xx triggers a guarded reload.

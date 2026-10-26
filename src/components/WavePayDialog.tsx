@@ -106,7 +106,10 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
             <p className="text-sm text-muted-foreground">to {traderName}</p>
           </div>
 
-          <p className="text-sm text-muted-foreground">Order total includes delivery. Payment is confirmed only after you approve it with MTN MoMo.</p>
+          <p className="text-sm text-muted-foreground">
+            Order total includes delivery. Payment is confirmed only after you approve it with MTN
+            MoMo.
+          </p>
 
           {/* Phone number */}
           <div className="space-y-2">
