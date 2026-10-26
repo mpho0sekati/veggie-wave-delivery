@@ -105,4 +105,20 @@ describe("stale server function reloads", () => {
     await window.fetch("/_serverFn/abc", { method: "POST" });
     expect(reload).not.toHaveBeenCalled();
   });
+
+  it("hooks the fetch the server-function client resolves on every call", async () => {
+    const reload = vi.fn();
+    const serverFns: { fetch?: typeof fetch } = {};
+    vi.stubGlobal("window", {
+      fetch: vi.fn(async () => new Response("boom", { status: 500 })),
+      __TSS_START_OPTIONS__: { serverFns },
+    });
+    const stop = watchStaleServerFunctions(reload, storageStub());
+
+    await serverFns.fetch?.("/_serverFn/abc", { method: "POST" });
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    stop();
+    expect(serverFns.fetch).toBeUndefined();
+  });
 });
