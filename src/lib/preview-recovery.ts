@@ -78,7 +78,7 @@ export function watchStaleServerFunctions(
     const original = options.serverFns.fetch;
     const wrapped: typeof fetch = async (input, init) => {
       const response = await (original ?? window.fetch)(input, init);
-      void guard(requestUrl(input), response);
+      await guard(requestUrl(input), response);
       return response;
     };
     options.serverFns.fetch = wrapped;
@@ -93,7 +93,7 @@ export function watchStaleServerFunctions(
   const globalOriginal = window.fetch;
   const globalWrapped: typeof fetch = async (input, init) => {
     const response = await globalOriginal(input, init);
-    void guard(requestUrl(input), response);
+    await guard(requestUrl(input), response);
     return response;
   };
   window.fetch = globalWrapped;
