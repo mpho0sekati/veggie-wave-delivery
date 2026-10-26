@@ -20,3 +20,25 @@ describe("seller location and incoming waves", () => {
     expect(nearbySellerWaves([{ lat: -26.038712, lng: 28.175175 }], null)).toEqual([]);
   });
 });
+
+describe("wave pin labels on the trader map", () => {
+  const catalog = [
+    { id: "tomato", name: "Tomatoes" },
+    { id: "spinach", name: "Spinach" },
+  ];
+  it("lists quantities and catalog names", () => {
+    const label = wavePinLabel(
+      { items: [{ id: "tomato", qty: 2 }, { id: "spinach", qty: 1 }], wish: null },
+      catalog,
+    );
+    expect(label).toBe("2× Tomatoes, 1× Spinach");
+  });
+  it("falls back to the wish text, then a generic label", () => {
+    expect(wavePinLabel({ items: [], wish: "  blueberries " }, catalog)).toBe("blueberries");
+    expect(wavePinLabel({ items: "not-an-array", wish: null }, catalog)).toBe("Veggie request");
+  });
+  it("skips malformed item lines instead of crashing", () => {
+    const label = wavePinLabel({ items: [{ id: "tomato" }, null, { id: "tomato", qty: 3 }], wish: null }, catalog);
+    expect(label).toBe("3× Tomatoes");
+  });
+});
