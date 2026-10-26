@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RunnerRouteImport } from './routes/runner'
 import { Route as AuthOnboardingRouteImport } from './routes/auth/onboarding'
 import { Route as ApiPublicMomoCallbackRouteImport } from './routes/api/public/momo-callback'
@@ -29,6 +30,11 @@ const AuthRoute = AuthRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunnerRoute = RunnerRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/finance': typeof FinanceRoute
+  '/profile': typeof ProfileRoute
   '/runner': typeof RunnerRoute
   '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/finance': typeof FinanceRoute
+  '/profile': typeof ProfileRoute
   '/runner': typeof RunnerRoute
   '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/finance': typeof FinanceRoute
+  '/profile': typeof ProfileRoute
   '/runner': typeof RunnerRoute
   '/auth/onboarding': typeof AuthOnboardingRoute
   '/api/public/momo-callback': typeof ApiPublicMomoCallbackRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/finance'
+    | '/profile'
     | '/runner'
     | '/auth/onboarding'
     | '/api/public/momo-callback'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/finance'
+    | '/profile'
     | '/runner'
     | '/auth/onboarding'
     | '/api/public/momo-callback'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/finance'
+    | '/profile'
     | '/runner'
     | '/auth/onboarding'
     | '/api/public/momo-callback'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   FinanceRoute: typeof FinanceRoute
+  ProfileRoute: typeof ProfileRoute
   RunnerRoute: typeof RunnerRoute
   ApiPublicMomoCallbackRoute: typeof ApiPublicMomoCallbackRoute
 }
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/runner': {
@@ -168,6 +188,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   FinanceRoute: FinanceRoute,
+  ProfileRoute: ProfileRoute,
   RunnerRoute: RunnerRoute,
   ApiPublicMomoCallbackRoute: ApiPublicMomoCallbackRoute,
 }
