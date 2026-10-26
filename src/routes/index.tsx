@@ -631,9 +631,11 @@ function BuyerPage() {
         className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex max-h-[calc(100dvh-9.5rem)] w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
           (request && isCollapsed) || (!request && mapOnly)
             ? "h-auto"
-            : sheetExpanded || request
-              ? "h-[88dvh]"
-              : "h-[62dvh]"
+            : request
+              ? "h-auto"
+              : sheetExpanded
+                ? "h-[88dvh]"
+                : "h-[62dvh]"
         }`}
       >
         {!request && mapOnly ? (
