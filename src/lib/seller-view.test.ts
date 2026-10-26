@@ -28,7 +28,13 @@ describe("wave pin labels on the trader map", () => {
   ];
   it("lists quantities and catalog names", () => {
     const label = wavePinLabel(
-      { items: [{ id: "tomato", qty: 2 }, { id: "spinach", qty: 1 }], wish: null },
+      {
+        items: [
+          { id: "tomato", qty: 2 },
+          { id: "spinach", qty: 1 },
+        ],
+        wish: null,
+      },
       catalog,
     );
     expect(label).toBe("2× Tomatoes, 1× Spinach");
@@ -38,7 +44,10 @@ describe("wave pin labels on the trader map", () => {
     expect(wavePinLabel({ items: "not-an-array", wish: null }, catalog)).toBe("Veggie request");
   });
   it("skips malformed item lines instead of crashing", () => {
-    const label = wavePinLabel({ items: [{ id: "tomato" }, null, { id: "tomato", qty: 3 }], wish: null }, catalog);
+    const label = wavePinLabel(
+      { items: [{ id: "tomato" }, null, { id: "tomato", qty: 3 }], wish: null },
+      catalog,
+    );
     expect(label).toBe("3× Tomatoes");
   });
 });
