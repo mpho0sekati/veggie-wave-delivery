@@ -74,7 +74,8 @@ import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
-const WAVE_TIMEOUT_MS = 120_000;
+// Matches the 10-minute server-side wave expiry (migration 0009).
+const WAVE_TIMEOUT_MS = 600_000;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -1046,6 +1047,27 @@ function BuyerPage() {
                             }}
                           >
                             Cash on delivery
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full text-xs text-muted-foreground"
+                            disabled={actions.demoApprovePayment.isPending}
+                            onClick={async () => {
+                              try {
+                                await actions.demoApprovePayment.mutateAsync({
+                                  orderId: liveOrder.id,
+                                });
+                                toast.success(
+                                  "Demo payment approved — your trader can start delivering",
+                                );
+                              } catch {
+                                toast.error("Could not approve the demo payment");
+                              }
+                            }}
+                          >
+                            {actions.demoApprovePayment.isPending
+                              ? "Approving…"
+                              : "Demo: approve payment instantly (no real money)"}
                           </Button>
                         </div>
                       )}

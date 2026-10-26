@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sellerPosition, nearbySellerWaves } from "./seller-view";
+import { sellerPosition, nearbySellerWaves, wavePinLabel } from "./seller-view";
 
 describe("seller location and incoming waves", () => {
   const saved = { lat: -26.0407868, lng: 28.1751337 };

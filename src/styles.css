@@ -419,6 +419,46 @@ button:focus-visible {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Pulsing customer wave pin on the trader's map */
+.wave-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.wave-pin-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  z-index: 1;
+}
+
+.wave-pin-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--primary);
+  opacity: 0.35;
+  animation: wavePinPing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes wavePinPing {
+  75%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
 @keyframes uberPulse {
   0% {
     width: 20px;

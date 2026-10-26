@@ -1,5 +1,5 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
   ChevronUp,
@@ -31,7 +31,7 @@ import { useWaveAlert } from "@/lib/use-wave-alert";
 import StockEditor from "@/components/StockEditor";
 import DemandInsights from "@/components/DemandInsights";
 import OrderStepper from "@/components/OrderStepper";
-import { nearbySellerWaves, sellerPosition } from "@/lib/seller-view";
+import { nearbySellerWaves, sellerPosition, wavePinLabel } from "@/lib/seller-view";
 import { track } from "@/lib/track";
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 export const Route = createFileRoute("/runner")({
@@ -128,6 +128,19 @@ function RunnerPage() {
   // Delivery location is reported once, by useReportCourierPosition above.
   const catalog = catalogWith(state.customItems);
   const nearby = nearbySellerWaves(waves, location);
+  // Pulsing customer pins on the trader's map, so buyers are visible at a glance.
+  const wavePins = useMemo(
+    () =>
+      nearby
+        .filter((w) => w.lat != null && w.lng != null)
+        .map((w) => ({
+          id: w.id,
+          lat: w.lat as number,
+          lng: w.lng as number,
+          label: wavePinLabel(w, catalog),
+        })),
+    [nearby, catalog],
+  );
   // Whistle + vibrate when a new wave lands nearby and the trader is free to take it.
   useWaveAlert(nearby.length, isOnline && !active);
 
@@ -215,6 +228,8 @@ function RunnerPage() {
               }}
               route={route}
               routeLoading={routeLoading}
+              waves={wavePins}
+              onWaveClick={() => setDrawerOpen(true)}
             />
           </Suspense>
         </ClientOnly>
@@ -452,6 +467,15 @@ function RunnerPage() {
                       >
                         Accept this wave
                       </Button>
+                      {!canFill && (
+                        <p className="text-xs text-destructive">
+                          You don't stock:{" "}
+                          {view.items
+                            .filter((i) => !me?.stock.some((s) => s.itemId === i.id))
+                            .map((i) => catalog.find((c) => c.id === i.id)?.name ?? i.id)
+                            .join(", ")}
+                        </p>
+                      )}
                     </Card>
                   );
                 })}
@@ -512,7 +536,9 @@ function RunnerPage() {
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {isOnline
-                    ? "Online · tap for waves and stall details"
+                    ? nearby.length
+                      ? `Online · ${nearby.length} ${nearby.length === 1 ? "buyer" : "buyers"} waving — tap to view`
+                      : "Online · tap for waves and stall details"
                     : "Tap to open your stall details"}
                 </span>
               </span>
