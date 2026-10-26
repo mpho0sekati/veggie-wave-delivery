@@ -133,16 +133,6 @@ function RootComponent() {
     };
   }, []);
 
-  // A session the server no longer accepts can never succeed, so sign out once
-  // instead of letting the live polls hammer a dead token every few seconds.
-  useEffect(
-    () =>
-      watchRejectedSession(() => {
-        void supabase.auth.signOut();
-        toast.info("Your session expired. Please sign in again.");
-      }),
-    [],
-  );
 
   return (
     <QueryClientProvider client={queryClient}>
