@@ -548,8 +548,15 @@ function RunnerPage() {
                               await actions.acceptWave.mutateAsync(w.id);
                               track("wave_accepted");
                               toast.success("Wave accepted");
-                            } catch {
-                              toast.error("This wave expired, was accepted, or exceeds your stock");
+                            } catch (error) {
+                              toast.error(
+                                error instanceof Error &&
+                                  /^(This |Not enough |Your stall |Couldn't confirm)/.test(
+                                    error.message,
+                                  )
+                                  ? error.message
+                                  : "Couldn't confirm acceptance. Check Orders, then try again.",
+                              );
                             }
                           }}
                         >

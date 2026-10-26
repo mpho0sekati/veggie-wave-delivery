@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "./use-session";
+import { acceptFailureMessage } from "./wave-errors";
 
 import {
   acceptWave,
@@ -101,8 +102,13 @@ export function useMdekoActions() {
   });
 
   const acceptWaveMutation = useMutation({
-    mutationFn: (waveId: string) => accept({ data: { waveId } }),
+    mutationFn: async (waveId: string) => {
+      const result = await accept({ data: { waveId } });
+      if (!result.ok) throw new Error(acceptFailureMessage(result.code));
+      return result.order;
+    },
     onSuccess: refresh,
+    onError: refresh,
   });
 
   const advanceOrderMutation = useMutation({
