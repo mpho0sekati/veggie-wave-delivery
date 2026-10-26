@@ -22,9 +22,11 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
       throw error;
     }
     if (isAuthRejection(error)) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      // Plain text on purpose: a JSON body would be handed back to the caller as
+      // a successful result instead of being raised as an error.
+      return new Response("Unauthorized", {
         status: 401,
-        headers: { "content-type": "application/json", "x-mdeko-auth": "rejected" },
+        headers: { "content-type": "text/plain; charset=utf-8", "x-mdeko-auth": "rejected" },
       });
     }
     console.error(error);
