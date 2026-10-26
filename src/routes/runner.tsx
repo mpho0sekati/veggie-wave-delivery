@@ -211,15 +211,15 @@ function RunnerPage() {
         <AppTabBar signedIn={Boolean(session.userId)} onSignOut={signOutEverywhere} />
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-2xl border bg-background/95 p-3 shadow-lg">
           <div className="flex min-w-0 items-center gap-2">
-          <Store className="size-6 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">
-              {ownProfile?.name || session.name || "My stall"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
-            </p>
-          </div>
+            <Store className="size-6 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">
+                {ownProfile?.name || session.name || "My stall"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
+              </p>
+            </div>
           </div>
           <Switch
             aria-label="Available for deliveries"

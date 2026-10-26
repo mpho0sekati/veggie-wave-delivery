@@ -580,7 +580,9 @@ function BuyerPage() {
             if (!list.length) return null;
             return (
               <div key={prov} className="space-y-2">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{prov}</p>
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {prov}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {list.map((a) => (
                     <Button
@@ -661,7 +663,11 @@ function BuyerPage() {
             aria-label="Show order details"
           >
             <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
-              {request.status === "waving" ? <Hand className="size-6 text-primary" /> : <Bike className="size-6 text-primary" />}
+              {request.status === "waving" ? (
+                <Hand className="size-6 text-primary" />
+              ) : (
+                <Bike className="size-6 text-primary" />
+              )}
               {request.status === "waving" && (
                 <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
               )}
