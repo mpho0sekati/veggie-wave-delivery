@@ -83,6 +83,32 @@ Years later, two problems are still there:
 
 > Mdeko is **not** partnered with FNB. FNB features are clearly labelled in the app as information links and a local demo. No real money moves through them.
 
+### How we use FNB
+
+Mdeko never holds or moves money. MoMo does the collecting, Mdeko does the writing-down, and FNB is where the written-down money becomes usable off the street. A trader meets FNB at three points, in this order:
+
+| Touchpoint | What the trader does | Where it is in the app | Status today |
+| --- | --- | --- | --- |
+| **FNB eWallet cash-out** | Sends recorded savings to their own cell number and withdraws cash at any FNB ATM with a PIN — no bank card, no branch queue, no trolley full of rands | My Money → *Cash out with FNB eWallet* | **Local demo.** The amount is capped by the trader's real recorded savings, the SMS and ATM steps are simulated, and nothing is sent to FNB |
+| **FNB First Business Zero** | Opens a business account for sole proprietors once there is a sales record worth showing | My Money → bank panel → *Explore account at FNB* | **Information link** to fnb.co.za. Mdeko does not apply on the trader's behalf and does not see the outcome |
+| **Money record for credit** | Takes a downloadable record of sales, settlements, savings and activity into a lender conversation | My Money → *View full record* → *Download record for FNB review* | **Real CSV**, written to the trader's own phone. It is never uploaded and never sent to FNB |
+
+```mermaid
+flowchart LR
+    A["Buyer pays<br/>MTN MoMo"] --> B["Mdeko re-verifies<br/>the payment with MTN"]
+    B --> C["Ledger: settlement<br/>+ 5% savings + activity score"]
+    C --> D["Cash today<br/>FNB eWallet at an ATM"]
+    C --> E["An account<br/>FNB First Business Zero"]
+    C --> F["A credit conversation<br/>downloaded money record"]
+```
+
+**Why FNB specifically:** eWallet is the only leg a trader like Armando can use today — it needs a cell number, not a bank account or a card machine. First Business Zero and SME lending then give the ledger somewhere to go, which is the reason the ledger exists at all.
+
+**What a live version needs:** an FNB partnership with signed agreements, access to FNB's Open API for eWallet initiation and status, KYC on the receiving cell number, and a reconciliation job that matches FNB's records to Mdeko's settlements. None of that is built or claimed here.
+
+> Terminology for judges and copy: **eWallet** is FNB's cash remittance service (the cash-out tool). **eBucks** is FNB's rewards programme. They are different products — the app and this README say *eWallet*.
+
+
 ---
 
 ## 4. Screenshots
@@ -285,6 +311,7 @@ The score only changes from real confirmed activity. It is an **activity score, 
 | **Lovable Cloud (Postgres)** | Money needs real transactions: locking a wave so only one trader gets it, stopping stock from going negative, and stopping a settlement from being paid twice. Row-level security keeps each person's records private. |
 | **Cell number + 4-digit PIN** | Matches how people already use MoMo and USSD. No email needed. The cell number is also the MoMo number. |
 | **MTN MoMo Collections** | Traders get paid without renting a card machine. The server checks the payment with MTN again before recording money. |
+| **FNB as the banking bridge** | eWallet reaches traders who have no bank account and no card machine, and First Business Zero plus SME lending give the written-down record somewhere to go. Today Mdeko only links to public FNB pages and simulates the cash-out locally — a real integration needs an FNB partnership and Open API access. |
 | **Leaflet + OpenStreetMap + OSRM** | Light maps with no per-view billing, and walking routes that suit trolley traders. |
 | **Lovable AI Gateway** | "Describe your order in words" and short money tips, without managing AI keys. |
 | **Tailwind CSS v4 + shared colour tokens** | Small CSS, no runtime styling cost on low-end phones, one consistent look. |
