@@ -342,12 +342,10 @@ function BuyerPage() {
   };
   const [describeOpen, setDescribeOpen] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
-  // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
-  // so the map stays the hero; it expands again when the wave needs a decision.
+  // Uber behaviour: only once the trader is on the way does the drawer shrink to a slim
+  // tracking bar. When an order is accepted the buyer must choose how to pay, so keep it open.
   useEffect(() => {
-    setIsCollapsed(
-      hasRequest && (request?.status === "accepted" || request?.status === "delivering"),
-    );
+    setIsCollapsed(hasRequest && request?.status === "delivering");
   }, [hasRequest, request?.status]);
 
   const best = ranked[0] ?? null;
@@ -582,7 +580,9 @@ function BuyerPage() {
             if (!list.length) return null;
             return (
               <div key={prov} className="space-y-2">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{prov}</p>
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {prov}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {list.map((a) => (
                     <Button
@@ -663,7 +663,11 @@ function BuyerPage() {
             aria-label="Show order details"
           >
             <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl">
-              {request.status === "waving" ? <Hand className="size-6 text-primary" /> : <Bike className="size-6 text-primary" />}
+              {request.status === "waving" ? (
+                <Hand className="size-6 text-primary" />
+              ) : (
+                <Bike className="size-6 text-primary" />
+              )}
               {request.status === "waving" && (
                 <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
               )}
@@ -672,9 +676,13 @@ function BuyerPage() {
               <p className="truncate text-sm font-semibold">
                 {request.status === "waving"
                   ? "Waving… waiting for a trader"
-                  : courierPosition
-                    ? `${assigned?.name ?? "Your trader"} is on the way`
-                    : "Waiting for your trader's location…"}
+                  : request.status === "accepted" && liveOrder?.payment_method !== "cash"
+                    ? "Order accepted! Tap to pay"
+                    : request.status === "delivered"
+                      ? "Delivered — tap to confirm"
+                      : courierPosition
+                        ? `${assigned?.name ?? "Your trader"} is on the way`
+                        : "Waiting for your trader's location…"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatRand(request.total)} · tap for details
@@ -921,9 +929,16 @@ function BuyerPage() {
                           <MapPin className="size-5 text-primary" />
                           <div>
                             <p className="font-semibold">
-                              {assigned?.name ?? "Your trader"} is on the way
+                              {request.status === "accepted"
+                                ? `Order accepted by ${assigned?.name ?? "your trader"}!`
+                                : `${assigned?.name ?? "Your trader"} is on the way`}
                             </p>
-                            {courierPosition ? (
+                            {request.status === "accepted" &&
+                            liveOrder?.payment_method !== "cash" ? (
+                              <p className="text-xs text-muted-foreground">
+                                Choose how to pay below so they can start delivering
+                              </p>
+                            ) : courierPosition ? (
                               <p className="text-xs text-muted-foreground">
                                 ~{courierPosition.etaMinutes} min ·{" "}
                                 {formatDistance(courierPosition.distanceKm)} away

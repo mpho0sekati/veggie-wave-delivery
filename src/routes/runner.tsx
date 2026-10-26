@@ -120,6 +120,39 @@ function RunnerPage() {
   // Whistle + vibrate when a new wave lands nearby and the trader is free to take it.
   useWaveAlert(nearby.length, isOnline && !active);
 
+  const [goingLive, setGoingLive] = useState(false);
+  // One tap: commit any half-typed price/quantity, save the name, and switch the stall online.
+  const saveAndGoLive = async () => {
+    if (!session.userId) return;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (!me?.stock.length) {
+      toast.error("Switch on at least one item in My stock today");
+      return;
+    }
+    if (!location) {
+      recenterRequested.current = true;
+      locate();
+      toast.info("Finding your location — tap again once your pin shows, or tap the map");
+      return;
+    }
+    setGoingLive(true);
+    try {
+      const trimmed = displayName.trim();
+      await saveTraderProfile(session.userId, {
+        online: true,
+        ...location,
+        ...(trimmed ? { name: trimmed } : {}),
+      });
+      setName(null);
+      await refresh();
+      toast.success("Stall is online · ready for waves");
+    } catch {
+      toast.error("Could not save your stall — try again");
+    } finally {
+      setGoingLive(false);
+    }
+  };
+
   const advance = async (status: "delivering" | "delivered") => {
     if (!active) return;
     try {
@@ -178,15 +211,15 @@ function RunnerPage() {
         <AppTabBar signedIn={Boolean(session.userId)} onSignOut={signOutEverywhere} />
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-2xl border bg-background/95 p-3 shadow-lg">
           <div className="flex min-w-0 items-center gap-2">
-          <Store className="size-6 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">
-              {ownProfile?.name || session.name || "My stall"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
-            </p>
-          </div>
+            <Store className="size-6 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">
+                {ownProfile?.name || session.name || "My stall"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
+              </p>
+            </div>
           </div>
           <Switch
             aria-label="Available for deliveries"
@@ -413,6 +446,28 @@ function RunnerPage() {
         )}
         {session.userId && <DemandInsights state={state} runnerId={session.userId} />}
         <div className="h-6" />
+        {session.userId && !active && (
+          <div className="sticky bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur-md">
+            {isOnline && !name ? (
+              <p
+                role="status"
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
+              >
+                <Radio className="size-4" /> Stall is online · ready for waves
+              </p>
+            ) : (
+              <Button
+                size="lg"
+                className="w-full"
+                disabled={goingLive}
+                onClick={() => void saveAndGoLive()}
+              >
+                <Radio />
+                {goingLive ? "Saving…" : "Save stall & go online"}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );

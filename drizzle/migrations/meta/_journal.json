@@ -64,6 +64,13 @@
       "when": 1792945612296,
       "tag": "0008_funnel_events",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793013784478,
+      "tag": "0009_extend_wave_expiry",
+      "breakpoints": true
     }
   ]
 }
