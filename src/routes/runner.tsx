@@ -446,6 +446,28 @@ function RunnerPage() {
         )}
         {session.userId && <DemandInsights state={state} runnerId={session.userId} />}
         <div className="h-6" />
+        {session.userId && !active && (
+          <div className="sticky bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur-md">
+            {isOnline && !name ? (
+              <p
+                role="status"
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
+              >
+                <Radio className="size-4" /> Stall is online · ready for waves
+              </p>
+            ) : (
+              <Button
+                size="lg"
+                className="w-full"
+                disabled={goingLive}
+                onClick={() => void saveAndGoLive()}
+              >
+                <Radio />
+                {goingLive ? "Saving…" : "Save stall & go online"}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );
