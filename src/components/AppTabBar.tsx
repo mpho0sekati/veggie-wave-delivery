@@ -1,6 +1,5 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Hand, LogIn, LogOut, Store, Wallet, Wand2, type LucideIcon } from "lucide-react";
-import { toast } from "sonner";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Hand, LogIn, UserRound, Store, Wallet, Wand2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import InstallMdeko from "@/components/InstallMdeko";
 import UpdateMdeko from "@/components/UpdateMdeko";
@@ -15,7 +14,7 @@ type Props = {
 };
 
 type Tab = {
-  to?: "/" | "/runner" | "/finance" | "/auth";
+  to?: "/" | "/runner" | "/finance" | "/auth" | "/profile";
   label: string;
   icon: LucideIcon;
   onClick?: () => void;
@@ -24,7 +23,6 @@ type Tab = {
 /** Always-visible icon bar, like Facebook's top tabs. Nothing is hidden in a menu. */
 export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Props) {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
 
   const tabs: Tab[] = [
     { to: "/", label: "Buy", icon: Hand },
@@ -32,15 +30,7 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
     { to: "/runner", label: "Sell", icon: Store },
     { to: "/finance", label: "Money", icon: Wallet },
     signedIn
-      ? {
-          label: "Sign out",
-          icon: LogOut,
-          onClick: async () => {
-            await onSignOut?.();
-            toast.success("Signed out");
-            navigate({ to: "/auth" });
-          },
-        }
+      ? { to: "/profile", label: "Me", icon: UserRound }
       : { to: "/auth", label: "Sign in", icon: LogIn },
   ];
 
