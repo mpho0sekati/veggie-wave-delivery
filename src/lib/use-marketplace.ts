@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { updateState } from "./veggie-store";
+import { updateState, useAppState } from "./veggie-store";
 import { useSession } from "./use-session";
 import type { Runner } from "./veggie-data";
 
@@ -27,6 +27,7 @@ export function discoveryBox(origin: { lat: number; lng: number }, radiusKm = DI
 
 export function useMarketplace(origin?: { lat: number; lng: number; located: boolean }) {
   const session = useSession();
+  const assignedTraderId = useAppState((state) => state.userId === session.userId ? state.request?.runnerId ?? null : null);
   const queryClient = useQueryClient();
   const box = origin?.located ? discoveryBox(origin) : null;
   // Catalog of custom items changes rarely: cache for 30 minutes instead of polling.
@@ -45,7 +46,7 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
     },
   });
   const query = useQuery({
-    queryKey: ["marketplace", session.userId, box?.lat, box?.lng],
+    queryKey: ["marketplace", session.userId, box?.lat, box?.lng, assignedTraderId],
     // Online traders and their stock are public discovery data: the map shows
     // them even before sign-in, like cars on a ride-hailing map.
     enabled: !session.loading,
@@ -65,7 +66,7 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
           .lte("lng", box.maxLng);
       }
       const empty = Promise.resolve({ data: [] as never[], error: null });
-      const [nearby, own, demand] = await Promise.all([
+      const [nearby, own, demand, assigned] = await Promise.all([
         profilesQuery.limit(MAX_DISCOVERY_TRADERS),
         userId
           ? supabase
@@ -77,10 +78,11 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
         userId
           ? supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50)
           : empty,
+        assignedTraderId && userId ? supabase.from("profiles").select("id,name,avatar,online,lat,lng,rating").eq("id", assignedTraderId).limit(1) : empty,
       ]);
-      for (const result of [nearby, own, demand]) if (result.error) throw result.error;
+      for (const result of [nearby, own, demand, assigned]) if (result.error) throw result.error;
       const byId = new Map<string, NonNullable<typeof nearby.data>[number]>();
-      for (const p of [...(nearby.data ?? []), ...(own.data ?? [])]) byId.set(p.id, p);
+      for (const p of [...(nearby.data ?? []), ...(own.data ?? []), ...(assigned.data ?? [])]) byId.set(p.id, p);
       const profiles = [...byId.values()];
       // Only stock for traders actually in view, not the whole country.
       const stock = await supabase

@@ -256,7 +256,7 @@ function BuyerPage() {
       return;
     }
     if (!liveWave) return;
-    if (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id) {
+    if ((!liveOrder || liveOrder.status === "completed" || liveOrder.cancelled_at) && (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id)) {
       updateState((prev) => ({ ...prev, request: null }));
       return;
     }
