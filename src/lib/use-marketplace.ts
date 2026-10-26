@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { updateState } from "./veggie-store";
@@ -15,6 +15,10 @@ export function discoveryBox(origin: { lat: number; lng: number }, radiusKm = DI
   const lng = Math.round(origin.lng * 100) / 100;
   const dLat = radiusKm / 111;
   const dLng = radiusKm / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["mdeko"] });
+    return query.refetch();
+  }, [queryClient, query.refetch]);
   return {
     lat,
     lng,
@@ -139,10 +143,7 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
   }, [query.data, catalogQuery.data, session.userId]);
   return {
     session,
-    refresh: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["mdeko"] });
-      return query.refetch();
-    },
+    refresh,
     error: query.error,
     ownProfile: query.data?.profiles.find((profile) => profile.id === session.userId) ?? null,
     ownStock: (query.data?.stock ?? [])
