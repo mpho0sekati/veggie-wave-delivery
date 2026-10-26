@@ -1,43 +1,164 @@
 import { useState } from "react";
-import { ArrowLeft, Banknote, Building2, Download, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  Building2,
+  Download,
+  ExternalLink,
+  FlaskConical,
+  MessageSquareText,
+  Smartphone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { createLenderRecordCsv } from "@/lib/finance-record";
 import type { ExportRecord, MoneyProfile } from "@/lib/finance.functions";
 
-export function FnbCashOut() {
+const AMOUNTS = [20, 50, 100];
+
+function maskCell(cell: string) {
+  const d = cell.replace(/\D/g, "");
+  if (d.length < 4) return "your cell";
+  return `${d.slice(0, 3)} *** ${d.slice(-4)}`;
+}
+
+/** Demo-only eWallet cash-out simulator. No money moves and nothing is sent to FNB. */
+export function FnbCashOut({ available }: { available?: number }) {
   const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState(50);
+  const [cell, setCell] = useState("");
+  const [step, setStep] = useState<"form" | "sending" | "sent">("form");
+  const [pin] = useState(() => String(1000 + Math.floor(Math.random() * 9000)));
+
+  const reset = () => setStep("form");
+  const send = () => {
+    if (cell.replace(/\D/g, "").length < 10) {
+      toast.error("Enter a 10-digit SA cell number");
+      return;
+    }
+    setStep("sending");
+    window.setTimeout(() => setStep("sent"), 1100);
+  };
+
   return (
     <>
       <Button
         variant="outline"
-        className="mt-4 h-auto min-h-11 w-full whitespace-normal py-3"
-        onClick={() => setOpen(true)}
+        className="mt-4 h-auto min-h-12 w-full justify-start gap-3 whitespace-normal py-3 text-left"
+        onClick={() => {
+          reset();
+          setOpen(true);
+        }}
       >
-        <Banknote /> FNB eWallet cash-out{" "}
-        <span className="text-xs text-muted-foreground">Not connected</span>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Banknote className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Cash out with FNB eWallet</span>
+          <span className="block text-xs font-normal text-muted-foreground">
+            Get cash at an FNB ATM, no bank card · Demo
+          </span>
+        </span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-semibold">
+            <FlaskConical className="size-3" /> Demo simulation · no real money moves
+          </span>
           <DialogTitle>FNB eWallet cash-out</DialogTitle>
-          <DialogDescription>
-            Mdeko cannot send your earnings or savings to FNB eWallet yet.
-          </DialogDescription>
-          <p className="text-sm text-muted-foreground">
-            If someone has already sent you an FNB eWallet, follow FNB’s instructions to withdraw
-            it. Your Mdeko sales record is not an eWallet balance. No money moves when you open this
-            page.
-          </p>
-          <Button asChild className="h-auto min-h-11 whitespace-normal py-3">
-            <a
-              href="https://www.fnb.co.za/send-money/eWallet/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FNB eWallet information <ExternalLink />
-            </a>
-          </Button>
+          {step !== "sent" ? (
+            <>
+              <DialogDescription>
+                Send money to a cell number. Collect it as cash at any FNB ATM.
+              </DialogDescription>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">How much?</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {AMOUNTS.map((a) => (
+                    <Button
+                      key={a}
+                      type="button"
+                      variant={amount === a ? "default" : "outline"}
+                      className="min-h-11"
+                      onClick={() => setAmount(a)}
+                    >
+                      R{a}
+                    </Button>
+                  ))}
+                </div>
+                {available !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    Savings pot: R{available.toFixed(2)}
+                  </p>
+                )}
+              </div>
+              <label className="space-y-2 text-sm font-medium">
+                <span className="block">Cell number</span>
+                <Input
+                  inputMode="tel"
+                  placeholder="082 123 4567"
+                  value={cell}
+                  onChange={(e) => setCell(e.target.value)}
+                  className="h-11"
+                />
+              </label>
+              <Button
+                className="min-h-12 w-full"
+                disabled={step === "sending"}
+                onClick={send}
+              >
+                <Smartphone />
+                {step === "sending" ? "Sending…" : `Send R${amount} demo eWallet`}
+              </Button>
+            </>
+          ) : (
+            <>
+              <DialogDescription>This is the SMS the trader would get.</DialogDescription>
+              <div className="rounded-2xl border bg-secondary p-4 animate-rise">
+                <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <MessageSquareText className="size-4" /> SMS · FNB
+                </p>
+                <p className="mt-2 text-sm">
+                  R{amount}.00 eWallet sent to {maskCell(cell)} from Mdeko stall savings. Your
+                  ATM PIN is <span className="font-bold tabular-nums">{pin}</span>. Valid 16 hours.
+                </p>
+              </div>
+              <p className="text-sm font-medium">At any FNB ATM</p>
+              <ol className="space-y-2 text-sm">
+                {[
+                  "Tap “Cardless services”",
+                  "Choose “eWallet” and type the cell number",
+                  `Type the PIN ${pin}`,
+                  `Take your R${amount} cash`,
+                ].map((s, i) => (
+                  <li key={s} className="flex items-center gap-3">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                      {i + 1}
+                    </span>
+                    {s}
+                  </li>
+                ))}
+              </ol>
+              <p className="text-xs text-muted-foreground">
+                Demo only. Mdeko is not connected to FNB and no SMS was sent. A live version
+                would need an FNB partnership.
+              </p>
+              <Button variant="outline" className="min-h-11" onClick={reset}>
+                Try another amount
+              </Button>
+              <Button asChild variant="ghost" className="h-auto min-h-11 whitespace-normal">
+                <a
+                  href="https://www.fnb.co.za/send-money/eWallet/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Real FNB eWallet information <ExternalLink />
+                </a>
+              </Button>
+            </>
+          )}
           <Button variant="ghost" className="min-h-11" onClick={() => setOpen(false)}>
             <ArrowLeft /> Back to My Money
           </Button>

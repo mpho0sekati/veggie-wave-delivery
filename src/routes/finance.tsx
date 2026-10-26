@@ -227,7 +227,7 @@ function SavingsSection({
       <p className="mt-3 text-sm text-muted-foreground">
         {role === "trader" ? t.stackTrader : t.stackBuyer}
       </p>
-      <FnbCashOut />
+      {role !== "trader" && <FnbCashOut available={jar.balance} />}
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-sm">
           <DialogTitle>My savings goal</DialogTitle>
@@ -643,11 +643,11 @@ function FinancePage() {
           </section>
         ) : (
           <>
-            <section className="border-b py-6">
-              <p className="text-sm text-muted-foreground">
+            <section className="mt-5 rounded-2xl bg-brand p-5 text-primary-foreground shadow-glow [&_p]:text-primary-foreground/85">
+              <p className="text-sm">
                 {profile.trader ? "Recorded sales" : "Completed order value"}
               </p>
-              <p className="mt-2 break-words font-display text-4xl font-bold tabular-nums">
+              <p className="mt-2 break-words font-display text-4xl font-bold tabular-nums !text-primary-foreground">
                 {formatRand(profile.totalTraded)}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -720,7 +720,7 @@ function FinancePage() {
                   {profile.trader.settledCount === 1 ? "sale" : "sales"} recorded · only confirmed
                   MoMo or cash payments count. Settlement does not mean a bank payout.
                 </p>
-                <FnbCashOut />
+                <FnbCashOut available={savingsJar?.balance ?? profile.savingsJar.balance} />
                 {score && (
                   <Button
                     variant="ghost"
