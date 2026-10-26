@@ -71,6 +71,13 @@
       "when": 1793013784478,
       "tag": "0009_extend_wave_expiry",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793017169301,
+      "tag": "0010_public_discovery_and_cash_fallback",
+      "breakpoints": true
     }
   ]
 }
