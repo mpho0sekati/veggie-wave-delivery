@@ -526,12 +526,13 @@ function BuyerPage() {
           onSignOut={signOutEverywhere}
           onHelp={() => setDescribeOpen(true)}
         />
-        <div className="flex items-center justify-between gap-2 pr-12">
-          <button
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pr-12">
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setAreaOpen(true)}
             aria-label="Change area"
-            className="flex min-w-0 items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm"
+            className="h-11 min-w-0 justify-start gap-1.5 rounded-full bg-background/95 px-3 text-xs font-medium shadow-sm"
           >
             <MapPin className="size-4 shrink-0 text-primary" />
             <span className="truncate">
@@ -540,10 +541,10 @@ function BuyerPage() {
                 : `${areaName ?? (buyer.located ? "Near me" : "Choose area")} · ${online.length} traders`}
             </span>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-          </button>
+          </Button>
           <Link
             to="/finance"
-            className="flex items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1.5 text-xs font-semibold shadow-sm"
+            className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border bg-background/95 px-3 text-xs font-semibold shadow-sm"
           >
             <Wallet className="size-4 text-primary" />
             {formatRand(walletBalance + communityCredit)}
@@ -587,7 +588,7 @@ function BuyerPage() {
                     <Button
                       key={a.name}
                       variant={areaName === a.name ? "default" : "secondary"}
-                      className="justify-start gap-1.5"
+                      className="h-auto min-h-11 min-w-0 justify-start gap-1.5 whitespace-normal break-words px-2 py-2 text-xs [&_svg]:shrink-0"
                       onClick={() => chooseArea(a)}
                     >
                       <MapPin className="size-4" /> {a.name}
@@ -605,7 +606,7 @@ function BuyerPage() {
         <Button
           size="icon"
           variant="secondary"
-          className="size-10 rounded-full border shadow-lg backdrop-blur-md"
+          className="size-11 rounded-full border shadow-lg backdrop-blur-md"
           onClick={() => {
             locate();
             setRecenterTrigger((p) => p + 1);
@@ -619,20 +620,20 @@ function BuyerPage() {
 
       {/* Offline notice — waves are saved on the phone and sent on reconnect */}
       {!isOnline && (
-        <div className="absolute left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border bg-background/95 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md">
-          <WifiOff className="size-4 text-destructive" />
+        <div className="absolute inset-x-3 top-[calc(max(0.75rem,env(safe-area-inset-top))+8rem)] z-10 mx-auto flex max-w-lg items-center justify-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-xs font-medium shadow-lg backdrop-blur-md">
+          <WifiOff className="size-4 shrink-0 text-destructive" />
           No internet · your wave will be saved
         </div>
       )}
 
       {/* Floating bottom drawer — collapses to a slim tracking bar during delivery */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex max-h-[calc(100dvh-8rem)] w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto flex max-h-[calc(100dvh-9.5rem)] w-full max-w-lg flex-col rounded-t-2xl border-t bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-[height] duration-300 ease-out motion-reduce:transition-none sm:bottom-4 sm:rounded-2xl sm:border ${
           (request && isCollapsed) || (!request && mapOnly)
             ? "h-auto"
             : sheetExpanded || request
               ? "h-[88dvh]"
-              : "h-[62dvh] max-h-[620px]"
+              : "h-[62dvh]"
         }`}
       >
         {!request && mapOnly ? (
@@ -692,9 +693,9 @@ function BuyerPage() {
           </Button>
         ) : (
           <>
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-2">
+            <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b px-3 py-2 sm:px-4">
               <div className="min-w-0">
-                <h1 className="text-lg font-semibold">
+                <h1 className="text-base font-semibold leading-5 sm:text-lg">
                   {request ? "Your wave" : "Fresh veggies, delivered"}
                 </h1>
                 {!request && (
@@ -710,6 +711,7 @@ function BuyerPage() {
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-11 px-2"
                     onClick={() => setMapOnly(true)}
                     aria-label="Hide and show the full map"
                   >
@@ -719,6 +721,7 @@ function BuyerPage() {
                 <Button
                   size="icon"
                   variant="ghost"
+                  className="size-11"
                   onClick={() => (request ? setIsCollapsed(true) : setSheetExpanded((v) => !v))}
                   aria-expanded={request ? true : sheetExpanded}
                   aria-label={

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import InstallMdeko from "@/components/InstallMdeko";
 import UpdateMdeko from "@/components/UpdateMdeko";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   signedIn: boolean;
@@ -47,7 +48,7 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
     <nav
       aria-label="Main"
       className={cn(
-        "flex items-stretch justify-around rounded-2xl border bg-background/95 px-1 py-1 shadow-lg backdrop-blur-md",
+        "grid min-w-0 grid-flow-col auto-cols-[minmax(0,1fr)] items-stretch rounded-2xl border bg-background/95 px-1 py-1 shadow-lg backdrop-blur-md",
         className,
       )}
     >
@@ -55,10 +56,10 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
         const active = t.to !== undefined && path === t.to;
         const inner = (
           <>
-            <t.icon className={cn("size-6", active ? "text-primary" : "text-muted-foreground")} />
+            <t.icon className={cn("size-5 shrink-0 sm:size-6", active ? "text-primary" : "text-muted-foreground")} />
             <span
               className={cn(
-                "text-[11px] font-medium leading-none",
+                "text-[10px] font-medium leading-4 sm:text-[11px]",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
@@ -71,15 +72,15 @@ export default function AppTabBar({ signedIn, onSignOut, onHelp, className }: Pr
           </>
         );
         const cls =
-          "flex min-w-14 flex-1 flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1 transition-colors hover:bg-secondary active:bg-secondary";
+          "flex h-auto min-h-14 min-w-0 w-full flex-col items-center justify-center gap-1 rounded-xl px-0 pt-2 pb-1 transition-colors hover:bg-secondary active:bg-secondary";
         return t.to ? (
           <Link key={t.label} to={t.to} className={cls} aria-current={active ? "page" : undefined}>
             {inner}
           </Link>
         ) : (
-          <button key={t.label} type="button" onClick={t.onClick} className={cls}>
+          <Button key={t.label} variant="ghost" type="button" onClick={t.onClick} className={cls}>
             {inner}
-          </button>
+          </Button>
         );
       })}
       <UpdateMdeko />

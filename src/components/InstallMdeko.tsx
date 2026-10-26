@@ -72,10 +72,10 @@ export default function InstallMdeko() {
         onClick={() => void install()}
         aria-label="Install Mdeko"
         title="Install Mdeko on your phone"
-        className="h-auto min-w-14 flex-1 flex-col gap-1 rounded-xl px-1 pt-2 pb-1 text-muted-foreground [&_svg]:size-6"
+        className="h-auto min-h-14 min-w-0 w-full flex-col gap-1 rounded-xl px-0 pt-2 pb-1 text-muted-foreground [&_svg]:size-5 sm:[&_svg]:size-6"
       >
         <Download />
-        <span className="text-[11px] leading-none font-medium">Install</span>
+        <span className="text-[10px] leading-4 font-medium sm:text-[11px]">Install</span>
         <span aria-hidden className="h-0.5 w-6" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
