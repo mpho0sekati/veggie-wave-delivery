@@ -6,7 +6,8 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 
 - **FNB options:** Simulate eWallet deductions locally from recorded savings, never real funds. Links are informational; exports download authenticated records locally. Never imply FNB partnership, payouts, credit approval or submission.
 
-- **Preview recovery:** Reload only after a lost preview connection reconnects, cap the backup reload for failing server calls so a failure a reload cannot fix never blanks the screen repeatedly, and answer an expired sign-in as rejected authentication that clears the browser session once.
+- **Recovery:** Reload only on reconnect or stale RPCs (capped); preserve the screen on other failures and clear rejected sessions once.
+- **Expiry:** Use server-confirmed expiry and typed acceptance failures; refresh reads and preserve accepted deliveries across polls to avoid false expiry.
 
 - **Learn-by-doing presentation:** Derive shared read-only journey strips from existing basket, saved stock, online and order states; never use them to change permissions or marketplace behavior, so guidance cannot create a second source of truth.
 
