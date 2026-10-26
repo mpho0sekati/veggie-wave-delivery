@@ -185,6 +185,9 @@ export function useExportRecord() {
     queryKey: ["finance", "export-record", session.userId],
     queryFn: () => fn(),
     enabled: Boolean(session.userId) && !session.loading,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 }

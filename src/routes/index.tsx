@@ -960,7 +960,7 @@ function BuyerPage() {
                               </p>
                             ) : (
                               <p className="text-xs text-muted-foreground">
-                                Waiting for their live location…
+                                {request.status === "accepted" ? liveOrder?.payment_method === "cash" ? "Cash selected · your trader is preparing your veggies" : "Payment approved · your trader is preparing your veggies" : "Waiting for their live location…"}
                               </p>
                             )}
                           </div>
@@ -969,7 +969,7 @@ function BuyerPage() {
                       {request.status === "delivered" && (
                         <>
                           <CheckCircle2 className="size-5 text-primary" />
-                          <p className="font-semibold">Delivered — time to pay</p>
+                          <p className="font-semibold">Delivered — confirm received</p>
                         </>
                       )}
                       {request.status === "paid" && (
@@ -1093,27 +1093,9 @@ function BuyerPage() {
                         {liveOrder?.payment_method !== "cash" && (
                           <p className="text-sm text-primary">Payment approved · confirm your veggies arrived</p>
                         )}
-                        {liveOrder?.payment_method !== "cash" && !liveOrder?.delivered_at && <>
-                        <Button
-                          variant="wave"
-                          size="lg"
-                          onClick={() => setPayOpen(true)}
-                          disabled={payLoading}
-                          className={payLoading ? "animate-pulse-glow" : ""}
-                        >
-                          {payLoading ? (
-                            <>
-                              <Loader2 className="animate-spin" /> Processing…
-                            </>
-                          ) : (
-                            <>
-                              <Wallet /> Pay {formatRand(request.total)} with MTN MoMo
-                            </>
-                          )}
-                        </Button>
-                        </>}
                         <Button
                           variant="outline"
+                          disabled={actions.confirmCash.isPending || actions.advanceOrder.isPending}
                           onClick={async () => {
                             if (!request.orderId) return;
                             try {
