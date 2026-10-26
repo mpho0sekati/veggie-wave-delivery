@@ -46,6 +46,8 @@
 
 ## Active / Backlog
 
+- [ ] Audit and repair the complete buyer → seller → payment → delivery → money journey; polish stock saving and map/order navigation, then verify repeat purchases in separate browser sessions.
+
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
