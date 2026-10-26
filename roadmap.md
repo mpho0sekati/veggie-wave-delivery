@@ -2,6 +2,8 @@
 
 ## Done
 
+- eWallet demo uses recorded Mdeko savings, blocks overspending, accepts exact amounts and shows local simulated deductions without changing real funds. Eight tests and changed-file lint pass; signed-in account had R0 and correctly blocked withdrawal. Positive-balance UI completion remains unverified until an account has recorded savings.
+
 - FNB options on My Money: eWallet guidance beside earnings/savings explicitly says not connected; First Business Zero and funding links open official FNB pages; lender record downloads locally without bank submission. Signed-in account's six-order full record downloaded successfully; desktop and 320/393px phone dialogs checked with no runtime errors. 11 targeted tests, changed-file lint and build pass; repository-wide lint still has unrelated existing failures. Live FNB payouts and credit submissions are not integrated.
 
 - Mobile layout: all navigation icons fit equal-width tracks; buyer/seller drawers reserve header clearance, completed orders use content height, and area/dialog controls wrap within phone screens. Signed-in buyer basket and area switching checked at 320×720, 393×852, 393×600 and desktop; existing test trader and My Money checked on phones. No horizontal overflow or runtime errors; 14 targeted tests pass and build OK.

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { createLenderRecordCsv } from "@/lib/finance-record";
+import { demoBalanceCents, demoCashOutCents } from "@/lib/ewallet-demo";
 import type { ExportRecord, MoneyProfile } from "@/lib/finance.functions";
 
 const AMOUNTS = [20, 50, 100];
@@ -27,19 +28,34 @@ function maskCell(cell: string) {
 /** Demo-only eWallet cash-out simulator. No money moves and nothing is sent to FNB. */
 export function FnbCashOut({ available }: { available?: number }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(50);
+  const [amount, setAmount] = useState("");
   const [cell, setCell] = useState("");
-  const [step, setStep] = useState<"form" | "sending" | "sent">("form");
+  const [step, setStep] = useState<"form" | "sent">("form");
+  const [withdrawnCents, setWithdrawnCents] = useState(0);
+  const [receipt, setReceipt] = useState<{ cents: number; remaining: number; cell: string } | null>(
+    null,
+  );
   const [pin] = useState(() => String(1000 + Math.floor(Math.random() * 9000)));
+  const remainingCents = demoBalanceCents(available, withdrawnCents);
+  const amountCents = demoCashOutCents(amount, remainingCents);
+  const money = (cents: number) => `R${(cents / 100).toFixed(2)}`;
 
-  const reset = () => setStep("form");
+  const reset = () => {
+    setStep("form");
+    setAmount("");
+  };
   const send = () => {
+    if (amountCents === null) {
+      toast.error(`Choose an amount up to ${money(remainingCents)}`);
+      return;
+    }
     if (cell.replace(/\D/g, "").length < 10) {
       toast.error("Enter a 10-digit SA cell number");
       return;
     }
-    setStep("sending");
-    window.setTimeout(() => setStep("sent"), 1100);
+    setReceipt({ cents: amountCents, remaining: remainingCents - amountCents, cell });
+    setWithdrawnCents((previous) => previous + amountCents);
+    setStep("sent");
   };
 
   return (
@@ -60,6 +76,10 @@ export function FnbCashOut({ available }: { available?: number }) {
           <span className="block text-xs font-normal text-muted-foreground">
             Get cash at an FNB ATM, no bank card · Demo
           </span>
+          <span className="block text-xs font-normal text-muted-foreground">
+            Mdeko savings: {money(demoBalanceCents(available))}
+            {withdrawnCents > 0 && ` · Demo left: ${money(remainingCents)}`}
+          </span>
         </span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -71,7 +91,7 @@ export function FnbCashOut({ available }: { available?: number }) {
           {step !== "sent" ? (
             <>
               <DialogDescription>
-                Send money to a cell number. Collect it as cash at any FNB ATM.
+                Try cashing out your recorded Mdeko savings. Your real savings stay unchanged.
               </DialogDescription>
               <div className="space-y-2">
                 <p className="text-sm font-medium">How much?</p>
@@ -80,17 +100,48 @@ export function FnbCashOut({ available }: { available?: number }) {
                     <Button
                       key={a}
                       type="button"
-                      variant={amount === a ? "default" : "outline"}
+                      variant={amount === String(a) ? "default" : "outline"}
                       className="min-h-11"
-                      onClick={() => setAmount(a)}
+                      disabled={a * 100 > remainingCents}
+                      onClick={() => setAmount(String(a))}
                     >
                       R{a}
                     </Button>
                   ))}
                 </div>
-                {available !== undefined && (
-                  <p className="text-xs text-muted-foreground">
-                    Savings pot: R{available.toFixed(2)}
+                <p className="text-sm font-semibold">
+                  Available in this demo: {money(remainingCents)}
+                </p>
+                <label className="block space-y-2 text-sm font-medium">
+                  <span>Amount (R)</span>
+                  <Input
+                    aria-label="Cash-out amount"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="h-11"
+                  />
+                </label>
+                <Button
+                  variant="outline"
+                  className="min-h-11 w-full"
+                  disabled={remainingCents === 0}
+                  onClick={() => setAmount((remainingCents / 100).toFixed(2))}
+                >
+                  Use full balance · {money(remainingCents)}
+                </Button>
+                {remainingCents === 0 && (
+                  <p className="text-sm text-muted-foreground">No savings left for this demo.</p>
+                )}
+                {amount !== "" && amountCents === null && (
+                  <p role="alert" className="text-sm text-destructive">
+                    Enter an amount above R0 and no more than {money(remainingCents)}.
+                  </p>
+                )}
+                {amountCents !== null && (
+                  <p className="text-sm text-muted-foreground">
+                    Left after demo cash-out: {money(remainingCents - amountCents)}
                   </p>
                 )}
               </div>
@@ -98,36 +149,43 @@ export function FnbCashOut({ available }: { available?: number }) {
                 <span className="block">Cell number</span>
                 <Input
                   inputMode="tel"
+                  aria-label="Cell number"
                   placeholder="082 123 4567"
                   value={cell}
                   onChange={(e) => setCell(e.target.value)}
                   className="h-11"
                 />
               </label>
-              <Button className="min-h-12 w-full" disabled={step === "sending"} onClick={send}>
+              <Button className="min-h-12 w-full" disabled={amountCents === null} onClick={send}>
                 <Smartphone />
-                {step === "sending" ? "Sending…" : `Send R${amount} demo eWallet`}
+                {amountCents === null
+                  ? "Send demo eWallet"
+                  : `Send ${money(amountCents)} demo eWallet`}
               </Button>
             </>
           ) : (
             <>
               <DialogDescription>This is the SMS the trader would get.</DialogDescription>
-              <div className="rounded-2xl border bg-secondary p-4 animate-rise">
+              <div className="rounded-lg border bg-secondary p-4 animate-rise">
                 <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                   <MessageSquareText className="size-4" /> SMS · FNB
                 </p>
                 <p className="mt-2 text-sm">
-                  R{amount}.00 eWallet sent to {maskCell(cell)} from Mdeko stall savings. Your ATM
-                  PIN is <span className="font-bold tabular-nums">{pin}</span>. Valid 16 hours.
+                  Demo: {money(receipt?.cents ?? 0)} eWallet to {maskCell(receipt?.cell ?? "")} from
+                  Mdeko savings. Your example ATM PIN is{" "}
+                  <span className="font-bold tabular-nums">{pin}</span>. Valid 16 hours.
                 </p>
               </div>
+              <p className="text-sm font-semibold">
+                Demo balance left: {money(receipt?.remaining ?? remainingCents)}
+              </p>
               <p className="text-sm font-medium">At any FNB ATM</p>
               <ol className="space-y-2 text-sm">
                 {[
                   "Tap “Cardless services”",
                   "Choose “eWallet” and type the cell number",
                   `Type the PIN ${pin}`,
-                  `Take your R${amount} cash`,
+                  `Take your ${money(receipt?.cents ?? 0)} cash`,
                 ].map((s, i) => (
                   <li key={s} className="flex items-center gap-3">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -143,6 +201,17 @@ export function FnbCashOut({ available }: { available?: number }) {
               </p>
               <Button variant="outline" className="min-h-11" onClick={reset}>
                 Try another amount
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11"
+                onClick={() => {
+                  setWithdrawnCents(0);
+                  setReceipt(null);
+                  reset();
+                }}
+              >
+                Reset demo to recorded savings
               </Button>
               <Button asChild variant="ghost" className="h-auto min-h-11 whitespace-normal">
                 <a
