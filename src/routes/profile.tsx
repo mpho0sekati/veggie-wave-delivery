@@ -60,7 +60,7 @@ function ProfilePage() {
   }, [session.userId]);
 
   const cell = cellFromEmail(session.email);
-  const isDemo = session.email?.endsWith("@mdeko.app") && !cell;
+  const isDemo = Boolean(session.email?.startsWith("demo.")) && !cell;
   const isTrader = session.role === "trader";
 
   const save = async () => {
@@ -165,7 +165,11 @@ function ProfilePage() {
               <p className="flex items-center gap-2 text-sm">
                 <ShieldCheck className="size-4 text-primary" />
                 <span className="font-medium">Sign-in:</span>
-                {cell ? "Cell number + 4-number PIN" : "One-tap demo"}
+                {cell
+                  ? "Cell number + 4-number PIN"
+                  : session.email?.startsWith("demo.")
+                    ? "One-tap demo"
+                    : "Email"}
               </p>
             </Card>
 
