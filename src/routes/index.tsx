@@ -155,7 +155,7 @@ function BuyerPage() {
   }, []);
   const [payOpen, setPayOpen] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
-  const [payLoading, setPayLoading] = useState(false);
+  const [, setPayLoading] = useState(false);
   const isOnline = useOnline();
   const queuedCount = useOfflineQueueCount();
 

@@ -137,10 +137,11 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
       })),
     }));
   }, [query.data, catalogQuery.data, session.userId]);
+  const refetch = query.refetch;
   const refresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["mdeko"] });
-    return query.refetch();
-  }, [queryClient, query.refetch]);
+    return refetch();
+  }, [queryClient, refetch]);
   return {
     session,
     refresh,
