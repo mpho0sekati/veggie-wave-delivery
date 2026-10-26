@@ -51,4 +51,4 @@
 - Publish app to production.
 - Error log for 02-05 Sep 2026 written to ERROR_LOG.md (done).
 
-- [ ] Presentation deck (.md) with Armando + grandmother persona journey
+- [x] Presentation deck (.md) with Armando + grandmother persona journey
