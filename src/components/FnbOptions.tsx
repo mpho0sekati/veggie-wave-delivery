@@ -104,11 +104,7 @@ export function FnbCashOut({ available }: { available?: number }) {
                   className="h-11"
                 />
               </label>
-              <Button
-                className="min-h-12 w-full"
-                disabled={step === "sending"}
-                onClick={send}
-              >
+              <Button className="min-h-12 w-full" disabled={step === "sending"} onClick={send}>
                 <Smartphone />
                 {step === "sending" ? "Sending…" : `Send R${amount} demo eWallet`}
               </Button>
@@ -121,8 +117,8 @@ export function FnbCashOut({ available }: { available?: number }) {
                   <MessageSquareText className="size-4" /> SMS · FNB
                 </p>
                 <p className="mt-2 text-sm">
-                  R{amount}.00 eWallet sent to {maskCell(cell)} from Mdeko stall savings. Your
-                  ATM PIN is <span className="font-bold tabular-nums">{pin}</span>. Valid 16 hours.
+                  R{amount}.00 eWallet sent to {maskCell(cell)} from Mdeko stall savings. Your ATM
+                  PIN is <span className="font-bold tabular-nums">{pin}</span>. Valid 16 hours.
                 </p>
               </div>
               <p className="text-sm font-medium">At any FNB ATM</p>
@@ -142,8 +138,8 @@ export function FnbCashOut({ available }: { available?: number }) {
                 ))}
               </ol>
               <p className="text-xs text-muted-foreground">
-                Demo only. Mdeko is not connected to FNB and no SMS was sent. A live version
-                would need an FNB partnership.
+                Demo only. Mdeko is not connected to FNB and no SMS was sent. A live version would
+                need an FNB partnership.
               </p>
               <Button variant="outline" className="min-h-11" onClick={reset}>
                 Try another amount
