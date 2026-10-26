@@ -35,6 +35,7 @@ describe("verified payment refresh", () => {
     const { result } = renderHook(() => useMdekoActions());
     await result.current.verifyPayment("order");
     expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["finance"] });
+    expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["marketplace"] });
   });
   it("does not refresh money as paid for a pending request", async () => {
     mocks.verify.mockResolvedValue({ status: "pending" });

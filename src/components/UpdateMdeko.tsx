@@ -38,8 +38,12 @@ export default function UpdateMdeko() {
       disabled={busy}
       className="h-auto min-h-14 min-w-0 w-full flex-col gap-1 rounded-xl px-0 pt-2 pb-1 transition-colors hover:bg-secondary active:bg-secondary"
     >
-      <RefreshCw className={`size-5 shrink-0 text-muted-foreground sm:size-6 ${busy ? "animate-spin" : ""}`} />
-      <span className="text-[10px] font-medium leading-4 text-muted-foreground sm:text-[11px]">Update</span>
+      <RefreshCw
+        className={`size-5 shrink-0 text-muted-foreground sm:size-6 ${busy ? "animate-spin" : ""}`}
+      />
+      <span className="text-[10px] font-medium leading-4 text-muted-foreground sm:text-[11px]">
+        Update
+      </span>
       <span aria-hidden className="h-0.5 w-6" />
     </Button>
   );

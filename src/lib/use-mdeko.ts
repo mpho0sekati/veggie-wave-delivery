@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useSession } from "./use-session";
 
 import {
   acceptWave,
@@ -23,43 +24,47 @@ const LIVE_MS = 4000;
 
 /** The buyer's most recent wave, refreshed so both phones stay in sync. */
 export function useMyWave(enabled: boolean) {
+  const { userId } = useSession();
   const fn = useServerFn(getMyWave);
   return useQuery<Wave | null>({
-    queryKey: ["mdeko", "my-wave"],
+    queryKey: ["mdeko", "my-wave", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
     refetchInterval: enabled ? LIVE_MS : false,
   });
 }
 
 /** Waves any trader can still accept. */
 export function useOpenWaves(enabled: boolean) {
+  const { userId } = useSession();
   const fn = useServerFn(listOpenWaves);
   return useQuery<Wave[]>({
-    queryKey: ["mdeko", "open-waves"],
+    queryKey: ["mdeko", "open-waves", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
     refetchInterval: enabled ? LIVE_MS : false,
   });
 }
 
 /** Orders where I am the buyer or the trader. */
 export function useMyOrders(enabled: boolean) {
+  const { userId } = useSession();
   const fn = useServerFn(listMyOrders);
   return useQuery<Order[]>({
-    queryKey: ["mdeko", "my-orders"],
+    queryKey: ["mdeko", "my-orders", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
     refetchInterval: enabled ? LIVE_MS : false,
   });
 }
 
 export function useMySettlements(enabled: boolean) {
+  const { userId } = useSession();
   const fn = useServerFn(listMySettlements);
   return useQuery({
-    queryKey: ["mdeko", "settlements"],
+    queryKey: ["mdeko", "settlements", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
   });
 }
 
@@ -68,6 +73,7 @@ function useRefreshLive() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["mdeko"] });
     void queryClient.invalidateQueries({ queryKey: ["finance"] });
+    void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
   };
 }
 

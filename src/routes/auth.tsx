@@ -89,10 +89,19 @@ function AuthPage() {
       await ensureDemoAccount({ data: { role: demoRole } });
       const { error: e } = await supabase.auth.signInWithPassword(creds);
       if (e) throw e;
-      await supabase.rpc("setup_marketplace_profile", {
-        _name: demoRole === "trader" ? "Demo Trader" : "Demo Buyer",
-        _role: demoRole,
-      });
+      const { data: savedProfile, error: readError } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .maybeSingle();
+      if (readError) throw readError;
+      if (!savedProfile) {
+        const { error: setupError } = await supabase.rpc("setup_marketplace_profile", {
+          _name: demoRole === "trader" ? "Armando" : "Demo Buyer",
+          _role: demoRole,
+        });
+        if (setupError) throw setupError;
+      }
       navigate({ to: demoRole === "trader" ? "/runner" : "/" });
     } catch (err) {
       setError(friendly(err));

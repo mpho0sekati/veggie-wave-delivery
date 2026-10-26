@@ -29,6 +29,14 @@ const itemsSchema = z
   .array(z.object({ id: z.string().min(1).max(80), qty: z.number().int().min(1).max(99) }))
   .max(30);
 
+export const waveInputSchema = z.object({
+  items: itemsSchema.min(1),
+  wish: z.string().max(200).default(""),
+  note: z.string().max(200).default(""),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
@@ -38,19 +46,18 @@ async function admin() {
 
 export const createWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) =>
-    z
-      .object({
-        items: itemsSchema,
-        wish: z.string().max(200).default(""),
-        note: z.string().max(200).default(""),
-        lat: z.number().min(-90).max(90).nullable().default(null),
-        lng: z.number().min(-180).max(180).nullable().default(null),
-      })
-      .refine((v) => v.items.length > 0 || v.wish.trim().length > 0, "empty-wave")
-      .parse(input),
-  )
+  .validator((input: unknown) => waveInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<Wave> => {
+    const { data: active, error: activeError } = await context.supabase
+      .from("wave_orders")
+      .select("id")
+      .eq("buyer_id", context.userId)
+      .is("cancelled_at", null)
+      .neq("status", "completed")
+      .limit(1)
+      .maybeSingle();
+    if (activeError) throw new Error(activeError.message);
+    if (active) throw new Error("Finish your current delivery before sending another wave.");
     const db = await admin();
     const { data: wave, error } = await db.rpc("create_wave", {
       _buyer: context.userId,
@@ -68,10 +75,21 @@ export const createWave = createServerFn({ method: "POST" })
 export const getMyWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Wave | null> => {
+    const { data: active, error: activeError } = await context.supabase
+      .from("wave_orders")
+      .select("wave_id")
+      .eq("buyer_id", context.userId)
+      .is("cancelled_at", null)
+      .neq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (activeError) throw new Error(activeError.message);
     const { data, error } = await context.supabase
       .from("waves")
       .select("*")
       .eq("buyer_id", context.userId)
+      .eq(active ? "id" : "buyer_id", active?.wave_id ?? context.userId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

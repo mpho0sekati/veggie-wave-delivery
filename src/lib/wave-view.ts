@@ -21,6 +21,7 @@ export function waveView(wave: Wave, order?: Order | null): WaveRequest {
     items,
     wish: wave.wish,
     note: wave.note,
+    landmark: wave.note && !/^\d+ items$/.test(wave.note) ? wave.note : undefined,
     total: order ? Number(order.amount) : 0,
     runnerId: order?.trader_id ?? wave.trader_id,
     createdAt: new Date(wave.created_at).getTime(),

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,34 +10,77 @@ import { saveTraderStock } from "@/lib/use-marketplace";
 
 type Props = {
   runnerId: string;
-  stock: StockLine[];
+  stock: (StockLine & { available?: boolean })[];
   customItems: CustomItem[];
   highlightItemId?: string | null;
-  onSaved?: () => void;
+  onSaved?: () => void | Promise<unknown>;
+  onSavingChange?: (saving: boolean) => void;
 };
 
-export default function StockEditor({
-  runnerId,
-  stock,
-  customItems,
-  highlightItemId,
-  onSaved,
-}: Props) {
+export type StockEditorHandle = { flush: () => Promise<void> };
+
+const StockEditor = forwardRef<StockEditorHandle, Props>(function StockEditor(
+  { runnerId, stock, customItems, highlightItemId, onSaved, onSavingChange },
+  ref,
+) {
   const catalog = catalogWith(customItems);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const pending = useRef<Promise<void>>(Promise.resolve());
+  const failed = useRef(false);
+  const latest = useRef(stock);
+  if (!saving) latest.current = stock;
+
+  useImperativeHandle(ref, () => ({
+    flush: async () => {
+      await pending.current;
+      if (failed.current) throw new Error("Stock changes could not be saved");
+    },
+  }));
+
+  const save = (
+    id: string,
+    patch: { price?: number; quantity?: number; available?: boolean },
+    fallback: number,
+  ) => {
+    setSaving(true);
+    onSavingChange?.(true);
+    const task = pending.current.then(async () => {
+      const old = latest.current.find((line) => line.itemId === id);
+      const next = {
+        itemId: id,
+        price: old?.price ?? fallback,
+        quantity: old?.quantity ?? 1,
+        available: old?.available ?? Boolean(old),
+        ...patch,
+      };
+      await saveTraderStock(runnerId, id, next.price, next.available, next.quantity);
+      latest.current = [...latest.current.filter((line) => line.itemId !== id), next];
+      failed.current = false;
+      await onSaved?.();
+    });
+    pending.current = task.catch(() => {
+      failed.current = true;
+      toast.error("Could not save stock — change the item to try again");
+    });
+    const settled = pending.current;
+    void settled.then(() => {
+      if (pending.current !== settled) return;
+      setSaving(false);
+      onSavingChange?.(false);
+    });
+    return task;
+  };
 
   const lineFor = (id: string) => stock.find((s) => s.itemId === id) ?? null;
 
   const toggle = async (id: string, on: boolean, fallback: number) => {
     try {
-      await saveTraderStock(
-        runnerId,
+      await save(
         id,
-        lineFor(id)?.price ?? fallback,
-        on,
-        lineFor(id)?.quantity ?? 1,
+        { available: on, ...(on && (lineFor(id)?.quantity ?? 0) === 0 ? { quantity: 1 } : {}) },
+        fallback,
       );
-      onSaved?.();
     } catch {
       toast.error("Could not save stock");
     }
@@ -49,14 +92,12 @@ export default function StockEditor({
       return;
     }
     try {
-      await saveTraderStock(
-        runnerId,
-        id,
-        Math.round(value * 100) / 100,
-        true,
-        lineFor(id)?.quantity ?? 1,
-      );
-      onSaved?.();
+      await save(id, { price: Math.round(value * 100) / 100 }, value);
+      setDraft((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       toast.success("Price saved");
     } catch {
       toast.error("Could not save price");
@@ -77,7 +118,7 @@ export default function StockEditor({
         {catalog.map((item) => {
           const Icon = item.icon;
           const line = lineFor(item.id);
-          const on = Boolean(line);
+          const on = Boolean(line && line.available !== false);
           const value = draft[item.id] ?? (line ? String(line.price) : "");
           return (
             <li
@@ -90,7 +131,9 @@ export default function StockEditor({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  per {item.unit} · market {formatRand(item.price)}
+                  {line?.quantity === 0 && on
+                    ? "Sold out · add quantity"
+                    : `per ${item.unit} · market ${formatRand(item.price)}`}
                 </p>
               </div>
               {on && (
@@ -106,7 +149,6 @@ export default function StockEditor({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.currentTarget.blur();
-                        commitPrice(item.id, e.currentTarget.value);
                       }
                     }}
                   />
@@ -116,25 +158,18 @@ export default function StockEditor({
                 <Input
                   className="h-9 w-16"
                   type="number"
-                  min="1"
+                  min="0"
                   aria-label={`Quantity for ${item.name}`}
                   defaultValue={line?.quantity ?? 1}
                   key={`${item.id}-${line?.quantity}`}
                   onBlur={async (e) => {
                     const quantity = Number(e.target.value);
-                    if (!Number.isInteger(quantity) || quantity < 1) {
-                      toast.error("Enter a quantity of at least 1");
+                    if (!Number.isInteger(quantity) || quantity < 0) {
+                      toast.error("Enter a quantity of 0 or more");
                       return;
                     }
                     try {
-                      await saveTraderStock(
-                        runnerId,
-                        item.id,
-                        line?.price ?? item.price,
-                        true,
-                        quantity,
-                      );
-                      onSaved?.();
+                      await save(item.id, { quantity }, item.price);
                     } catch {
                       toast.error("Could not save quantity");
                     }
@@ -151,7 +186,9 @@ export default function StockEditor({
         })}
       </ul>
       <p className="text-xs text-muted-foreground">
-        {stock.length} of {catalog.length} items in stock
+        {saving
+          ? "Saving stock…"
+          : `${stock.filter((line) => line.available !== false && (line.quantity ?? 0) > 0).length} of ${catalog.length} items in stock · changes saved automatically`}
       </p>
       {stock.length === 0 && (
         <Button
@@ -163,4 +200,6 @@ export default function StockEditor({
       )}
     </Card>
   );
-}
+});
+
+export default StockEditor;

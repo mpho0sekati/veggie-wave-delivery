@@ -2,6 +2,8 @@
 
 ## Done
 
+- Full journey audit and polish: seller Map/Orders/My stall tabs, saved-stall map reopening, awaited/serialized stock saves, sold-out restocking, exact seller checkout price, identity-scoped private reads, required delivery pins/itemized waves, saved landmarks and payment-independent completion. Verified two demo-account purchases at R41.75 (R31.75 seller price + R10 delivery), delivery/confirmation, recorded sales and a second wave without resetting stock. Desktop, 390px phone and 606×543 preview checked; 90 tests pass, lint has no errors (eight existing warnings). Tests created two clearly-stamped demo sales and left stock available; real payer-approved MoMo remains unverified.
+
 - Checkout price now matches the seller's price: the delivery fee shown in the buyer's estimate (base R10 + R5/km) was never charged at accept time, so checkout showed a different amount. accept_wave now adds the same fee formula to the order total. Verified end to end: estimate R32.00 (R22 carrots + R10 delivery) → accepted order R32.00 → buyer screen shows "Order accepted by Armando · R32.00". 84 tests pass, build OK, test orders cancelled.
 
 
@@ -45,6 +47,7 @@
 - Nearby trader pins, stock availability and lists share real-coordinate discovery; signed-in check showed the existing online stall 55 m away, distant-stall exclusion and camera stability after GPS updates verified. All 20 tests pass.
 
 ## Active / Backlog
+
 
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
