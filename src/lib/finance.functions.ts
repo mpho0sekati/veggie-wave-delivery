@@ -391,8 +391,7 @@ export const getSmartTip = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }): Promise<string> => {
-    const FALLBACK =
-      "Keep trading regularly — every order builds your financial history on Mdeko.";
+    const FALLBACK = "Keep trading regularly — every order builds your financial history on Mdeko.";
 
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) return FALLBACK;
@@ -638,7 +637,13 @@ export const exportFinancialRecord = createServerFn({ method: "POST" })
         .order("created_at", { ascending: false })
         .limit(100),
       context.supabase.from("profiles").select("name, created_at").eq("id", userId).maybeSingle(),
-      context.supabase.from("payments").select("status, wave_orders!inner(buyer_id,trader_id)").or(`buyer_id.eq.${userId},trader_id.eq.${userId}`, { referencedTable: "wave_orders" }).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100),
+      context.supabase
+        .from("payments")
+        .select("status, wave_orders!inner(buyer_id,trader_id)")
+        .or(`buyer_id.eq.${userId},trader_id.eq.${userId}`, { referencedTable: "wave_orders" })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(100),
       context.supabase.from("savings_pots").select("balance").eq("user_id", userId).maybeSingle(),
     ]);
 

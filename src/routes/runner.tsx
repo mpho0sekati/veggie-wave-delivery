@@ -575,7 +575,7 @@ function RunnerPage() {
                   runnerId={session.userId}
                   stock={ownStock}
                   customItems={state.customItems}
-                onSaved={refresh}
+                  onSaved={refresh}
                   onSavingChange={setStockSaving}
                 />
               )}

@@ -89,7 +89,11 @@ function AuthPage() {
       await ensureDemoAccount({ data: { role: demoRole } });
       const { error: e } = await supabase.auth.signInWithPassword(creds);
       if (e) throw e;
-      const { data: savedProfile, error: readError } = await supabase.from("profiles").select("name").eq("id", (await supabase.auth.getUser()).data.user?.id ?? "").maybeSingle();
+      const { data: savedProfile, error: readError } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .maybeSingle();
       if (readError) throw readError;
       if (!savedProfile) {
         const { error: setupError } = await supabase.rpc("setup_marketplace_profile", {
