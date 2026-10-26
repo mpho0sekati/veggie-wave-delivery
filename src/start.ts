@@ -32,7 +32,20 @@ const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
     });
   }
   try {
-    return await next();
+    const result = await next();
+    // A token for a removed account passes the expiry check but is rejected by
+    // auth; answer it as a rejected sign-in (401), never as a server crash.
+    const response = (result as { response?: Response }).response ?? (result as unknown as Response);
+    if (bearer && response instanceof Response && response.status >= 500) {
+      const text = await response.clone().text().catch(() => "");
+      if (/Unauthorized/i.test(text)) {
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: { "content-type": "text/plain; charset=utf-8", "x-mdeko-auth": "rejected" },
+        });
+      }
+    }
+    return result;
   } catch (error) {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
