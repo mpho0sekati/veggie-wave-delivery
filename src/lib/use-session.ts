@@ -10,6 +10,7 @@ export type Session = {
   email: string | null;
   name: string;
   role: Role | null;
+  error?: string;
 };
 
 const EMPTY: Session = { loading: true, userId: null, email: null, name: "", role: null };
@@ -24,6 +25,7 @@ export function useSession(): Session {
 
   useEffect(() => {
     let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
 
     const load = async () => {
       const { data } = await supabase.auth.getSession();
@@ -32,17 +34,22 @@ export function useSession(): Session {
         if (!cancelled) setSession({ ...EMPTY, loading: false });
         return;
       }
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("name")
         .eq("id", user.id)
         .maybeSingle();
-      const { data: savedRole } = await supabase
+      const { data: savedRole, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
+      if (profileError || roleError) {
+        setSession((previous) => ({ ...previous, loading: false, userId: user.id, email: user.email ?? null, error: "Could not load your saved profile. Retrying…" }));
+        retry = setTimeout(() => void load(), 5000);
+        return;
+      }
       setSession({
         loading: false,
         userId: user.id,
@@ -61,6 +68,7 @@ export function useSession(): Session {
 
     return () => {
       cancelled = true;
+      clearTimeout(retry);
       sub.subscription.unsubscribe();
     };
   }, []);
