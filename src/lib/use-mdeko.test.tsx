@@ -21,6 +21,7 @@ vi.mock("./mdeko.functions", () => ({
   listOpenWaves: vi.fn(),
   startMomoPayment: vi.fn(),
   verifyMomoPayment: mocks.verify,
+  demoApproveMomoPayment: vi.fn(),
 }));
 
 afterEach(() => {
