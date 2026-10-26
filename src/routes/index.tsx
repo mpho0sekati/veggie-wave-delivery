@@ -342,12 +342,10 @@ function BuyerPage() {
   };
   const [describeOpen, setDescribeOpen] = useState(false);
   const [selectedRunnerId, setSelectedRunnerId] = useState<string | null>(null);
-  // Uber behaviour: during a live delivery the drawer shrinks to a slim tracking bar
-  // so the map stays the hero; it expands again when the wave needs a decision.
+  // Uber behaviour: only once the trader is on the way does the drawer shrink to a slim
+  // tracking bar. When an order is accepted the buyer must choose how to pay, so keep it open.
   useEffect(() => {
-    setIsCollapsed(
-      hasRequest && (request?.status === "accepted" || request?.status === "delivering"),
-    );
+    setIsCollapsed(hasRequest && request?.status === "delivering");
   }, [hasRequest, request?.status]);
 
   const best = ranked[0] ?? null;
@@ -672,9 +670,13 @@ function BuyerPage() {
               <p className="truncate text-sm font-semibold">
                 {request.status === "waving"
                   ? "Waving… waiting for a trader"
-                  : courierPosition
-                    ? `${assigned?.name ?? "Your trader"} is on the way`
-                    : "Waiting for your trader's location…"}
+                  : request.status === "accepted" && liveOrder?.payment_method !== "cash"
+                    ? "Order accepted! Tap to pay"
+                    : request.status === "delivered"
+                      ? "Delivered — tap to confirm"
+                      : courierPosition
+                        ? `${assigned?.name ?? "Your trader"} is on the way`
+                        : "Waiting for your trader's location…"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatRand(request.total)} · tap for details
