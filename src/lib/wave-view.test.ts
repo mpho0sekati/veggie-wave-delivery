@@ -18,6 +18,12 @@ const order = {
   cancelled_at: null,
 } as unknown as Order;
 describe("shared order readback", () => {
+  it("does not revert an accepted wave while the order poll is catching up", () => {
+    expect(waveView({ ...wave, status: "accepted" }).status).toBe("accepted");
+  });
+  it("keeps a saved delivery active even if its wave status is expired", () => {
+    expect(waveView({ ...wave, status: "expired" }, order).status).toBe("delivering");
+  });
   it("keeps an approved prepaid order active until delivery and confirmation", () => {
     expect(
       waveView(wave, { ...order, payment_method: "mtn-momo", status: "preparing" }).status,

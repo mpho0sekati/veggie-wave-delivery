@@ -74,9 +74,6 @@ import { useOfflineQueueCount, useOfflineSync } from "@/lib/use-offline-sync";
 
 const VeggieMap = lazy(() => import("@/components/VeggieMap"));
 
-// Matches the 10-minute server-side wave expiry (migration 0009).
-const WAVE_TIMEOUT_MS = 600_000;
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -256,6 +253,9 @@ function BuyerPage() {
       return;
     }
     if (!liveWave) return;
+    // Wave and order polls finish independently. Keep the saved delivery visible
+    // until both have read back; a failed order read is not an expired order.
+    if (!ordersQuery.isSuccess || ordersQuery.isError) return;
     if (
       (!liveOrder || liveOrder.status === "completed" || liveOrder.cancelled_at) &&
       (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id)
@@ -264,15 +264,14 @@ function BuyerPage() {
       return;
     }
     if (
-      liveWave.status === "expired" ||
-      liveWave.status === "declined" ||
+      (liveWave.status === "declined" && !liveOrder) ||
       liveOrder?.cancelled_at
     ) {
       updateState((prev) => ({ ...prev, request: null }));
       return;
     }
     updateState((prev) => ({ ...prev, request: waveView(liveWave, liveOrder) }));
-  }, [signedIn, session.loading, waveQuery.isSuccess, liveWave, liveOrder, closedWave]);
+  }, [signedIn, session.loading, waveQuery.isSuccess, ordersQuery.isSuccess, ordersQuery.isError, liveWave, liveOrder, closedWave]);
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
@@ -510,7 +509,8 @@ function BuyerPage() {
     setWish("");
   }, [request, liveOrder?.status]);
   const timedOut =
-    request?.status === "waving" && Date.now() - (request?.createdAt ?? 0) > WAVE_TIMEOUT_MS;
+    request?.status === "waving" && liveWave?.id === request.waveId &&
+    liveWave.status === "expired" && !liveOrder && !waveQuery.isError && !ordersQuery.isError;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
@@ -1043,7 +1043,7 @@ function BuyerPage() {
                       <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
                         <p>Nobody has answered yet.</p>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="secondary" onClick={waveAgain}>
+                          <Button size="sm" variant="secondary" onClick={waveAgain} disabled={actions.createWave.isPending}>
                             <Hand /> Wave again
                           </Button>
                           <Button size="sm" variant="outline" onClick={cancel}>

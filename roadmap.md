@@ -48,6 +48,8 @@
 
 ## Active / Backlog
 
+- Verify false-expiry correction and graceful acceptance failure recovery with targeted tests and the two-account buyer/trader flow.
+
 
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 

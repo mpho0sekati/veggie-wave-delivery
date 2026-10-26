@@ -35,7 +35,9 @@ export function waveView(wave: Wave, order?: Order | null): WaveRequest {
             ? "delivering"
             : order
               ? "accepted"
-              : "waving",
+              : wave.status === "accepted"
+                ? "accepted"
+                : "waving",
     paidWith: order?.payment_method === "cash" ? "cash" : "wave-pay",
   };
 }

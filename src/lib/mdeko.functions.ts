@@ -9,6 +9,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Tables } from "@/integrations/supabase/types";
 import { toPaymentStatus } from "./payment-status";
+import { acceptFailureCode, type AcceptFailure } from "./wave-errors";
 
 export type Wave = Tables<"waves">;
 export type Order = Tables<"wave_orders">;
@@ -130,14 +131,21 @@ export const listOpenWaves = createServerFn({ method: "POST" })
 export const acceptWave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => z.object({ waveId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }): Promise<Order> => {
+  .handler(async ({ data, context }): Promise<{ ok: true; order: Order } | AcceptFailure> => {
     const db = await admin();
     const { data: order, error } = await db.rpc("accept_wave", {
       _wave_id: data.waveId,
       _trader: context.userId,
     });
-    if (error) throw new Error(error.message);
-    return order as unknown as Order;
+    if (error) {
+      const { data: wave } = await context.supabase
+        .from("waves")
+        .select("status,expires_at")
+        .eq("id", data.waveId)
+        .maybeSingle();
+      return { ok: false, code: acceptFailureCode(error.message, wave, Date.now()) };
+    }
+    return { ok: true, order: order as unknown as Order };
   });
 
 export const declineWave = createServerFn({ method: "POST" })

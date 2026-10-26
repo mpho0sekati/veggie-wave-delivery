@@ -63,8 +63,9 @@ export function watchStaleServerFunctions(
       .text()
       .catch(() => "");
     if (/Unauthorized/i.test(text)) return;
-    // During a preview restart the server may answer stale calls with a bare 500
-    // (no "Invalid server function ID" text), so any 5xx triggers a guarded reload.
+    // Stock, network and order-transition failures cannot be fixed by reloading.
+    // Only an explicit stale function reference warrants discarding the page.
+    if (!/Invalid server function (?:ID|id)|Server function (?:info not found|not found)|Failed to find server function/i.test(text)) return;
     const attempt = readAttempt(storage.getItem(key));
     if (attempt.count < MAX_RELOADS && Date.now() - attempt.at > 30_000) {
       storage.setItem(key, JSON.stringify({ n: attempt.count + 1, t: Date.now() }));
