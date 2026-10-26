@@ -34,3 +34,19 @@ export function nearbySellerWaves<T extends { lat: number | null; lng: number | 
         distanceKm(position, { lat: b.lat ?? 0, lng: b.lng ?? 0 }),
     );
 }
+
+/** Short human label for a wave pin on the trader's map: "2× Tomatoes, 1× Spinach". */
+export function wavePinLabel(
+  wave: { items: unknown; wish: string | null },
+  catalog: { id: string; name: string }[],
+): string {
+  const items = Array.isArray(wave.items) ? wave.items : [];
+  const parts = items.flatMap((line) => {
+    if (!line || typeof line !== "object" || Array.isArray(line)) return [];
+    const entry = line as { id?: unknown; qty?: unknown };
+    if (typeof entry.id !== "string" || typeof entry.qty !== "number") return [];
+    return [`${entry.qty}× ${catalog.find((c) => c.id === entry.id)?.name ?? entry.id}`];
+  });
+  if (parts.length) return parts.join(", ");
+  return wave.wish?.trim() || "Veggie request";
+}

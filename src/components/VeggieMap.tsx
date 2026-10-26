@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 
 const mapLogger = createLogger("VeggieMap");
 
+export type WavePin = { id: string; lat: number; lng: number; label: string };
+
 type Props = {
   runners: Runner[];
   activeRunnerId?: string | null;
@@ -33,6 +35,10 @@ type Props = {
   bearing?: number | null;
   /** Long-press / right-click the map to drop your own pin when GPS is unavailable. */
   onPickPosition?: (pos: { lat: number; lng: number }) => void;
+  /** Customer waves shown to the trader as pulsing pins. */
+  waves?: WavePin[];
+  /** Trader tapped a customer wave pin. */
+  onWaveClick?: (waveId: string) => void;
 };
 
 function runnerIcon(active: boolean, name: string, rating: number, avatar?: string | null) {
@@ -90,6 +96,15 @@ function courierIcon(isDisconnected = false) {
   });
 }
 
+function waveIcon() {
+  return L.divIcon({
+    className: "",
+    html: `<div class="wave-pin"><span class="wave-pin-pulse"></span><span class="wave-pin-dot"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></span></div>`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+  });
+}
+
 export default function VeggieMap({
   runners,
   activeRunnerId,
@@ -105,6 +120,8 @@ export default function VeggieMap({
   route,
   bearing,
   onPickPosition,
+  waves,
+  onWaveClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -114,6 +131,9 @@ export default function VeggieMap({
   const routeLineRef = useRef<L.Polyline | null>(null);
   const pickRef = useRef(onPickPosition);
   pickRef.current = onPickPosition;
+  const waveLayerRef = useRef<L.LayerGroup | null>(null);
+  const waveClickRef = useRef(onWaveClick);
+  waveClickRef.current = onWaveClick;
   const buyer = buyerPosition ?? BUYER_POSITION;
   const [followMode, setFollowMode] = useState(false);
 
@@ -187,6 +207,7 @@ export default function VeggieMap({
     }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
+    waveLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
     mapLogger.info("Map initialized successfully");
 
@@ -202,6 +223,7 @@ export default function VeggieMap({
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      waveLayerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -424,6 +446,27 @@ export default function VeggieMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runners is intentionally omitted; runnersKey is its stable proxy
   }, [runnersKey, activeRunnerId, waving, delivered, buyer.lat, buyer.lng]);
+
+  const wavesKey = useMemo(
+    () => (waves ?? []).map((w) => `${w.id}:${w.lat.toFixed(5)}:${w.lng.toFixed(5)}`).join("|"),
+    [waves],
+  );
+
+  // Customer wave pins on the trader's map: one pulsing hand per nearby wave,
+  // on their own layer so the trader/buyer repaint never wipes them.
+  useEffect(() => {
+    const layer = waveLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const w of waves ?? []) {
+      const marker = L.marker([w.lat, w.lng], { icon: waveIcon() }).addTo(layer);
+      marker.bindPopup(
+        `<div class="p-1 text-center font-sans"><strong class="text-sm font-semibold">Someone is waving</strong><div class="text-xs text-muted-foreground mt-0.5">${escapeHtml(w.label)}</div></div>`,
+      );
+      marker.on("click", () => waveClickRef.current?.(w.id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- waves is intentionally omitted; wavesKey is its stable proxy
+  }, [wavesKey]);
 
   return (
     <div

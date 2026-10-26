@@ -45,12 +45,13 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
   });
   const query = useQuery({
     queryKey: ["marketplace", session.userId, box?.lat, box?.lng],
-    enabled: Boolean(session.userId),
+    // Online traders and their stock are public discovery data: the map shows
+    // them even before sign-in, like cars on a ride-hailing map.
+    enabled: !session.loading,
     refetchInterval: 15000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const userId = session.userId;
-      if (!userId) throw new Error("Sign in to load your marketplace.");
       let profilesQuery = supabase
         .from("profiles")
         .select("id,name,avatar,online,lat,lng,rating")
@@ -62,14 +63,19 @@ export function useMarketplace(origin?: { lat: number; lng: number; located: boo
           .gte("lng", box.minLng)
           .lte("lng", box.maxLng);
       }
+      const empty = Promise.resolve({ data: [] as never[], error: null });
       const [nearby, own, demand] = await Promise.all([
         profilesQuery.limit(MAX_DISCOVERY_TRADERS),
-        supabase
-          .from("profiles")
-          .select("id,name,avatar,online,lat,lng,rating")
-          .eq("id", userId)
-          .limit(1),
-        supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50),
+        userId
+          ? supabase
+              .from("profiles")
+              .select("id,name,avatar,online,lat,lng,rating")
+              .eq("id", userId)
+              .limit(1)
+          : empty,
+        userId
+          ? supabase.from("demand").select("*").order("last_at", { ascending: false }).limit(50)
+          : empty,
       ]);
       for (const result of [nearby, own, demand]) if (result.error) throw result.error;
       const byId = new Map<string, NonNullable<typeof nearby.data>[number]>();
