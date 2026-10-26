@@ -95,6 +95,10 @@ export const getMyWave = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    // Read-time expiry also works when no trader is polling expire_waves.
+    // Never apply a wave deadline to an existing accepted delivery.
+    if (data && !active && data.status === "created" && Date.parse(data.expires_at) <= Date.now())
+      return { ...data, status: "expired" };
     return data;
   });
 

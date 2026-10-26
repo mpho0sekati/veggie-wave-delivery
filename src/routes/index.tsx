@@ -517,7 +517,7 @@ function BuyerPage() {
   const timedOut =
     request?.status === "waving" &&
     liveWave?.id === request.waveId &&
-    liveWave.status === "expired" &&
+    liveWave?.status === "expired" &&
     !liveOrder &&
     !waveQuery.isError &&
     !ordersQuery.isError;
