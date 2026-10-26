@@ -263,15 +263,21 @@ function BuyerPage() {
       updateState((prev) => ({ ...prev, request: null }));
       return;
     }
-    if (
-      (liveWave.status === "declined" && !liveOrder) ||
-      liveOrder?.cancelled_at
-    ) {
+    if ((liveWave.status === "declined" && !liveOrder) || liveOrder?.cancelled_at) {
       updateState((prev) => ({ ...prev, request: null }));
       return;
     }
     updateState((prev) => ({ ...prev, request: waveView(liveWave, liveOrder) }));
-  }, [signedIn, session.loading, waveQuery.isSuccess, ordersQuery.isSuccess, ordersQuery.isError, liveWave, liveOrder, closedWave]);
+  }, [
+    signedIn,
+    session.loading,
+    waveQuery.isSuccess,
+    ordersQuery.isSuccess,
+    ordersQuery.isError,
+    liveWave,
+    liveOrder,
+    closedWave,
+  ]);
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
@@ -509,8 +515,12 @@ function BuyerPage() {
     setWish("");
   }, [request, liveOrder?.status]);
   const timedOut =
-    request?.status === "waving" && liveWave?.id === request.waveId &&
-    liveWave.status === "expired" && !liveOrder && !waveQuery.isError && !ordersQuery.isError;
+    request?.status === "waving" &&
+    liveWave?.id === request.waveId &&
+    liveWave.status === "expired" &&
+    !liveOrder &&
+    !waveQuery.isError &&
+    !ordersQuery.isError;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
@@ -1043,7 +1053,12 @@ function BuyerPage() {
                       <div className="space-y-2 rounded-xl bg-secondary p-3 text-sm">
                         <p>Nobody has answered yet.</p>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="secondary" onClick={waveAgain} disabled={actions.createWave.isPending}>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={waveAgain}
+                            disabled={actions.createWave.isPending}
+                          >
                             <Hand /> Wave again
                           </Button>
                           <Button size="sm" variant="outline" onClick={cancel}>

@@ -65,7 +65,9 @@ describe("stale server function reloads", () => {
   }
 
   function stubFetch(status: number) {
-    vi.stubGlobal("window", { fetch: vi.fn(async () => new Response("Invalid server function ID", { status })) });
+    vi.stubGlobal("window", {
+      fetch: vi.fn(async () => new Response("Invalid server function ID", { status })),
+    });
   }
 
   it("reloads a second time when the first reload did not clear the failure", async () => {
@@ -108,7 +110,9 @@ describe("stale server function reloads", () => {
 
   it("keeps the screen for business and temporary server failures", async () => {
     const reload = vi.fn();
-    vi.stubGlobal("window", { fetch: vi.fn(async () => new Response("insufficient-stock", { status: 500 })) });
+    vi.stubGlobal("window", {
+      fetch: vi.fn(async () => new Response("insufficient-stock", { status: 500 })),
+    });
     watchStaleServerFunctions(reload, storageStub());
     await window.fetch("/_serverFn/abc", { method: "POST" });
     expect(reload).not.toHaveBeenCalled();

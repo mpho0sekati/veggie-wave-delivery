@@ -13,7 +13,9 @@ describe("authoritative wave expiry", () => {
   });
   it("does not expire accepted deliveries after the wave deadline", () => {
     expect(confirmedWaveExpired({ ...fresh, status: "accepted" }, now + 3600000)).toBe(false);
-    expect(acceptFailureCode("wave-expired", { ...fresh, status: "declined" }, now)).toBe("unavailable");
+    expect(acceptFailureCode("wave-expired", { ...fresh, status: "declined" }, now)).toBe(
+      "unavailable",
+    );
   });
   it("confirms expiry at the saved deadline", () => {
     expect(confirmedWaveExpired(fresh, Date.parse(fresh.expires_at) - 1)).toBe(false);

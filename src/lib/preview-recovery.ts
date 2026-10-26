@@ -65,7 +65,12 @@ export function watchStaleServerFunctions(
     if (/Unauthorized/i.test(text)) return;
     // Stock, network and order-transition failures cannot be fixed by reloading.
     // Only an explicit stale function reference warrants discarding the page.
-    if (!/Invalid server function (?:ID|id)|Server function (?:info not found|not found)|Failed to find server function/i.test(text)) return;
+    if (
+      !/Invalid server function (?:ID|id)|Server function (?:info not found|not found)|Failed to find server function/i.test(
+        text,
+      )
+    )
+      return;
     const attempt = readAttempt(storage.getItem(key));
     if (attempt.count < MAX_RELOADS && Date.now() - attempt.at > 30_000) {
       storage.setItem(key, JSON.stringify({ n: attempt.count + 1, t: Date.now() }));

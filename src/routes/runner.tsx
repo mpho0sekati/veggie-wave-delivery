@@ -550,7 +550,10 @@ function RunnerPage() {
                               toast.success("Wave accepted");
                             } catch (error) {
                               toast.error(
-                                error instanceof Error && /^(This |Not enough |Your stall |Couldn't confirm)/.test(error.message)
+                                error instanceof Error &&
+                                  /^(This |Not enough |Your stall |Couldn't confirm)/.test(
+                                    error.message,
+                                  )
                                   ? error.message
                                   : "Couldn't confirm acceptance. Check Orders, then try again.",
                               );
