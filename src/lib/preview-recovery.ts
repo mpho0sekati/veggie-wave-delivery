@@ -46,7 +46,7 @@ export function watchStaleServerFunctions(
     return response;
   };
   return () => {
-    if (window.fetch === original) window.fetch = original;
+    if (window.fetch !== original) window.fetch = original;
   };
 }
 
