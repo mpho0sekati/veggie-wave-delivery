@@ -54,8 +54,12 @@ export function watchStaleServerFunctions(
 ) {
   const key = "mdeko-stale-fn-reload";
   const stops: Array<() => void> = [];
-  const guard = (url: string, status: number) => {
-    if (status < 500 || !url.includes("/_serverFn/")) return;
+  const guard = async (url: string, response: Response) => {
+    if (response.status < 500 || !url.includes("/_serverFn/")) return;
+    // A rejected sign-in (e.g. the account was removed) comes back as a 500 that
+    // says "Unauthorized". Reloading can never fix it; the app signs out instead.
+    const text = await response.clone().text().catch(() => "");
+    if (/Unauthorized/i.test(text)) return;
     // During a preview restart the server may answer stale calls with a bare 500
     // (no "Invalid server function ID" text), so any 5xx triggers a guarded reload.
     const attempt = readAttempt(storage.getItem(key));
@@ -74,7 +78,7 @@ export function watchStaleServerFunctions(
     const original = options.serverFns.fetch;
     const wrapped: typeof fetch = async (input, init) => {
       const response = await (original ?? window.fetch)(input, init);
-      guard(requestUrl(input), response.status);
+      void guard(requestUrl(input), response);
       return response;
     };
     options.serverFns.fetch = wrapped;
@@ -89,7 +93,7 @@ export function watchStaleServerFunctions(
   const globalOriginal = window.fetch;
   const globalWrapped: typeof fetch = async (input, init) => {
     const response = await globalOriginal(input, init);
-    guard(requestUrl(input), response.status);
+    void guard(requestUrl(input), response);
     return response;
   };
   window.fetch = globalWrapped;
