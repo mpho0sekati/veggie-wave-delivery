@@ -1,6 +1,7 @@
 /** Demo arithmetic only. Does not authorize or perform a withdrawal. */
 export function demoBalanceCents(balance: number | undefined, withdrawnCents = 0) {
-  const recorded = balance !== undefined && Number.isFinite(balance) ? Math.max(0, Math.round(balance * 100)) : 0;
+  const recorded =
+    balance !== undefined && Number.isFinite(balance) ? Math.max(0, Math.round(balance * 100)) : 0;
   return Math.max(0, recorded - withdrawnCents);
 }
 
