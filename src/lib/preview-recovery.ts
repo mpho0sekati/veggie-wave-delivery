@@ -33,7 +33,8 @@ export function watchStaleServerFunctions(
   const key = "mdeko-stale-fn-reload";
   window.fetch = async (...args) => {
     const response = await original(...args);
-    const url = typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : args[0].url;
+    const url =
+      typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : args[0].url;
     if (response.status >= 500 && url.includes("/_serverFn/")) {
       // During a preview restart the server may answer stale calls with a bare 500
       // (no "Invalid server function ID" text), so any 5xx triggers one guarded reload.
