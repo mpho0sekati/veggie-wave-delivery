@@ -31,6 +31,8 @@
 
 ## Active / Backlog
 
+- Add FNB options to My Money: honest eWallet guidance from earnings/savings, First Business Zero information alongside optional bank linking, and a downloadable record for a lender review. Verify signed-in controls and downloads; do not imply live FNB payouts or loan submissions.
+
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
 - Public-launch identity/abuse protection awaits phone verification and a supported rate-limit solution; four-digit PIN and shared demo identities remain unsuitable for public money accounts.
