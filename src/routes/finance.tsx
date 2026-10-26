@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { useSession, signOutEverywhere } from "@/lib/use-session";
 import AppTabBar from "@/components/AppTabBar";
 import GroupRestock from "@/components/GroupRestock";
+import { FnbCashOut, FnbAccountInfo, DownloadLenderRecord } from "@/components/FnbOptions";
 import {
   useFinanceProfile,
   useSmartTip,
@@ -226,6 +227,7 @@ function SavingsSection({
       <p className="mt-3 text-sm text-muted-foreground">
         {role === "trader" ? t.stackTrader : t.stackBuyer}
       </p>
+      <FnbCashOut />
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-sm">
           <DialogTitle>My savings goal</DialogTitle>
@@ -528,6 +530,7 @@ function RecordDetails({ profile }: { profile: ReturnType<typeof useFinanceProfi
         <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
           Retry full record
         </Button>
+        <DownloadLenderRecord record={null} profile={profile} />
       </div>
     );
   if (isError || !record)
@@ -570,6 +573,7 @@ function RecordDetails({ profile }: { profile: ReturnType<typeof useFinanceProfi
         This is your Mdeko record, not a bank statement. Each lender decides what records it
         accepts.
       </p>
+      <DownloadLenderRecord record={record} profile={profile} />
     </div>
   );
 }
@@ -714,6 +718,7 @@ function FinancePage() {
                   {profile.trader.settledCount === 1 ? "sale" : "sales"} recorded · only confirmed
                   MoMo or cash payments count. Settlement does not mean a bank payout.
                 </p>
+                <FnbCashOut />
                 {score && (
                   <Button
                     variant="ghost"
@@ -837,9 +842,9 @@ function FinancePage() {
               >
                 <Building2 className="text-primary" />
                 <span className="min-w-0 flex-1 whitespace-normal">
-                  <span className="block font-semibold">My bank</span>
+                  <span className="block font-semibold">My bank · FNB & other banks</span>
                   <span className="block text-xs font-normal text-muted-foreground">
-                    Connect an account · optional
+                    First Business Zero · optional bank linking
                   </span>
                 </span>
                 <ChevronRight />
@@ -882,7 +887,7 @@ function FinancePage() {
       >
         <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto">
           <DialogTitle>
-            {panel === "bank" ? "My bank" : panel === "score" ? t.score : "My Mdeko record"}
+            {panel === "bank" ? "My bank · FNB & other banks" : panel === "score" ? t.score : "My Mdeko record"}
           </DialogTitle>
           <DialogDescription>
             {panel === "bank"
@@ -891,7 +896,7 @@ function FinancePage() {
                 ? "Based on your orders, payments, activity and savings."
                 : "Your completed purchases and sales on Mdeko."}
           </DialogDescription>
-          {panel === "bank" && <BankConnection />}
+          {panel === "bank" && <><FnbAccountInfo /><h3 className="font-semibold">Link an existing bank · Banklink</h3><BankConnection /></>}
           {panel === "score" && <ScoreDetails score={score} t={t} />}
           {panel === "record" && <RecordDetails profile={profile} />}
         </DialogContent>
