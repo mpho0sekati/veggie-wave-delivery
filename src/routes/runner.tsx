@@ -1,6 +1,15 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Crosshair, Store, PackageCheck, Radio, Hand, Truck } from "lucide-react";
+import {
+  Camera,
+  ChevronUp,
+  Crosshair,
+  Store,
+  PackageCheck,
+  Radio,
+  Hand,
+  Truck,
+} from "lucide-react";
 import AppTabBar from "@/components/AppTabBar";
 import JourneyProgress from "@/components/JourneyProgress";
 import { traderJourneyStep } from "@/lib/journey-progress";
@@ -54,6 +63,8 @@ function RunnerPage() {
   const [name, setName] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+  // Collapsed drawer = the map stays visible after the stall is saved.
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const recenterRequested = useRef(false);
   const location = sellerPosition(position, ownProfile);
   const displayName = name ?? ownProfile?.name ?? session.name;
@@ -146,6 +157,7 @@ function RunnerPage() {
       setName(null);
       await refresh();
       toast.success("Stall is online · ready for waves");
+      setDrawerOpen(false);
     } catch {
       toast.error("Could not save your stall — try again");
     } finally {
@@ -252,7 +264,15 @@ function RunnerPage() {
           </Button>
         </div>
       </header>
-      <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[min(72dvh,calc(100dvh-12rem-env(safe-area-inset-top)))] max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]">
+      <div
+        className={
+          drawerOpen
+            ? "absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[min(72dvh,calc(100dvh-12rem-env(safe-area-inset-top)))] max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]"
+            : "absolute inset-x-0 bottom-0 z-10 mx-auto max-w-lg overflow-hidden rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)] shadow-lg"
+        }
+      >
+        {drawerOpen ? (
+          <>
         <div className="p-4 space-y-4">
           <JourneyProgress
             label="Your trader journey"
@@ -449,12 +469,21 @@ function RunnerPage() {
         {session.userId && !active && (
           <div className="sticky bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur-md">
             {isOnline && !name ? (
-              <p
-                role="status"
-                className="flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
-              >
-                <Radio className="size-4" /> Stall is online · ready for waves
-              </p>
+              <div className="flex items-center gap-2">
+                <p
+                  role="status"
+                  className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
+                >
+                  <Radio className="size-4" /> Stall is online · ready for waves
+                </p>
+                <Button
+                  variant="outline"
+                  className="h-11 shrink-0 gap-1.5"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <ChevronUp className="size-4" /> Map
+                </Button>
+              </div>
             ) : (
               <Button
                 size="lg"
@@ -467,6 +496,29 @@ function RunnerPage() {
               </Button>
             )}
           </div>
+        )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Store className="size-5 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">
+                  {ownProfile?.name || session.name || "My stall"}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {isOnline
+                    ? "Online · tap for waves and stall details"
+                    : "Tap to open your stall details"}
+                </span>
+              </span>
+            </span>
+            <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+          </button>
         )}
       </div>
     </main>
