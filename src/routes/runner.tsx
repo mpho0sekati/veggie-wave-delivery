@@ -120,6 +120,39 @@ function RunnerPage() {
   // Whistle + vibrate when a new wave lands nearby and the trader is free to take it.
   useWaveAlert(nearby.length, isOnline && !active);
 
+  const [goingLive, setGoingLive] = useState(false);
+  // One tap: commit any half-typed price/quantity, save the name, and switch the stall online.
+  const saveAndGoLive = async () => {
+    if (!session.userId) return;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (!me?.stock.length) {
+      toast.error("Switch on at least one item in My stock today");
+      return;
+    }
+    if (!location) {
+      recenterRequested.current = true;
+      locate();
+      toast.info("Finding your location — tap again once your pin shows, or tap the map");
+      return;
+    }
+    setGoingLive(true);
+    try {
+      const trimmed = displayName.trim();
+      await saveTraderProfile(session.userId, {
+        online: true,
+        ...location,
+        ...(trimmed ? { name: trimmed } : {}),
+      });
+      setName(null);
+      await refresh();
+      toast.success("Stall is online · ready for waves");
+    } catch {
+      toast.error("Could not save your stall — try again");
+    } finally {
+      setGoingLive(false);
+    }
+  };
+
   const advance = async (status: "delivering" | "delivered") => {
     if (!active) return;
     try {
