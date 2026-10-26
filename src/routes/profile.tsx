@@ -64,7 +64,10 @@ function ProfilePage() {
   const isTrader = session.role === "trader";
 
   const save = async () => {
-    if (!session.userId || !name.trim()) return toast.error("Type your name first");
+    if (!session.userId || !name.trim()) {
+      toast.error("Type your name first");
+      return;
+    }
     setSaving(true);
     try {
       await saveTraderProfile(session.userId, { name: name.trim() });
