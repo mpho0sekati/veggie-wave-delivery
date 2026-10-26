@@ -16,7 +16,7 @@ let signingOut = false;
 export function handleQueryError(error: unknown) {
   if (signingOut || !(error instanceof Error) || !AUTH_REJECTION.test(error.message)) return;
   signingOut = true;
-  void supabase.auth.signOut();
+  void supabase.auth.signOut().finally(() => { signingOut = false; });
   toast.info("Your session expired. Please sign in again.");
 }
 

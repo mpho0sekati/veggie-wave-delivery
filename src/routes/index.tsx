@@ -121,7 +121,7 @@ const WaveClock = memo(function WaveClock({ createdAt }: { createdAt: number }) 
 
 function BuyerPage() {
   const buyer = useAppState((s) => s.buyer);
-  useMarketplace(buyer);
+  const { error: marketplaceError } = useMarketplace(buyer);
   const walletBalance = useAppState((s) => s.wallet.balance);
   const communityCredit = useAppState((s) => s.wallet.stokvel_credit);
   const runners = useAppState((s) => s.runners);
@@ -194,8 +194,10 @@ function BuyerPage() {
   const session = useSession();
   const signedIn = Boolean(session.userId);
   const actions = useMdekoActions();
-  const { data: liveWave } = useMyWave(signedIn);
-  const { data: liveOrders } = useMyOrders(signedIn);
+  const waveQuery = useMyWave(signedIn);
+  const ordersQuery = useMyOrders(signedIn);
+  const liveWave = waveQuery.data;
+  const liveOrders = ordersQuery.data;
 
   // When a saved offline wave reaches the server, show it as a live wave on this phone.
   const handleSynced = useCallback((order: QueuedOrder, waveId: string, createdAt: string) => {
@@ -248,7 +250,12 @@ function BuyerPage() {
   const [closedWave, setClosedWave] = useState<string | null>(null);
   useEffect(() => setClosedWave(localStorage.getItem("mdeko-closed-wave")), []);
   useEffect(() => {
-    if (!signedIn || !liveWave) return;
+    if (session.loading) return;
+    if (!signedIn || waveQuery.isSuccess && !liveWave) {
+      updateState((prev) => ({ ...prev, request: null }));
+      return;
+    }
+    if (!liveWave) return;
     if (liveWave.id === closedWave || localStorage.getItem("mdeko-closed-wave") === liveWave.id) {
       updateState((prev) => ({ ...prev, request: null }));
       return;
@@ -262,7 +269,7 @@ function BuyerPage() {
       return;
     }
     updateState((prev) => ({ ...prev, request: waveView(liveWave, liveOrder) }));
-  }, [signedIn, liveWave, liveOrder, closedWave]);
+  }, [signedIn, session.loading, waveQuery.isSuccess, liveWave, liveOrder, closedWave]);
 
   const catalog = useMemo(() => catalogWith(customItems), [customItems]);
   const online = useMemo(() => nearbyTraders(runners, buyer), [runners, buyer]);
@@ -368,8 +375,13 @@ function BuyerPage() {
   );
 
   const wave = useCallback(async () => {
-    if (!picked.length && !wish.trim()) {
-      toast.error("Pick what you need first");
+    if (!picked.length) {
+      toast.error("Pick at least one veggie; your extra request goes with it");
+      return;
+    }
+    if (!buyer.located) {
+      locate();
+      toast.info("Set your delivery pin first — use your location or choose an area");
       return;
     }
     if (!signedIn) {
@@ -388,7 +400,7 @@ function BuyerPage() {
         wish: wish.trim(),
         lat: buyer.located ? buyer.lat : null,
         lng: buyer.located ? buyer.lng : null,
-        note: `${picked.length} items`,
+        note: landmark.trim() || `${picked.length} items`,
         total,
         createdAt: Date.now(),
       });
@@ -408,7 +420,7 @@ function BuyerPage() {
       const saved = await actions.createWave.mutateAsync({
         items,
         wish: wish.trim(),
-        note: `${picked.length} items`,
+        note: landmark.trim() || `${picked.length} items`,
         lat: buyer.located ? buyer.lat : null,
         lng: buyer.located ? buyer.lng : null,
       });
@@ -448,6 +460,7 @@ function BuyerPage() {
     buyer,
     isOnline,
     landmark,
+    locate,
     clearSavedCart,
   ]);
 
@@ -482,12 +495,13 @@ function BuyerPage() {
     }
   }, [request, actions.cancelWave, clearSavedCart]);
   const finish = useCallback(() => {
+    if (liveOrder?.status !== "completed") return;
     setClosedWave(request?.waveId ?? null);
     if (request?.waveId) localStorage.setItem("mdeko-closed-wave", request.waveId);
     archiveRequest();
     setQty({});
     setWish("");
-  }, [request]);
+  }, [request, liveOrder?.status]);
   const timedOut =
     request?.status === "waving" && Date.now() - (request?.createdAt ?? 0) > WAVE_TIMEOUT_MS;
 
@@ -935,7 +949,7 @@ function BuyerPage() {
                                 : `${assigned?.name ?? "Your trader"} is on the way`}
                             </p>
                             {request.status === "accepted" &&
-                            liveOrder?.payment_method !== "cash" ? (
+                            liveOrder?.payment_method !== "cash" && liveOrder?.status === "accepted" ? (
                               <p className="text-xs text-muted-foreground">
                                 Choose how to pay below so they can start delivering
                               </p>
@@ -1076,6 +1090,10 @@ function BuyerPage() {
                     )}
                     {request.status === "delivered" && (
                       <>
+                        {liveOrder?.payment_method !== "cash" && (
+                          <p className="text-sm text-primary">Payment approved · confirm your veggies arrived</p>
+                        )}
+                        {liveOrder?.payment_method !== "cash" && !liveOrder?.delivered_at && <>
                         <Button
                           variant="wave"
                           size="lg"
@@ -1093,6 +1111,7 @@ function BuyerPage() {
                             </>
                           )}
                         </Button>
+                        </>}
                         <Button
                           variant="outline"
                           onClick={async () => {
@@ -1126,17 +1145,6 @@ function BuyerPage() {
                       </Button>
                     ) : (
                       <div className="space-y-3">
-                        {request.paidWith === "wave-pay" && (
-                          <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-center space-y-0.5">
-                            <p className="font-semibold text-primary">Community Credit earned</p>
-                            <p className="text-xs text-muted-foreground">
-                              +R0.50 added · Total: {formatRand(communityCredit)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Use toward future purchases
-                            </p>
-                          </div>
-                        )}
                         <Button
                           size="lg"
                           variant="wave"
@@ -1228,7 +1236,7 @@ function BuyerPage() {
             {!request && (
               <div className="shrink-0 border-t bg-background/85 px-4 pt-2 pb-3 backdrop-blur-md">
                 <p className="mb-2 text-center text-xs text-muted-foreground" role="status">
-                  {picked.length || wish.trim() ? "Basket ready" : "Your basket is empty"}
+                  {marketplaceError || waveQuery.isError || ordersQuery.isError ? "Connection interrupted — your saved order is safe" : !buyer.located ? "Choose your delivery area" : picked.length ? "Basket ready" : "Your basket is empty"}
                 </p>
                 {(picked.length > 0 || wish.trim()) && (
                   <details className="mb-2 text-sm">
@@ -1327,16 +1335,8 @@ function BuyerPage() {
               const result = await actions.verifyPayment(orderId);
               if (result?.status === "successful") {
                 track("payment_completed", "momo");
-                updateState((prev) => {
-                  if (!prev.request) return prev;
-                  return {
-                    ...prev,
-                    request: { ...prev.request, status: "paid", paidWith: "wave-pay" },
-                  };
-                });
                 actions.refresh();
-                celebration.confirm(orderId);
-                toast.success("Payment confirmed! Enjoy your veggies");
+                toast.success("Payment approved — your trader can deliver");
 
                 setPayLoading(false);
                 return;
@@ -1360,8 +1360,9 @@ function BuyerPage() {
                 : `Payment did not go through. ${low}`,
             );
             throw err;
+          } finally {
+            setPayLoading(false);
           }
-          setPayLoading(false);
         }}
       />
     </main>
