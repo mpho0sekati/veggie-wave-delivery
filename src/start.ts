@@ -3,12 +3,29 @@ import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/r
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "./integrations/supabase/auth-attacher";
 
+/**
+ * A rejected session must not look like a server crash. `requireSupabaseAuth` is
+ * generated code, so its rejections are matched by message here; returning 401
+ * keeps an expired login out of the 5xx path that reloads the page.
+ */
+const AUTH_REJECTION = /^Unauthorized[:\s]/i;
+
+function isAuthRejection(error: unknown) {
+  return error instanceof Error && AUTH_REJECTION.test(error.message);
+}
+
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
     return await next();
   } catch (error) {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
+    }
+    if (isAuthRejection(error)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "content-type": "application/json", "x-mdeko-auth": "rejected" },
+      });
     }
     console.error(error);
     return new Response(renderErrorPage(), {
