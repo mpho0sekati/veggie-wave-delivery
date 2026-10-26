@@ -273,230 +273,230 @@ function RunnerPage() {
       >
         {drawerOpen ? (
           <>
-        <div className="p-4 space-y-4">
-          <JourneyProgress
-            label="Your trader journey"
-            steps={[
-              { label: "My stock", icon: PackageCheck },
-              { label: "Go online", icon: Radio },
-              { label: "Take a wave", icon: Hand },
-              { label: "Deliver", icon: Truck },
-            ]}
-            current={traderJourneyStep(Boolean(me?.stock.length), isOnline, active?.status)}
-          />
-          {message && <p className="text-sm text-muted-foreground">{message}</p>}
-          <div className="flex gap-2">
-            <Input
-              aria-label="Stall name"
-              className="h-11 min-w-0 flex-1"
-              placeholder="Stall name"
-              value={displayName}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Button
-              className="h-11 shrink-0"
-              onClick={async () => {
-                if (!session.userId || !displayName.trim()) {
-                  toast.error("Type your stall name first");
-                  return;
-                }
-                setSavingName(true);
-                try {
-                  await saveTraderProfile(session.userId, { name: displayName.trim() });
-                  await refresh();
-                  setName(null);
-                  toast.success("Name saved");
-                } catch {
-                  toast.error("Could not save name");
-                } finally {
-                  setSavingName(false);
-                }
-              }}
-              disabled={savingName}
-            >
-              {savingName ? "Saving…" : "Save"}
-            </Button>
-          </div>
-          <input
-            ref={file}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const picked = e.target.files?.[0];
-              if (!picked || !session.userId) return;
-              if (picked.size > 500000) {
-                toast.error("Choose a photo smaller than 500 KB");
-                return;
-              }
-              const uid = session.userId;
-              const reader = new FileReader();
-              reader.onload = () => {
-                void saveTraderProfile(uid, { avatar: String(reader.result) })
-                  .then(() => refresh())
-                  .then(() => toast.success("Photo saved"))
-                  .catch(() => toast.error("Could not save photo"));
-              };
-              reader.readAsDataURL(picked);
-            }}
-          />
-          <Button variant="outline" className="min-h-11" onClick={() => file.current?.click()}>
-            <Camera />
-            {me?.avatar ? "Change photo" : "Add profile photo"}
-          </Button>
-          <h2 className="font-semibold text-lg">Waves near you</h2>
-          {(wavesQuery.isError || ordersQuery.isError || marketplaceError) && (
-            <div role="alert" className="space-y-2">
-              <p className="text-sm text-destructive">
-                Couldn't load your stall or requests. Your saved details haven't changed.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  void refresh();
-                  void wavesQuery.refetch();
-                  void ordersQuery.refetch();
-                }}
-              >
-                Try again
-              </Button>
-            </div>
-          )}
-          {!active && !nearby.length && !wavesQuery.isError && (
-            <p className="text-muted-foreground text-sm">
-              {location ? "No nearby waves yet" : "Set your location to see nearby waves"}
-            </p>
-          )}
-          {!active && !marketplaceError && (
-            <p className="text-xs text-muted-foreground" role="status">
-              {!me?.stock.length
-                ? "Your stall has no stock yet"
-                : !isOnline
-                  ? "Stock saved · Your stall is offline"
-                  : nearby.length
-                    ? `${nearby.length} ${nearby.length === 1 ? "buyer is" : "buyers are"} waving nearby`
-                    : "Stock saved · Online and ready for buyers"}
-            </p>
-          )}
-          {active && activeWave && (
-            <Card className="p-4 gap-3">
-              <OrderStepper status={waveView(activeWave, active).status} />
-              <p className="font-semibold">
-                {active.status === "delivered"
-                  ? "Delivered — waiting for buyer confirmation"
-                  : active.status === "delivering"
-                    ? "Delivering"
-                    : "Order accepted"}
-              </p>
-              <p>
-                {formatRand(Number(active.amount))} ·{" "}
-                {active.payment_method === "cash" ? "Cash on delivery" : "MTN MoMo"}
-              </p>
-              {["accepted", "preparing", "ready"].includes(active.status) && (
+            <div className="p-4 space-y-4">
+              <JourneyProgress
+                label="Your trader journey"
+                steps={[
+                  { label: "My stock", icon: PackageCheck },
+                  { label: "Go online", icon: Radio },
+                  { label: "Take a wave", icon: Hand },
+                  { label: "Deliver", icon: Truck },
+                ]}
+                current={traderJourneyStep(Boolean(me?.stock.length), isOnline, active?.status)}
+              />
+              {message && <p className="text-sm text-muted-foreground">{message}</p>}
+              <div className="flex gap-2">
+                <Input
+                  aria-label="Stall name"
+                  className="h-11 min-w-0 flex-1"
+                  placeholder="Stall name"
+                  value={displayName}
+                  onChange={(e) => setName(e.target.value)}
+                />
                 <Button
-                  disabled={actions.advanceOrder.isPending}
-                  onClick={() => advance("delivering")}
-                >
-                  Start delivering — share live location
-                </Button>
-              )}
-              {active.status === "delivering" && (
-                <Button onClick={() => advance("delivered")}>
-                  I've arrived — confirm delivery
-                </Button>
-              )}
-              {["accepted", "preparing", "ready"].includes(active.status) && (
-                <Button
-                  variant="ghost"
+                  className="h-11 shrink-0"
                   onClick={async () => {
+                    if (!session.userId || !displayName.trim()) {
+                      toast.error("Type your stall name first");
+                      return;
+                    }
+                    setSavingName(true);
                     try {
-                      await actions.cancelWave.mutateAsync(active.wave_id);
+                      await saveTraderProfile(session.userId, { name: displayName.trim() });
+                      await refresh();
+                      setName(null);
+                      toast.success("Name saved");
                     } catch {
-                      toast.error("Cannot cancel an order with payment in progress");
+                      toast.error("Could not save name");
+                    } finally {
+                      setSavingName(false);
                     }
                   }}
+                  disabled={savingName}
                 >
-                  Cancel order
-                </Button>
-              )}
-            </Card>
-          )}
-          {!active &&
-            nearby.map((w) => {
-              const view = waveView(w);
-              const canFill =
-                view.items.length > 0 &&
-                view.items.every((i) => me?.stock.some((s) => s.itemId === i.id));
-              return (
-                <Card key={w.id} className="p-4 gap-3">
-                  <p className="font-semibold">Someone is waving</p>
-                  <ul>
-                    {view.items.map((i) => (
-                      <li key={i.id}>
-                        {i.qty} × {catalog.find((c) => c.id === i.id)?.name ?? i.id}
-                      </li>
-                    ))}
-                  </ul>
-                  {view.wish && <p>{view.wish}</p>}
-                  <Button
-                    disabled={!canFill || actions.acceptWave.isPending || !isOnline}
-                    onClick={async () => {
-                      try {
-                        await actions.acceptWave.mutateAsync(w.id);
-                        track("wave_accepted");
-                        toast.success("Wave accepted");
-                      } catch {
-                        toast.error("This wave expired, was accepted, or exceeds your stock");
-                      }
-                    }}
-                  >
-                    Accept this wave
-                  </Button>
-                </Card>
-              );
-            })}
-        </div>
-        {session.userId && (
-          <StockEditor
-            runnerId={session.userId}
-            stock={me?.stock ?? []}
-            customItems={state.customItems}
-            onSaved={() => void refresh()}
-          />
-        )}
-        {session.userId && <DemandInsights state={state} runnerId={session.userId} />}
-        <div className="h-6" />
-        {session.userId && !active && (
-          <div className="sticky bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur-md">
-            {isOnline && !name ? (
-              <div className="flex items-center gap-2">
-                <p
-                  role="status"
-                  className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
-                >
-                  <Radio className="size-4" /> Stall is online · ready for waves
-                </p>
-                <Button
-                  variant="outline"
-                  className="h-11 shrink-0 gap-1.5"
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  <ChevronUp className="size-4" /> Map
+                  {savingName ? "Saving…" : "Save"}
                 </Button>
               </div>
-            ) : (
-              <Button
-                size="lg"
-                className="w-full"
-                disabled={goingLive}
-                onClick={() => void saveAndGoLive()}
-              >
-                <Radio />
-                {goingLive ? "Saving…" : "Save stall & go online"}
+              <input
+                ref={file}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const picked = e.target.files?.[0];
+                  if (!picked || !session.userId) return;
+                  if (picked.size > 500000) {
+                    toast.error("Choose a photo smaller than 500 KB");
+                    return;
+                  }
+                  const uid = session.userId;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    void saveTraderProfile(uid, { avatar: String(reader.result) })
+                      .then(() => refresh())
+                      .then(() => toast.success("Photo saved"))
+                      .catch(() => toast.error("Could not save photo"));
+                  };
+                  reader.readAsDataURL(picked);
+                }}
+              />
+              <Button variant="outline" className="min-h-11" onClick={() => file.current?.click()}>
+                <Camera />
+                {me?.avatar ? "Change photo" : "Add profile photo"}
               </Button>
+              <h2 className="font-semibold text-lg">Waves near you</h2>
+              {(wavesQuery.isError || ordersQuery.isError || marketplaceError) && (
+                <div role="alert" className="space-y-2">
+                  <p className="text-sm text-destructive">
+                    Couldn't load your stall or requests. Your saved details haven't changed.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      void refresh();
+                      void wavesQuery.refetch();
+                      void ordersQuery.refetch();
+                    }}
+                  >
+                    Try again
+                  </Button>
+                </div>
+              )}
+              {!active && !nearby.length && !wavesQuery.isError && (
+                <p className="text-muted-foreground text-sm">
+                  {location ? "No nearby waves yet" : "Set your location to see nearby waves"}
+                </p>
+              )}
+              {!active && !marketplaceError && (
+                <p className="text-xs text-muted-foreground" role="status">
+                  {!me?.stock.length
+                    ? "Your stall has no stock yet"
+                    : !isOnline
+                      ? "Stock saved · Your stall is offline"
+                      : nearby.length
+                        ? `${nearby.length} ${nearby.length === 1 ? "buyer is" : "buyers are"} waving nearby`
+                        : "Stock saved · Online and ready for buyers"}
+                </p>
+              )}
+              {active && activeWave && (
+                <Card className="p-4 gap-3">
+                  <OrderStepper status={waveView(activeWave, active).status} />
+                  <p className="font-semibold">
+                    {active.status === "delivered"
+                      ? "Delivered — waiting for buyer confirmation"
+                      : active.status === "delivering"
+                        ? "Delivering"
+                        : "Order accepted"}
+                  </p>
+                  <p>
+                    {formatRand(Number(active.amount))} ·{" "}
+                    {active.payment_method === "cash" ? "Cash on delivery" : "MTN MoMo"}
+                  </p>
+                  {["accepted", "preparing", "ready"].includes(active.status) && (
+                    <Button
+                      disabled={actions.advanceOrder.isPending}
+                      onClick={() => advance("delivering")}
+                    >
+                      Start delivering — share live location
+                    </Button>
+                  )}
+                  {active.status === "delivering" && (
+                    <Button onClick={() => advance("delivered")}>
+                      I've arrived — confirm delivery
+                    </Button>
+                  )}
+                  {["accepted", "preparing", "ready"].includes(active.status) && (
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          await actions.cancelWave.mutateAsync(active.wave_id);
+                        } catch {
+                          toast.error("Cannot cancel an order with payment in progress");
+                        }
+                      }}
+                    >
+                      Cancel order
+                    </Button>
+                  )}
+                </Card>
+              )}
+              {!active &&
+                nearby.map((w) => {
+                  const view = waveView(w);
+                  const canFill =
+                    view.items.length > 0 &&
+                    view.items.every((i) => me?.stock.some((s) => s.itemId === i.id));
+                  return (
+                    <Card key={w.id} className="p-4 gap-3">
+                      <p className="font-semibold">Someone is waving</p>
+                      <ul>
+                        {view.items.map((i) => (
+                          <li key={i.id}>
+                            {i.qty} × {catalog.find((c) => c.id === i.id)?.name ?? i.id}
+                          </li>
+                        ))}
+                      </ul>
+                      {view.wish && <p>{view.wish}</p>}
+                      <Button
+                        disabled={!canFill || actions.acceptWave.isPending || !isOnline}
+                        onClick={async () => {
+                          try {
+                            await actions.acceptWave.mutateAsync(w.id);
+                            track("wave_accepted");
+                            toast.success("Wave accepted");
+                          } catch {
+                            toast.error("This wave expired, was accepted, or exceeds your stock");
+                          }
+                        }}
+                      >
+                        Accept this wave
+                      </Button>
+                    </Card>
+                  );
+                })}
+            </div>
+            {session.userId && (
+              <StockEditor
+                runnerId={session.userId}
+                stock={me?.stock ?? []}
+                customItems={state.customItems}
+                onSaved={() => void refresh()}
+              />
             )}
-          </div>
-        )}
+            {session.userId && <DemandInsights state={state} runnerId={session.userId} />}
+            <div className="h-6" />
+            {session.userId && !active && (
+              <div className="sticky bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur-md">
+                {isOnline && !name ? (
+                  <div className="flex items-center gap-2">
+                    <p
+                      role="status"
+                      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
+                    >
+                      <Radio className="size-4" /> Stall is online · ready for waves
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="h-11 shrink-0 gap-1.5"
+                      onClick={() => setDrawerOpen(false)}
+                    >
+                      <ChevronUp className="size-4" /> Map
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={goingLive}
+                    onClick={() => void saveAndGoLive()}
+                  >
+                    <Radio />
+                    {goingLive ? "Saving…" : "Save stall & go online"}
+                  </Button>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <button
