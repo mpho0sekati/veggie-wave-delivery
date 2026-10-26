@@ -670,7 +670,7 @@ function FinancePage() {
                 ].map((step, i) => (
                   <li
                     key={step.label}
-                    className={`rounded-lg border p-2 ${step.done ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground"}`}
+                    className={`min-w-0 break-words rounded-lg border p-2 ${step.done ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground"}`}
                   >
                     <span className="block font-bold">{step.done ? <Check className="mx-auto size-4" /> : i + 1}</span>
                     {step.label}
@@ -680,11 +680,11 @@ function FinancePage() {
             </section>
             {profile.trader && (
               <section className="border-b py-6" aria-labelledby="stall-title">
-                <div className="flex items-center justify-between gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                   <h2 id="stall-title" className="text-lg font-semibold">
                     My stall earnings
                   </h2>
-                  <Button asChild variant="ghost" size="sm">
+                  <Button asChild variant="ghost" size="sm" className="min-h-11 shrink-0 px-2">
                     <Link to="/runner">
                       {profile.trader.openOrders} open{" "}
                       {profile.trader.openOrders === 1 ? "order" : "orders"}
@@ -701,9 +701,9 @@ function FinancePage() {
                     { label: "Settled sales", value: profile.trader.settledEarnings },
                     { label: "Awaiting settlement", value: profile.trader.pendingEarnings },
                   ].map((s) => (
-                    <div key={s.label} className="rounded-lg border bg-card p-3">
+                    <div key={s.label} className="min-w-0 rounded-lg border bg-card p-3">
                       <dt className="text-xs text-muted-foreground">{s.label}</dt>
-                      <dd className="mt-1 text-lg font-semibold tabular-nums">
+                      <dd className="mt-1 break-words text-lg font-semibold tabular-nums">
                         {formatRand(s.value)}
                       </dd>
                     </div>

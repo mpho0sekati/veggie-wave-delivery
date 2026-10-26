@@ -2,6 +2,7 @@ import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { track } from "@/lib/track";
+import { Button } from "@/components/ui/button";
 
 /** One tap to drop old saved copies of the app and load the newest version. */
 export default function UpdateMdeko() {
@@ -30,15 +31,16 @@ export default function UpdateMdeko() {
   };
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={update}
       disabled={busy}
-      className="flex min-w-14 flex-1 flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1 transition-colors hover:bg-secondary active:bg-secondary"
+      className="h-auto min-h-14 min-w-0 w-full flex-col gap-1 rounded-xl px-0 pt-2 pb-1 transition-colors hover:bg-secondary active:bg-secondary"
     >
-      <RefreshCw className={`size-6 text-muted-foreground ${busy ? "animate-spin" : ""}`} />
-      <span className="text-[11px] font-medium leading-none text-muted-foreground">Update</span>
+      <RefreshCw className={`size-5 shrink-0 text-muted-foreground sm:size-6 ${busy ? "animate-spin" : ""}`} />
+      <span className="text-[10px] font-medium leading-4 text-muted-foreground sm:text-[11px]">Update</span>
       <span aria-hidden className="h-0.5 w-6" />
-    </button>
+    </Button>
   );
 }

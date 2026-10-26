@@ -174,9 +174,10 @@ function RunnerPage() {
           </Suspense>
         </ClientOnly>
       </div>
-      <header className="absolute inset-x-3 top-3 z-10 mx-auto max-w-lg space-y-2">
+      <header className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 mx-auto max-w-lg space-y-2">
         <AppTabBar signedIn={Boolean(session.userId)} onSignOut={signOutEverywhere} />
-        <div className="flex items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-2xl border bg-background/95 p-3 shadow-lg">
+          <div className="flex min-w-0 items-center gap-2">
           <Store className="size-6 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">
@@ -185,6 +186,7 @@ function RunnerPage() {
             <p className="text-xs text-muted-foreground">
               {isOnline ? "Online — buyers can see you" : "Offline — turn on to get orders"}
             </p>
+          </div>
           </div>
           <Switch
             aria-label="Available for deliveries"
@@ -206,7 +208,7 @@ function RunnerPage() {
             aria-label="Find my location"
             size="icon"
             variant="secondary"
-            className="rounded-full"
+            className="size-11 shrink-0 rounded-full"
             onClick={() => {
               recenterRequested.current = true;
               if (location) setRecenterTrigger((value) => value + 1);
@@ -217,7 +219,7 @@ function RunnerPage() {
           </Button>
         </div>
       </header>
-      <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[72dvh] max-w-lg overflow-y-auto rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]">
+      <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-h-[min(72dvh,calc(100dvh-12rem-env(safe-area-inset-top)))] max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl border bg-background pb-[env(safe-area-inset-bottom)]">
         <div className="p-4 space-y-4">
           <JourneyProgress
             label="Your trader journey"
@@ -233,11 +235,13 @@ function RunnerPage() {
           <div className="flex gap-2">
             <Input
               aria-label="Stall name"
+              className="h-11 min-w-0 flex-1"
               placeholder="Stall name"
               value={displayName}
               onChange={(e) => setName(e.target.value)}
             />
             <Button
+              className="h-11 shrink-0"
               onClick={async () => {
                 if (!session.userId || !displayName.trim()) {
                   toast.error("Type your stall name first");
@@ -283,7 +287,7 @@ function RunnerPage() {
               reader.readAsDataURL(picked);
             }}
           />
-          <Button variant="outline" onClick={() => file.current?.click()}>
+          <Button variant="outline" className="min-h-11" onClick={() => file.current?.click()}>
             <Camera />
             {me?.avatar ? "Change photo" : "Add profile photo"}
           </Button>
