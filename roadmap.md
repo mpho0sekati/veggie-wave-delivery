@@ -2,6 +2,10 @@
 
 ## Done
 
+- Checkout price now matches the seller's price: the delivery fee shown in the buyer's estimate (base R10 + R5/km) was never charged at accept time, so checkout showed a different amount. accept_wave now adds the same fee formula to the order total. Verified end to end: estimate R32.00 (R22 carrots + R10 delivery) → accepted order R32.00 → buyer screen shows "Order accepted by Armando · R32.00". 84 tests pass, build OK, test orders cancelled.
+
+
+
 - End-to-end wave flow fixed: signed-out buyers now see real online traders (public discovery policies), the trader map shows pulsing customer wave pins that open the accept list, disabled accept buttons explain missing stock, an unanswered MoMo request no longer traps an order (cash switch allowed after 3 minutes), a clearly-labelled demo approval completes payment through the same verified path for showcases, and the buyer wave timer matches the 10-minute server expiry. Verified in a real browser: signed-out discovery returns traders, a wave placed next to the trader shows the pin and accept card, 84 tests pass, build OK.
 
 
