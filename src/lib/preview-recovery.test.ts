@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { watchPreviewConnection } from "./preview-recovery";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { watchPreviewConnection, watchStaleServerFunctions } from "./preview-recovery";
 
 function connectionFixture() {
   const listeners = new Map<string, Set<() => void>>();
@@ -46,6 +46,63 @@ describe("preview reconnect recovery", () => {
     dispose();
     emit("vite:ws:disconnect");
     emit("vite:ws:connect");
+    expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("stale server function reloads", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  function storageStub() {
+    const map = new Map<string, string>();
+    return {
+      getItem: (key: string) => map.get(key) ?? null,
+      setItem: (key: string, value: string) => void map.set(key, value),
+    };
+  }
+
+  function stubFetch(status: number) {
+    vi.stubGlobal("window", { fetch: vi.fn(async () => new Response("boom", { status })) });
+  }
+
+  it("reloads a second time when the first reload did not clear the failure", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const reload = vi.fn();
+    stubFetch(500);
+    watchStaleServerFunctions(reload, storageStub());
+
+    await window.fetch("/_serverFn/abc", { method: "POST" });
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(60_000);
+    await window.fetch("/_serverFn/abc", { method: "POST" });
+    expect(reload).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops reloading once a failure proves it is not a stale call", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const reload = vi.fn();
+    stubFetch(500);
+    watchStaleServerFunctions(reload, storageStub());
+
+    for (let i = 0; i < 6; i++) {
+      await window.fetch("/_serverFn/abc", { method: "POST" });
+      vi.advanceTimersByTime(60_000);
+    }
+    expect(reload).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves a healthy server function call alone", async () => {
+    const reload = vi.fn();
+    stubFetch(200);
+    watchStaleServerFunctions(reload, storageStub());
+
+    await window.fetch("/_serverFn/abc", { method: "POST" });
     expect(reload).not.toHaveBeenCalled();
   });
 });
