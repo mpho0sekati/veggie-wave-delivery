@@ -38,28 +38,64 @@ function readAttempt(raw: string | null) {
   }
 }
 
+type StartOptionsWindow = Window & {
+  __TSS_START_OPTIONS__?: { serverFns?: { fetch?: typeof fetch } };
+};
+
+function requestUrl(input: Parameters<typeof fetch>[0]): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.href;
+  return input.url;
+}
+
 export function watchStaleServerFunctions(
   reload: () => void,
   storage: Pick<Storage, "getItem" | "setItem"> = window.sessionStorage,
 ) {
-  const original = window.fetch;
   const key = "mdeko-stale-fn-reload";
-  window.fetch = async (...args) => {
-    const response = await original(...args);
-    const url =
-      typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : args[0].url;
-    if (response.status >= 500 && url.includes("/_serverFn/")) {
-      // During a preview restart the server may answer stale calls with a bare 500
-      // (no "Invalid server function ID" text), so any 5xx triggers a guarded reload.
-      const attempt = readAttempt(storage.getItem(key));
-      if (attempt.count < MAX_RELOADS && Date.now() - attempt.at > 30_000) {
-        storage.setItem(key, JSON.stringify({ n: attempt.count + 1, t: Date.now() }));
-        reload();
-      }
+  const stops: Array<() => void> = [];
+  const guard = (url: string, status: number) => {
+    if (status < 500 || !url.includes("/_serverFn/")) return;
+    // During a preview restart the server may answer stale calls with a bare 500
+    // (no "Invalid server function ID" text), so any 5xx triggers a guarded reload.
+    const attempt = readAttempt(storage.getItem(key));
+    if (attempt.count < MAX_RELOADS && Date.now() - attempt.at > 30_000) {
+      storage.setItem(key, JSON.stringify({ n: attempt.count + 1, t: Date.now() }));
+      reload();
     }
+  };
+
+  // Server-function calls resolve their fetch from the start options on every
+  // call, so hooking it there sees them even when a plain window.fetch wrapper
+  // misses the traffic.
+  const startWindow = window as StartOptionsWindow;
+  const options = startWindow.__TSS_START_OPTIONS__;
+  if (options?.serverFns) {
+    const original = options.serverFns.fetch;
+    const wrapped: typeof fetch = async (input, init) => {
+      const response = await (original ?? window.fetch)(input, init);
+      guard(requestUrl(input), response.status);
+      return response;
+    };
+    options.serverFns.fetch = wrapped;
+    stops.push(() => {
+      if (!options.serverFns) return;
+      if (original) options.serverFns.fetch = original;
+      else delete options.serverFns.fetch;
+    });
+  }
+
+  // Fallback for paths that resolve fetch globally at call time.
+  const globalOriginal = window.fetch;
+  const globalWrapped: typeof fetch = async (input, init) => {
+    const response = await globalOriginal(input, init);
+    guard(requestUrl(input), response.status);
     return response;
   };
-  return () => {
-    if (window.fetch !== original) window.fetch = original;
-  };
+  window.fetch = globalWrapped;
+  stops.push(() => {
+    if (window.fetch === globalWrapped) window.fetch = globalOriginal;
+  });
+
+  return () => stops.forEach((stop) => stop());
 }
