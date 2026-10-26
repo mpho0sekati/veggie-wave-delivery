@@ -78,6 +78,7 @@ export function useMdekoActions() {
   const advance = useServerFn(advanceOrder);
   const pay = useServerFn(startMomoPayment);
   const verify = useServerFn(verifyMomoPayment);
+  const demoApprove = useServerFn(demoApproveMomoPayment);
   const cash = useServerFn(chooseCash);
   const confirmedCash = useServerFn(confirmCash);
   const cancel = useServerFn(cancelWave);
@@ -111,11 +112,17 @@ export function useMdekoActions() {
     onSuccess: refresh,
   });
 
+  const demoApproveMutation = useMutation({
+    mutationFn: (data: { orderId: string; msisdn?: string }) => demoApprove({ data }),
+    onSuccess: refresh,
+  });
+
   return {
     createWave: createWaveMutation,
     acceptWave: acceptWaveMutation,
     advanceOrder: advanceOrderMutation,
     startPayment: startPaymentMutation,
+    demoApprovePayment: demoApproveMutation,
     verifyPayment: async (orderId: string) => {
       const payment = await verify({ data: { orderId } });
       if (payment?.status === "successful" || payment?.status === "failed") refresh();
