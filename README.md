@@ -1,505 +1,422 @@
 # Mdeko · Veggie Wave
 
-Mdeko Veggie Wave is a township produce marketplace that connects buyers with nearby veggie traders through a map-based, mobile-first flow: a buyer raises a "wave", the closest trader accepts, an order is fulfilled, payment is completed, and the settlement is recorded in the finance profile.
+> **Raise your hand. The trolley comes to you. Every sale builds a money record.**
 
-Built with React 19, TanStack Start, Leaflet, Tailwind CSS v4, and a Supabase backend.
+Mdeko is a mobile-first web app (PWA) for township street produce. A buyer taps the veggies they want and **waves**. The nearest online trolley trader sees the wave on a live map, accepts it and walks straight to the buyer. Payment goes through **MTN MoMo** (or cash), 5% of every verified MoMo settlement goes into the trader's **savings pot**, and every sale builds a **money record** the trader can download and take to a bank such as FNB.
+
+- **Live app:** https://veggie-wave-delivery.lovable.app
+- **Main screens:** `/` buyer · `/runner` trader · `/finance` My Money · `/auth` cell number + PIN sign-in
 
 ---
 
-## The flow
+## Table of contents
+
+1. [Why we built this](#1-why-we-built-this)
+2. [Who it is for](#2-who-it-is-for)
+3. [How the app works](#3-how-the-app-works)
+4. [Screenshots](#4-screenshots)
+5. [Architecture diagrams](#5-architecture-diagrams)
+6. [Why this stack](#6-why-this-stack)
+7. [Features by screen](#7-features-by-screen)
+8. [Security and money rules](#8-security-and-money-rules)
+9. [Run it locally](#9-run-it-locally)
+10. [Testing and evidence](#10-testing-and-evidence)
+11. [Judge demo guide (90 seconds)](#11-judge-demo-guide-90-seconds)
+12. [Honest limits and what is next](#12-honest-limits-and-what-is-next)
+13. [Project structure](#13-project-structure)
+
+---
+
+## 1. Why we built this
+
+The founder started out selling vegetables with his grandmother at a stall in **Ivory Park**. Competition at the big market was tough, so they bought a trolley and pushed it through the streets. It was hard work: hot days, rain, and no way of knowing where the customers were. The question back then was simple:
+
+> *What if somebody could just raise their hand, and I would know exactly where to go?*
+
+Years later, two problems are still there:
+
+| Problem | Effect |
+| --- | --- |
+| Trolley traders walk around hoping to find buyers | Wasted energy, unsold stock, and stock based on guesses instead of what people want |
+| Buyers (often older people) miss traders who pass in a rush | Family members drive to a mall for fresh produce |
+| Sales are cash-only and nothing is written down | Traders have no record, so banks can't see them and they can't get credit to grow |
+| Traders carry cash to the fresh produce market at dawn | Risk of being robbed, and money sent home leaves nothing to start again with |
+
+---
+
+## 2. Who it is for
+
+**Armando, the trader.** He has run a trolley business, inherited from his cousin, for four years. He splits his life between South Africa and Malawi. Most of what he earns goes home, so every time he comes back he starts from zero. He has no card machine, no bank record and carries cash to the Joburg Fresh Produce Market. He wants to grow, but nobody can see what he earns.
+
+**Gogo, the buyer.** She wants fresh tomatoes and spinach at her gate. Trolley sellers rush past her, so her grandchild has to go to the mall. With Mdeko she taps two pictures and waves.
+
+---
+
+## 3. How the app works
 
 ```text
-Buyer → Wave → Trader accepts → Order → MTN MoMo payment → Delivery → Complete → Settlement → Finance profile updated
+ BUYER                         MDEKO                            TRADER
+ ─────                         ─────                            ──────
+ Tap veggie icons ──► Wave (10-min window) ──► Shows on map of nearby online traders
+                                                      │
+                                    Trader taps Accept (database lock: one trader only,
+                                    stock checked, price from trader's saved stock)
+                                                      │
+ Sees "On the way" + live pin ◄── Trader shares walking progress (GPS + route)
+                                                      │
+ Celebration when trader arrives ◄── Trader marks Delivered
+                                                      │
+ Pays with MTN MoMo or cash ──► Payment checked again with MTN (never trusted from callback text)
+                                                      │
+                               Settlement recorded ──► 5% of net goes to trader savings pot
+                                                      │
+                               My Money updates: earnings, savings, Mdeko activity score
+                                                      │
+                               FNB bridge: eWallet cash-out demo + downloadable money record
 ```
+
+### The three-step money story
+
+1. **MTN MoMo collects on the street** — no card machine needed, just the buyer's phone.
+2. **Mdeko builds the record** — every verified sale, settlement and the 5% saving is stored.
+3. **FNB is the way out to formal banking** — eWallet cash-out at an ATM (shown as a demo using the trader's real recorded savings), and a downloadable record for an FNB business account or loan conversation.
+
+> Mdeko is **not** partnered with FNB. FNB features are clearly labelled in the app as information links and a local demo. No real money moves through them.
 
 ---
 
-## Architecture & UML
+## 4. Screenshots
 
-> These diagrams are maintained manually; check the code and the judge-readiness evidence below rather than treating them as automatic verification.
+| Buyer — pick veggies and wave | Trader — stall, stock and incoming waves |
+| --- | --- |
+| ![Buyer view](docs/screenshots/buyer-view.png) | ![Trader view](docs/screenshots/trader-view.png) |
 
-### System Architecture — Component Diagram
+---
+
+## 5. Architecture diagrams
+
+### 5.1 System architecture
 
 ```mermaid
 flowchart TB
-    subgraph Client["Client (PWA — React 19 + TanStack Router)"]
-        BuyerPage["/ — Buyer page\n(wave, map, order, pay)"]
-        TraderPage["/runner — Trader dashboard\n(stock, waves, deliver, earn)"]
-        FinancePage["/finance — My Money\n(score, savings, AI tip, record)"]
-        AuthPage["/auth — Sign in / Sign up"]
+    subgraph Phone["Phone — installable PWA (React 19 + TanStack Router)"]
+        Buyer["/ Buyer<br/>produce picker · wave · map · pay"]
+        Trader["/runner Trader<br/>Save stall & go online · accept · deliver"]
+        Money["/finance My Money<br/>earnings · savings · score · FNB"]
+        Auth["/auth<br/>SA cell number + 4-digit PIN"]
+        Cache["Local view cache<br/>+ offline wave queue"]
     end
 
-    subgraph ServerFns["Server Functions (TanStack Start)"]
-        WaveFns["mdeko.functions.ts\ncreateWave · acceptWave\nadvanceOrder · listMyOrders"]
-        PayFns["mdeko.functions.ts\nstartMomoPayment\nverifyMomoPayment"]
-        FinanceFns["finance.functions.ts\ngetMoneyProfile · getSavingsJar\nupdateSavingsTarget · getSmartTip"]
-        AIFns["ai-order.functions.ts\nparseOrderDescription"]
+    subgraph Edge["TanStack Start server functions (edge runtime)"]
+        PhoneAuth["phone-auth.functions<br/>sign up · sign in"]
+        Market["mdeko.functions<br/>createWave · acceptWave · advanceOrder"]
+        Pay["momo.functions<br/>start / verify payment"]
+        Fin["finance.functions<br/>money profile · savings · tip"]
+        AI["ai-order.functions<br/>describe order in words"]
+        Callback["/api/public/momo-callback<br/>re-verify with MTN, then settle"]
     end
 
-    subgraph External["External Services"]
-        MoMo["MTN MoMo Collections API\nproduction · ZAR · mtnsouthafrica"]
-        AIGateway["Lovable AI Gateway\nopenai/gpt-4o-mini\nOrder parsing · Smart tips"]
-        OSM["OpenStreetMap / OSRM\nMap tiles · Walking routes"]
+    subgraph Cloud["Lovable Cloud database (Postgres + RLS)"]
+        Roles["profiles · user_roles"]
+        Orders["waves · wave_orders · stock"]
+        Ledger["payments · settlements · savings_pots"]
+        Insight["demand · funnel_events · courier tracking"]
     end
 
-    subgraph DB["Supabase (Postgres + Realtime + Auth)"]
-        AuthDB["auth.users\nJWT · RLS"]
-        CoreTables["waves · wave_orders\npayments · settlements\nprofiles · stock · wallets"]
-        FinanceTable["savings_pots\nbalance · target · auto-save"]
-        DemandTable["demand\ncatalogue items requested"]
+    subgraph External["Outside services"]
+        MoMo["MTN MoMo Collections<br/>ZAR · South Africa"]
+        Gateway["Lovable AI Gateway"]
+        OSM["OpenStreetMap tiles<br/>+ OSRM walking routes"]
+        FNB["FNB public info pages<br/>(links only, no API)"]
     end
 
-    subgraph Webhook["Webhook Handler"]
-        MoMoCB["/api/public/momo-callback\nverify -> finalize -> settle\n-> auto-save 5%"]
-    end
-
-    BuyerPage -->|server fn calls| WaveFns
-    BuyerPage -->|server fn calls| PayFns
-    BuyerPage -->|server fn calls| AIFns
-    TraderPage -->|server fn calls| WaveFns
-    FinancePage -->|server fn calls| FinanceFns
-
-    WaveFns --> CoreTables
-    PayFns --> MoMo
-    PayFns --> CoreTables
-    FinanceFns --> CoreTables
-    AIFns --> AIGateway
-
-    MoMo -->|webhook POST| MoMoCB
-    MoMoCB --> CoreTables
-
-    BuyerPage --> OSM
-    TraderPage --> OSM
+    Phone --> Edge
+    Auth --> PhoneAuth
+    Edge --> Cloud
+    Pay --> MoMo
+    MoMo -- callback --> Callback
+    Callback --> MoMo
+    Callback --> Ledger
+    AI --> Gateway
+    Fin --> Gateway
+    Buyer --> OSM
+    Trader --> OSM
+    Money -. opens link .-> FNB
 ```
 
----
-
-### Core Order Flow — Sequence Diagram
+### 5.2 End-to-end sequence
 
 ```mermaid
 sequenceDiagram
-    actor Buyer
-    actor Trader
-    participant App as Mdeko PWA
-    participant Server as Server Functions
-    participant DB as Supabase
-    participant MoMo as MTN MoMo
-    participant Finance as Finance Module
+    actor B as Buyer (Gogo)
+    actor T as Trader (Armando)
+    participant S as Server functions
+    participant D as Database
+    participant M as MTN MoMo
 
-    Buyer->>App: Picks items / describes order
-    App->>Server: createWave(items, location)
-    Server->>DB: INSERT waves (status=created)
-    DB-->>Server: wave row
-    Server-->>App: wave created
-
-    Trader->>App: Sees wave on map
-    App->>Server: acceptWave(waveId)
-    Server->>DB: RPC accept_wave -> INSERT wave_orders
-    DB-->>Server: order row (status=accepted)
-    Server-->>App: order accepted
-
-    Trader->>App: Marks delivering
-    App->>Server: advanceOrder(delivering)
-    Server->>DB: RPC advance_order
-    Note over App: Live GPS tracking starts
-
-    Trader->>App: Marks delivered
-    Buyer->>App: Pays with MTN MoMo
-    App->>Server: startMomoPayment(orderId, msisdn)
-    Server->>MoMo: POST /requesttopay
-    MoMo-->>Server: 202 Accepted
-    Server->>DB: INSERT payments (status=pending)
-
-    MoMo->>App: Webhook callback (status=SUCCESSFUL)
-    App->>Server: verifyMomoPayment (re-verify with MoMo)
-    Server->>MoMo: GET /requesttopay/{ref}
-    MoMo-->>Server: SUCCESSFUL
-    Server->>DB: RPC finalize_payment -> INSERT settlements
-    Server->>Finance: depositToJar(net x 5%)
-    Finance->>DB: UPSERT savings_pots (balance += 5%)
-    DB-->>App: Realtime update -> order completed
-
-    Buyer->>App: Views /finance
-    App->>Finance: getMoneyProfile()
-    Finance->>DB: Query orders + payments + savings
-    Finance-->>App: Profile + score + savings jar
+    T->>S: Save stall & go online (name, stock, location)
+    S->>D: update profile + stock, online = true
+    B->>S: createWave(items, location)
+    S->>D: insert wave (expires in 10 min)
+    T->>S: acceptWave(waveId)
+    S->>D: lock wave, check stock, create order (accepted)
+    D-->>B: order shows "Trader is coming" + pay options
+    T->>S: advanceOrder(delivering) + GPS points
+    T->>S: advanceOrder(delivered)
+    Note over B,T: Arrival celebration (once per order)
+    B->>S: startMomoPayment(orderId)
+    S->>D: payment row (amount from order, not from phone)
+    S->>M: request to pay
+    M-->>S: callback
+    S->>M: re-check status (never trust callback text)
+    S->>D: finalize payment → settlement → +5% savings
+    D-->>T: My Money refreshes (earnings, savings, score)
+    T->>T: FNB eWallet demo from recorded savings / download record
 ```
 
----
+### 5.3 Order lifecycle
 
-### Database Schema — Entity Relationship Diagram
+```mermaid
+stateDiagram-v2
+    [*] --> Waving: buyer waves
+    Waving --> Expired: no trader in 10 min
+    Waving --> Cancelled: buyer cancels
+    Waving --> Accepted: one trader accepts (locked)
+    Accepted --> Delivering: trader on the way
+    Delivering --> Delivered: trader marks delivered
+    Delivered --> PaymentPending: buyer starts MoMo
+    PaymentPending --> Paid: MTN confirms
+    PaymentPending --> Delivered: failed / retry
+    Delivered --> Completed: cash confirmed
+    Paid --> Settled: settlement + 5% savings
+    Settled --> [*]
+    Completed --> [*]
+```
+
+### 5.4 Database (main tables)
 
 ```mermaid
 erDiagram
-    USERS {
-        uuid id PK
-        text email
-        timestamptz created_at
-    }
-
+    PROFILES ||--o{ USER_ROLES : has
+    PROFILES ||--o{ STOCK : sells
+    PROFILES ||--o{ WAVES : raises
+    WAVES ||--o| WAVE_ORDERS : becomes
+    WAVE_ORDERS ||--o{ PAYMENTS : "paid by"
+    WAVE_ORDERS ||--o| SETTLEMENTS : "settled as"
+    PROFILES ||--o| SAVINGS_POTS : owns
     PROFILES {
         uuid id PK
         text name
-        app_role role
+        text phone
         numeric lat
         numeric lng
         boolean online
-        numeric rating
-        text avatar
-        timestamptz created_at
     }
-
-    WALLETS {
-        uuid user_id PK
-        numeric balance
-        text pin_hash
+    USER_ROLES {
+        uuid user_id FK
+        text role "buyer or trader"
     }
-
-    SAVINGS_POTS {
-        uuid user_id PK
-        numeric balance
-        numeric target_amount
-        text name
-        timestamptz updated_at
-    }
-
-    WAVES {
-        uuid id PK
-        uuid buyer_id FK
-        uuid trader_id FK
-        json items
-        text wish
-        wave_status status
-        timestamptz expires_at
-    }
-
-    WAVE_ORDERS {
-        uuid id PK
-        uuid wave_id FK
-        uuid buyer_id FK
-        uuid trader_id FK
-        json items
-        numeric amount
-        order_status status
-        timestamptz completed_at
-    }
-
-    PAYMENTS {
-        uuid id PK
-        uuid order_id FK
-        uuid buyer_id FK
-        text reference
-        numeric amount
-        text currency
-        payment_status status
-        text payer_msisdn
-        timestamptz verified_at
-    }
-
-    SETTLEMENTS {
-        uuid id PK
-        uuid order_id FK
-        uuid payment_id FK
-        uuid trader_id FK
-        numeric gross
-        numeric net
-        numeric commission
-        settlement_status status
-        timestamptz settled_at
-    }
-
     STOCK {
-        uuid id PK
         uuid trader_id FK
         text item_id
         numeric price
         numeric quantity
         boolean available
     }
-
-    DEMAND {
-        text key PK
-        text item_id
-        text label
-        integer requests
-        integer unfilled
-        timestamptz last_at
+    WAVES {
+        uuid id PK
+        uuid buyer_id FK
+        json items
+        text status
+        timestamptz expires_at
     }
-
-    USERS ||--|| PROFILES : "has"
-    USERS ||--o| WALLETS : "has"
-    USERS ||--o| SAVINGS_POTS : "has"
-    PROFILES ||--o{ WAVES : "raises (buyer)"
-    PROFILES ||--o{ WAVES : "accepts (trader)"
-    WAVES ||--o| WAVE_ORDERS : "creates"
-    WAVE_ORDERS ||--o| PAYMENTS : "paid via"
-    WAVE_ORDERS ||--o| SETTLEMENTS : "settled into"
-    PROFILES ||--o{ STOCK : "stocks"
+    WAVE_ORDERS {
+        uuid id PK
+        uuid wave_id FK
+        uuid trader_id FK
+        numeric amount
+        text status
+    }
+    PAYMENTS {
+        uuid id PK
+        uuid order_id FK
+        text reference
+        text status
+    }
+    SETTLEMENTS {
+        uuid order_id FK
+        numeric gross
+        numeric net
+    }
+    SAVINGS_POTS {
+        uuid user_id PK
+        numeric balance
+        numeric target_amount
+    }
 ```
 
----
+Also: `demand` (what buyers ask for that nobody stocks), `funnel_events` (anonymous usage steps) and courier tracking points (limited to recent points).
 
-### Mdeko Finance — State Machine
+### 5.5 Mdeko activity score (0–100)
 
 ```mermaid
-stateDiagram-v2
-    [*] --> NewUser: Signs up
-
-    NewUser --> JustStarting: First order completed
-    JustStarting --> GettingGoing: 10+ orders OR savings > R50
-    GettingGoing --> Trusted: 20+ orders AND active AND MoMo rate > 70%
-    Trusted --> Champion: 30+ orders AND savings goal reached AND active
-
-    state "Just Starting" as JustStarting {
-        [*] --> Scoring
-        Scoring --> Score025
-        state "Score 0-25\nSlogan: Every legend started here" as Score025
-    }
-
-    state "Getting Going" as GettingGoing {
-        [*] --> Scoring2
-        Scoring2 --> Score050
-        state "Score 26-50\nSlogan: You're building. Keep going." as Score050
-    }
-
-    state "Trusted" as Trusted {
-        [*] --> Scoring3
-        Scoring3 --> Score075
-        state "Score 51-75\nSlogan: Clock it — you're trusted." as Score075
-    }
-
-    state "Champion" as Champion {
-        [*] --> Scoring4
-        Scoring4 --> Score100
-        state "Score 76-100\nSlogan: You're winning. Stack more." as Score100
-    }
-
-    state "5% Auto-Save" as AutoSave {
-        [*] --> MoMoPayment
-        MoMoPayment --> FinalizePayment
-        FinalizePayment --> CreateSettlement
-        CreateSettlement --> DepositToSavingsJar
-        DepositToSavingsJar --> UpdateScore
-    }
-
-    Trusted --> AutoSave: MoMo payment received
-    GettingGoing --> AutoSave: MoMo payment received
-    Champion --> AutoSave: MoMo payment received
+flowchart LR
+    A[Completed orders] -->|up to 30| S((Score))
+    B[MoMo payment success rate] -->|up to 30| S
+    C[Active in last 30 days] -->|up to 20| S
+    D[Savings vs goal] -->|up to 20| S
+    S --> T1[0-25 Just Starting]
+    S --> T2[26-50 Getting Going]
+    S --> T3[51-75 Trusted]
+    S --> T4[76-100 Champion]
 ```
 
----
-
-### Finance Score Algorithm — Activity Diagram
-
-```mermaid
-flowchart TD
-    A([User opens My Money]) --> B[Fetch wave_orders\nwhere buyer_id OR trader_id = userId]
-    B --> C[Fetch payments\nwhere buyer_id = userId]
-    C --> D[Fetch savings_pots\nwhere user_id = userId]
-    D --> E{Savings pot\nexists?}
-    E -->|No| F[Auto-create\nsavings_pots row\nbalance=0, target=500]
-    E -->|Yes| G[Use existing row]
-    F --> G
-
-    G --> H[Compute score factors]
-
-    subgraph Score["Score Computation — browser-side, no API call"]
-        H --> I["orderVolumePts\n= min(completedOrders, 30)"]
-        I --> J["paymentReliabilityPts\n= round(momoSuccessRate * 30)"]
-        J --> K["activityConsistencyPts\n= anyOrderInLast30Days ? 20 : 0"]
-        K --> L["savingsBehaviourPts\n= min(round(balance / target * 20), 20)"]
-        L --> M["total = sum of all four\n(max 100)"]
-    end
-
-    M --> N{total}
-    N -->|0-25| O["Tier: Just Starting\nEvery legend started here."]
-    N -->|26-50| P["Tier: Getting Going\nYou're building. Keep going."]
-    N -->|51-75| Q["Tier: Trusted\nClock it — you're trusted."]
-    N -->|76-100| R["Tier: Champion\nYou're winning. Stack more."]
-
-    O --> S[Generate next-step tip]
-    P --> S
-    Q --> S
-    R --> S
-
-    S --> T[Call AI gateway\ngetSmartTip — personalised tip\nbased on trading patterns]
-    T --> U{AI available?}
-    U -->|Yes| V["AI-generated tip\nmax 200 chars"]
-    U -->|No| W[Static fallback tip]
-    V --> X([Render My Money page])
-    W --> X
-```
+The score only changes from real confirmed activity. It is an **activity score, not a bank credit score**.
 
 ---
 
-## Features
+## 6. Why this stack
 
-### Buyer experience (`/`)
-
-- Browse a produce catalogue with icons, quantities, and trader prices.
-- Describe your order in words — an AI assistant converts a free-text description into an itemised order; unrecognised items are logged as demand.
-- See nearby traders on a live OpenStreetMap, ranked by stock match and distance, with walking-time estimates.
-- Real browser geolocation with a manual pin-drop fallback.
-- Raise a wave and track it through a status stepper: waving → on the way → delivered → paid.
-- Pay with MTN MoMo (request-to-pay to the buyer's phone).
-
-### Trader experience (`/runner`)
-
-- Stall dashboard with online/offline availability toggle.
-- Profile with photo upload.
-- Full stock management — per-item availability, price, and quantity.
-- Incoming waves with accept / deliver / request-payment actions.
-- Demand insights — see what buyers are asking for that nobody stocks.
-- Earnings and settlement tracking.
-
-### Mdeko Finance (`/finance`)
-
-- Community Credit Score (0–100) computed from real order and payment data — four factors: volume, reliability, activity, savings.
-- Tiers with youth-first slogans: Just Starting → Getting Going → Trusted ("Clock it") → Champion ("Stack more").
-- Stack it — savings jar that auto-grows by 5% of every MoMo settlement, no action needed.
-- AI Smart Tip — personalised weekly money advice generated from your actual trading patterns.
-- Your Record — a shareable financial identity card: orders done, total traded, member since.
-- How Mdeko works — transparent breakdown of revenue streams and break-even numbers.
-- Multilingual: English / Zulu / Sesotho — full page translates instantly.
-
-### Backend & integrations
-
-- Supabase (Lovable Cloud): auth, profiles, wallets, savings_pots, catalogue, stock, waves, orders, payments, settlements, demand — all protected by row-level security.
-- MTN MoMo Collections (production, `mtnsouthafrica`, ZAR): server-side token management, idempotent request-to-pay, webhook re-verification before settlement. 5% auto-save fires in the webhook callback.
-- AI order parsing + Smart Tips: Lovable AI gateway → order parsing and personalised finance coaching.
-- Weather alerts and walking-route guidance during delivery.
+| Choice | Why it fits township traders |
+| --- | --- |
+| **PWA instead of an app-store app** | No big download, saves data, installs from the browser to the home screen, works on cheap Android phones. |
+| **React 19 + TanStack Start** | One typed codebase for screens and server code. Server functions keep MoMo and AI keys on the server, never on the phone. Pages render on the server so the first screen shows fast on slow networks. |
+| **Edge runtime (Cloudflare Workers)** | Starts fast, runs close to the user, and costs nothing when idle, which suits a pilot with spiky demand. |
+| **Lovable Cloud (Postgres)** | Money needs real transactions: locking a wave so only one trader gets it, stopping stock from going negative, and stopping a settlement from being paid twice. Row-level security keeps each person's records private. |
+| **Cell number + 4-digit PIN** | Matches how people already use MoMo and USSD. No email needed. The cell number is also the MoMo number. |
+| **MTN MoMo Collections** | Traders get paid without renting a card machine. The server checks the payment with MTN again before recording money. |
+| **Leaflet + OpenStreetMap + OSRM** | Light maps with no per-view billing, and walking routes that suit trolley traders. |
+| **Lovable AI Gateway** | "Describe your order in words" and short money tips, without managing AI keys. |
+| **Tailwind CSS v4 + shared colour tokens** | Small CSS, no runtime styling cost on low-end phones, one consistent look. |
+| **Bun + Vitest + Playwright** | Fast installs, unit tests for money and location rules, and real browser checks of the main flow. |
 
 ---
 
-## Tech stack
+## 7. Features by screen
 
-- React 19 + TanStack Start / Router
-- Vite 7
-- Tailwind CSS v4
-- Leaflet + OpenStreetMap tiles
-- Supabase (auth, database, realtime)
-- MTN MoMo Collections API
-- Radix UI primitives, Lucide icons, sonner toasts
+### Buyer — `/`
+- Big produce icons with simple quantity buttons; waving stays one tap away.
+- Nearby online traders on a live map (about 6 km), sorted by distance and what they stock.
+- Live GPS with manual pin-drop fallback; low-accuracy fixes are labelled "approximate".
+- Order steps: waving → coming → delivered → paid. Pay buttons appear as soon as a trader accepts.
+- Pay with MTN MoMo (cell number filled in from sign-up) or cash.
+- Optional: describe the order in words (AI), group restock, weather.
+- If the internet drops, the wave is saved and sent when it comes back.
 
----
+### Trader — `/runner`
+- One **Save stall & go online** button saves the name, prices and amounts and switches the stall online.
+- Incoming waves nearby, with accept / on the way / delivered.
+- Walking route and live position shared with the buyer.
+- Demand insights: what buyers ask for that nobody stocks.
 
-## Project structure
-
-```text
-.
-├── src/
-│   ├── components/
-│   │   ├── ui/
-│   │   ├── BrandMark.tsx
-│   │   ├── DemandInsights.tsx
-│   │   ├── DescribeOrder.tsx
-│   │   ├── NavigationTracker.tsx
-│   │   ├── OrderStepper.tsx
-│   │   ├── StockEditor.tsx
-│   │   ├── VeggieMap.tsx
-│   │   └── WavePayDialog.tsx
-│   ├── lib/
-│   │   ├── ai-order.functions.ts    # AI describe-to-order server fn
-│   │   ├── ai-order.server.ts
-│   │   ├── finance.functions.ts     # Finance: savings jar, money profile, AI tip
-│   │   ├── finance-score.ts         # Community Credit Score algorithm
-│   │   ├── use-finance.ts           # React Query hooks for finance
-│   │   ├── mdeko.functions.ts       # wave/order/payment server API
-│   │   ├── momo.server.ts           # MTN MoMo client
-│   │   ├── momo.functions.ts
-│   │   ├── veggie-store-supabase.ts
-│   │   ├── veggie-store.ts          # legacy local demo store
-│   │   ├── veggie-data.ts           # catalogue, icons, distance helpers
-│   │   ├── use-geolocation.ts       # watchPosition-based GPS hook
-│   │   └── ...                      # weather, routing, tracking, session hooks
-│   ├── routes/
-│   │   ├── __root.tsx
-│   │   ├── index.tsx                # buyer page
-│   │   ├── runner.tsx               # trader dashboard
-│   │   ├── finance.tsx              # My Money — financial inclusion feature
-│   │   ├── auth.tsx                 # sign in / sign up
-│   │   └── api/public/              # MoMo webhook callback (+ auto-save)
-│   ├── router.tsx
-│   ├── start.ts
-│   └── styles.css
-├── supabase/
-│   └── migrations/
-│       └── 20261023000000_add_savings_pots.sql
-├── docs/screenshots/
-├── .env.example
-└── README.md
-```
+### My Money — `/finance`
+- Stall earnings, kept apart as recorded sales, waiting for settlement, and available.
+- Savings pot (5% of verified MoMo settlements) and Mdeko activity score with tips.
+- **FNB eWallet cash-out demo**: choose an amount from your **real recorded savings**, see a sample SMS and ATM steps. The demo balance can't go below zero. Clearly labelled *Demo simulation · no real money moves*.
+- **FNB First Business Zero** info and **Download record for FNB review** (CSV saved to the phone, never sent anywhere).
+- Optional bank link with labelled sandbox data.
 
 ---
 
-## Getting started
+## 8. Security and money rules
 
-### Prerequisites
+- **Roles come from the database** (`user_roles`), never from browser storage.
+- **Order, payment and delivery changes run only through checked server functions** that use the signed-in user's identity. The phone can't pretend to be someone else.
+- **Amounts are worked out on the server** from the order, not sent from the phone.
+- **Payment success is always re-checked with MTN**; a callback alone never marks an order paid.
+- **Duplicate taps reuse the same payment**; one order can only be settled once.
+- **Typed manual deposits can't add money.** Only verified payments and settlements change balances.
+- **CSV export guards against spreadsheet formula injection.**
+- **Read limits:** discovery only reads online traders inside a small area box with a cap, and tracking keeps only recent points.
 
-- Node.js or Bun
-- A Supabase project (or Lovable Cloud) with the migrations in `supabase/` applied
-- MTN MoMo Collections credentials (API user, API key, subscription key)
+---
 
-### Install & run
+## 9. Run it locally
 
 ```bash
 bun install
-bun run dev
+bun run dev        # http://localhost:8080
+bun run lint
+bunx vitest run
 ```
 
-### Lint & build
-
-```bash
-npm run lint
-npm run build
-```
-
-### Environment variables
-
-Copy `.env.example` and fill in:
+Copy `.env.example` to `.env`:
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Client-side Supabase config |
-| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | Server-side Supabase config |
-| `MOMO_BASE_URL` | `https://proxy.momoapi.mtn.com` (production) |
-| `MOMO_SUBSCRIPTION_KEY` | Ocp-Apim-Subscription-Key |
-| `MOMO_API_USER` / `MOMO_API_KEY` | Basic-auth credentials for token generation |
-| `MOMO_TARGET_ENVIRONMENT` | `mtnsouthafrica` |
-| `MOMO_CURRENCY` | `ZAR` |
-| `LOVABLE_API_KEY` | AI gateway — order parsing and Smart Tips |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Public database connection for the browser |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Same connection on the server |
+| `MOMO_BASE_URL`, `MOMO_SUBSCRIPTION_KEY`, `MOMO_API_USER`, `MOMO_API_KEY` | MTN MoMo Collections (server only) |
+| `MOMO_TARGET_ENVIRONMENT`, `MOMO_CURRENCY` | e.g. `mtnsouthafrica`, `ZAR` |
+| `LOVABLE_API_KEY` | AI order parsing and tips (server only) |
 
-MoMo secrets are read inside server handlers only — never exposed to the browser.
+Database migrations live in `drizzle/migrations/`. Deployment runs from `.github/workflows/deploy.yml`.
 
 ---
 
-## Payments: MTN MoMo flow
+## 10. Testing and evidence
 
-1. Token — `POST /collection/token/` with Basic auth (base64 of `API_USER:API_KEY`) plus the subscription key and `X-Target-Environment`. Tokens are cached server-side and refreshed before expiry.
-2. Request to pay — `POST /collection/v1_0/requesttopay` with a unique UUID `X-Reference-Id` per transaction, amount in ZAR, MSISDN normalised to `27XXXXXXXXX`.
-3. Status — `GET /collection/v1_0/requesttopay/{referenceId}`; the webhook re-verifies with MTN before settling. On success, 5% of the net settlement is automatically deposited into the trader's savings jar.
-
----
-
-## Deployment
-
-A GitHub Actions workflow (`.github/workflows/deploy.yml`) deploys to Netlify on every push to `main`. Set `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` as GitHub repository secrets.
+- **Unit tests** (`bunx vitest run`): phone/PIN rules, MoMo configuration, payment status, nearby traders, GPS handling, wave views, finance score, trader finance, eWallet demo balance, CSV record, delivery celebrations, journey steps, group restock and more.
+- **Database checks:** `tests/db/judge-security.sql` (who can call what) and `tests/db/money-rules.sql` (no double settlement, server-set amounts, exactly R5 saved on R100 net, strangers can't read orders). Run inside a transaction that is rolled back.
+- **Browser checks** with Playwright on phone sizes (320–393 px): sign-in, waving, My Money, eWallet demo and CSV download.
+- Full review notes: [`docs/judge-readiness.md`](docs/judge-readiness.md).
 
 ---
 
-## License
+## 11. Judge demo guide (90 seconds)
 
-This project is provided as-is for demonstration and development use.
+Open two tabs side by side: **buyer** on the left, **trader** on the right.
 
+1. **Trader:** set prices → **Save stall & go online**.
+2. **Buyer:** tap tomatoes + onions → **Wave**.
+3. **Trader:** accept → on the way → **Delivered** (celebration plays).
+4. **Buyer:** pay (MoMo or cash).
+5. **Trader → My Money:** earnings, 5% savings, score → **FNB eWallet cash-out** demo → **Download record for FNB review**.
 
-## Status & evidence (honest demo notes)
+> *"MoMo takes the payment on the street. Mdeko builds the record. FNB brings him into banking."*
 
-**Working and tested in this build:** buyer waves, trader accepts, stock decrements, delivery tracking, cash and MoMo order flow, 5% savings on settlement, nearby-trader discovery, offline wave queue.
+---
 
-**Live but not yet proven end to end:** MTN MoMo production keys authenticate (token request returns 200), but no real customer payment has been completed yet.
+## 12. Honest limits and what is next
 
-**Demo / sandbox only:** bank accounts and transactions shown under "My bank" come from the bank-link sandbox and are labelled "Demo data" in the app. The Mdeko score is an activity score, not a bank credit score.
+| Live and working | Demo or not yet proven |
+| --- | --- |
+| Waves, accept lock, stock checks, delivery tracking | No real customer MoMo payment completed end to end yet (token check works) |
+| Cash and MoMo order flow, 5% savings record | Settlement is a record, not an automatic payout |
+| My Money earnings, savings, activity score | FNB eWallet is a local demo; no FNB partnership or API |
+| CSV money record download | Bank link shows labelled sandbox data |
+| Offline wave queue | 4-digit PIN and unverified phone ownership are not production-grade identity |
+| | No large-scale load test has been run |
 
-**Market figures:** any market size or revenue numbers used in pitches are estimates until backed by a cited source (e.g. Stats SA Quarterly Labour Force Survey for informal-sector employment). Do not present them as facts.
+**Next:** 90-day Ivory Park pilot, phone OTP verification, automatic MoMo payouts, an FNB partnership for real eWallet and SME credit, and group buying at the Joburg Fresh Produce Market.
 
-**Known gaps:** order-transition and permission rules live in database routines and are checked by a live-data audit, not by automated tests; the phone-side store is still used as a view cache and offline queue.
+Market figures used in the pitch are estimates until backed by a cited source (e.g. Stats SA QLFS).
+
+---
+
+## 13. Project structure
+
+```text
+src/
+├── routes/
+│   ├── index.tsx              # Buyer
+│   ├── runner.tsx             # Trader
+│   ├── finance.tsx            # My Money
+│   ├── auth.tsx, auth/        # Cell + PIN sign-in, onboarding
+│   └── api/public/momo-callback.ts
+├── components/                # Map, produce picker, pay dialog, FNB options, celebrations…
+├── lib/
+│   ├── *.functions.ts         # Server functions (marketplace, MoMo, finance, AI, auth)
+│   ├── *.server.ts            # Server-only clients (MoMo, AI, routing, weather)
+│   ├── ewallet-demo.ts        # Balance-safe eWallet simulation
+│   ├── finance-record.ts      # CSV money record
+│   ├── finance-score.ts       # Activity score
+│   └── *.test.ts              # Unit tests
+drizzle/migrations/            # Database schema
+tests/db/                      # Security and money SQL checks
+docs/                          # Judge readiness + screenshots
+```
+
+---
+
+Provided as-is for demonstration and development use.
