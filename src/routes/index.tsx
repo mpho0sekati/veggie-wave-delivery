@@ -923,9 +923,16 @@ function BuyerPage() {
                           <MapPin className="size-5 text-primary" />
                           <div>
                             <p className="font-semibold">
-                              {assigned?.name ?? "Your trader"} is on the way
+                              {request.status === "accepted"
+                                ? `Order accepted by ${assigned?.name ?? "your trader"}!`
+                                : `${assigned?.name ?? "Your trader"} is on the way`}
                             </p>
-                            {courierPosition ? (
+                            {request.status === "accepted" &&
+                            liveOrder?.payment_method !== "cash" ? (
+                              <p className="text-xs text-muted-foreground">
+                                Choose how to pay below so they can start delivering
+                              </p>
+                            ) : courierPosition ? (
                               <p className="text-xs text-muted-foreground">
                                 ~{courierPosition.etaMinutes} min ·{" "}
                                 {formatDistance(courierPosition.distanceKm)} away
