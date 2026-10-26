@@ -78,6 +78,13 @@
       "when": 1793017169301,
       "tag": "0010_public_discovery_and_cash_fallback",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793018176413,
+      "tag": "0011_charge_delivery_fee_on_accept",
+      "breakpoints": true
     }
   ]
 }
