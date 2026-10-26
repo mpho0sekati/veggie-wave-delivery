@@ -17,8 +17,7 @@ This repository contains **Mdeko Veggie Wave**, a web application built with Tan
 - **Runtime & Package Manager:** Use `bun` (`bun run build`, `bun run dev`, `bun run lint`).
 - **Code Standards:** Ensure all TypeScript, React Hook, and Prettier checks pass cleanly (`bun run lint`).
 - **Testing:** Perform end-to-end testing with Playwright scripts before submitting changes.
-- **Buyer presentation:** Keep produce selection in the primary drawer and secondary tools in disclosures or dialogs; this keeps the wave action reachable without changing marketplace behavior.
-- **Produce controls:** Keep the reusable produce picker presentation-only, with quantities and changes supplied by the buyer page; this preserves the existing basket and marketplace rules.
+- **Buyer produce flow:** Keep produce selection in the primary drawer and the reusable picker presentation-only, with quantities supplied by the buyer page and secondary tools in disclosures or dialogs; this keeps the wave action reachable without changing marketplace or basket rules.
 - **Finance presentation:** Keep trader orders, payment-verified earnings, savings and activity score on My Money using existing finance hooks; distinguish recorded sales, pending settlement and available funds, and keep bank/score/record details in dialogs. Use Johannesburg dates and refresh visible finance data so remote payment updates appear without a confirmation tap.
 - **Finance freshness:** Invalidate finance queries after marketplace mutations and terminal payment verification, retain visible-page polling and focus/reconnect refresh, and order bounded reliability reads deterministically; score and tips must follow authoritative activity rather than a payment request.
 - **Location:** Keep buyer and trader coordinates independent; accept valid device coordinates and label low-accuracy fixes as approximate so GPS limitations never silently leave a default pin.
