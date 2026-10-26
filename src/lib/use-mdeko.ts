@@ -14,6 +14,7 @@ import {
   listOpenWaves,
   startMomoPayment,
   verifyMomoPayment,
+  demoApproveMomoPayment,
   type Order,
   type Wave,
 } from "./mdeko.functions";

@@ -362,6 +362,71 @@ export const verifyMomoPayment = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * Demo-only payment approval for showcases and judging. It marks the order's
+ * MoMo payment successful through the exact same stored-order finalize path as
+ * a real verified payment (same settlement, same order advance), but always
+ * stamps provider_status 'demo-auto-approved' so demo money is distinguishable
+ * from real money. Buyer-only, own orders, never cash orders.
+ */
+export const demoApproveMomoPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        msisdn: z
+          .string()
+          .regex(/^(?:27\d{9}|0\d{9}|\d{9})$/, "Use a South African number, e.g. 0788033288")
+          .default("27000000000"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<PaymentResult> => {
+    const { data: owned } = await context.supabase
+      .from("wave_orders")
+      .select("id, payment_method, cancelled_at")
+      .eq("id", data.orderId)
+      .eq("buyer_id", context.userId)
+      .maybeSingle();
+    if (!owned || owned.cancelled_at || owned.payment_method === "cash")
+      throw new Error("order-not-payable");
+    const db = await admin();
+    const { data: payment, error } = await db.rpc("start_payment", {
+      _order_id: data.orderId,
+      _buyer: context.userId,
+      _reference: crypto.randomUUID(),
+      _external_id: `demo-${data.orderId.slice(0, 8)}-${Date.now()}`,
+      _msisdn: data.msisdn,
+    });
+    if (error) throw new Error(error.message);
+    const row = payment as unknown as Payment;
+    if (row.status === "successful") {
+      return {
+        paymentId: row.id,
+        reference: row.reference,
+        amount: Number(row.amount),
+        status: row.status,
+        providerStatus: row.provider_status,
+      };
+    }
+    const { data: finalized, error: finalizeError } = await db.rpc("finalize_payment", {
+      _reference: row.reference,
+      _status: "successful",
+      _provider_status: "demo-auto-approved",
+      _failure: null,
+    });
+    if (finalizeError) throw new Error(finalizeError.message);
+    const done = finalized as unknown as Payment;
+    return {
+      paymentId: done.id,
+      reference: done.reference,
+      amount: Number(done.amount),
+      status: done.status,
+      providerStatus: done.provider_status,
+    };
+  });
+
 /* ---------------------------- SETTLEMENTS ---------------------------- */
 
 export const listMySettlements = createServerFn({ method: "POST" })
