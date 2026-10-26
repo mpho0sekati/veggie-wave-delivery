@@ -29,7 +29,7 @@ export function useMyWave(enabled: boolean) {
   return useQuery<Wave | null>({
     queryKey: ["mdeko", "my-wave", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
     refetchInterval: enabled ? LIVE_MS : false,
   });
 }
@@ -41,7 +41,7 @@ export function useOpenWaves(enabled: boolean) {
   return useQuery<Wave[]>({
     queryKey: ["mdeko", "open-waves", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
     refetchInterval: enabled ? LIVE_MS : false,
   });
 }
@@ -53,7 +53,7 @@ export function useMyOrders(enabled: boolean) {
   return useQuery<Order[]>({
     queryKey: ["mdeko", "my-orders", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
     refetchInterval: enabled ? LIVE_MS : false,
   });
 }
@@ -64,7 +64,7 @@ export function useMySettlements(enabled: boolean) {
   return useQuery({
     queryKey: ["mdeko", "settlements", userId],
     queryFn: () => fn(),
-    enabled,
+    enabled: enabled && Boolean(userId),
   });
 }
 

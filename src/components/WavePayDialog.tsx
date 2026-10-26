@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRand } from "@/lib/veggie-data";
 import { cn } from "@/lib/utils";
-import { COMMUNITY_CREDIT_PER_ORDER, PLATFORM_FEE, MTN_FEE } from "@/lib/veggie-store";
 import { createLogger } from "@/lib/logger";
 
 const payLogger = createLogger("WavePay");
@@ -22,7 +21,6 @@ type Props = {
 
 function normaliseMsisdn(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
-  payLogger.debug("Normalizing MSISDN", { raw, digits, length: digits.length });
   if (/^0\d{9}$/.test(digits)) {
     payLogger.debug("MSISDN: 0-prefix format");
     return `27${digits.slice(1)}`;
@@ -35,7 +33,7 @@ function normaliseMsisdn(raw: string): string | null {
     payLogger.debug("MSISDN: 9-digit format");
     return `27${digits}`;
   }
-  payLogger.warn("Invalid MSISDN format", { raw, digits });
+  payLogger.warn("Invalid MSISDN format");
   return null;
 }
 
@@ -58,31 +56,25 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
 
   const msisdn = normaliseMsisdn(phone);
   const valid = msisdn !== null;
-  const totalFee = PLATFORM_FEE + MTN_FEE;
-  const canPay = valid && amount >= totalFee;
-
-  payLogger.debug("Payment state", { valid, canPay, amount, totalFee, phoneLength: phone.length });
+  const canPay = valid && amount > 0;
 
   const confirm = async () => {
-    payLogger.info("Payment confirm clicked", { msisdn, amount });
+    payLogger.info("Payment confirm clicked", { amount });
     if (!msisdn) {
-      payLogger.warn("Payment attempt with invalid MSISDN", { phone });
+      payLogger.warn("Payment attempt with invalid MSISDN");
       setError("Enter a valid SA mobile number, e.g. 0788 033 288");
       return;
-    }
-    if (amount < totalFee) {
-      payLogger.warn("Payment amount below minimum", { amount, totalFee });
     }
     setBusy(true);
     setError("");
     try {
-      payLogger.info("Calling onPay", { msisdn, amount });
+      payLogger.info("Sending payment request", { amount });
       await onPay(msisdn);
-      payLogger.info("Payment successful", { msisdn, amount });
+      payLogger.info("Payment request handled", { amount });
       setPhone("");
       onOpenChange(false);
-    } catch (err) {
-      payLogger.error("Payment failed", { msisdn, amount, error: err });
+    } catch {
+      payLogger.error("Payment failed", { amount });
       setError("Payment request failed — please try again");
     } finally {
       setBusy(false);
@@ -114,28 +106,7 @@ export default function WavePayDialog({ open, onOpenChange, amount, traderName, 
             <p className="text-sm text-muted-foreground">to {traderName}</p>
           </div>
 
-          {/* Fee breakdown — business model */}
-          <div className="rounded-xl border bg-card px-4 py-3 space-y-1.5 text-xs">
-            <p className="font-semibold text-sm mb-2">How your payment is split</p>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Trader receives</span>
-              <span className="font-medium text-foreground">
-                {formatRand(Math.max(0, amount - PLATFORM_FEE - MTN_FEE))}
-              </span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Veggie Wave fee</span>
-              <span>{formatRand(PLATFORM_FEE)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>MTN MoMo fee</span>
-              <span>{formatRand(MTN_FEE)}</span>
-            </div>
-            <div className="border-t pt-1.5 flex justify-between items-center text-primary font-semibold">
-              <span className="flex items-center gap-1">You earn Community Credit</span>
-              <span>+{formatRand(COMMUNITY_CREDIT_PER_ORDER)}</span>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">Order total includes delivery. Payment is confirmed only after you approve it with MTN MoMo.</p>
 
           {/* Phone number */}
           <div className="space-y-2">
