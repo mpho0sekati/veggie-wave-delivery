@@ -23,8 +23,21 @@ export function watchPreviewConnection(connection: PreviewConnection, reload: ()
 }
 /**
  * Backup for missed reconnect events: when a preview server-function call fails
- * because its ID is stale, reload once (guarded so it can never loop).
+ * because its ID is stale, reload — but at most twice, because if one reload did
+ * not fix it the failure has another cause and reloading again only blanks the
+ * screen over and over.
  */
+const MAX_RELOADS = 2;
+
+function readAttempt(raw: string | null) {
+  try {
+    const parsed = JSON.parse(raw ?? "") as { n?: number; t?: number };
+    return { count: Number(parsed.n) || 0, at: Number(parsed.t) || 0 };
+  } catch {
+    return { count: 0, at: 0 };
+  }
+}
+
 export function watchStaleServerFunctions(
   reload: () => void,
   storage: Pick<Storage, "getItem" | "setItem"> = window.sessionStorage,
@@ -37,10 +50,10 @@ export function watchStaleServerFunctions(
       typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : args[0].url;
     if (response.status >= 500 && url.includes("/_serverFn/")) {
       // During a preview restart the server may answer stale calls with a bare 500
-      // (no "Invalid server function ID" text), so any 5xx triggers one guarded reload.
-      const last = Number(storage.getItem(key) ?? 0);
-      if (Date.now() - last > 30_000) {
-        storage.setItem(key, String(Date.now()));
+      // (no "Invalid server function ID" text), so any 5xx triggers a guarded reload.
+      const attempt = readAttempt(storage.getItem(key));
+      if (attempt.count < MAX_RELOADS && Date.now() - attempt.at > 30_000) {
+        storage.setItem(key, JSON.stringify({ n: attempt.count + 1, t: Date.now() }));
         reload();
       }
     }

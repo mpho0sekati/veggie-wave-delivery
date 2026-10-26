@@ -4,30 +4,38 @@ import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "./integrations/supabase/auth-attacher";
 
 /**
- * A rejected session must not look like a server crash. `requireSupabaseAuth` is
- * generated code, so its rejections are matched by message here; returning 401
- * keeps an expired login out of the 5xx path that reloads the page.
+ * A session whose token has run out can never be fixed by retrying, so it must
+ * not travel the 5xx path — that path is what reloads the page. The token is
+ * only decoded here, never verified: verification stays the auth layer's job.
  */
-const AUTH_REJECTION = /^Unauthorized[:\s]/i;
-
-function isAuthRejection(error: unknown) {
-  return error instanceof Error && AUTH_REJECTION.test(error.message);
+function tokenExpired(token: string, now = Date.now()) {
+  const payload = token.split(".")[1];
+  if (!payload) return false;
+  try {
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const exp = Number(JSON.parse(json).exp);
+    return Number.isFinite(exp) && exp * 1000 <= now;
+  } catch {
+    return false;
+  }
 }
 
-const errorMiddleware = createMiddleware().server(async ({ next }) => {
+const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
+  const auth = request.headers.get("authorization") ?? "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (bearer && tokenExpired(bearer)) {
+    // Plain text on purpose: a JSON body would be handed back to the caller as a
+    // successful result instead of being raised as an error the app can react to.
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: { "content-type": "text/plain; charset=utf-8", "x-mdeko-auth": "expired" },
+    });
+  }
   try {
     return await next();
   } catch (error) {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
-    }
-    if (isAuthRejection(error)) {
-      // Plain text on purpose: a JSON body would be handed back to the caller as
-      // a successful result instead of being raised as an error.
-      return new Response("Unauthorized", {
-        status: 401,
-        headers: { "content-type": "text/plain; charset=utf-8", "x-mdeko-auth": "rejected" },
-      });
     }
     console.error(error);
     return new Response(renderErrorPage(), {
