@@ -2,6 +2,8 @@
 
 ## Done
 
+- Mobile layout: all navigation icons fit equal-width tracks; buyer/seller drawers reserve header clearance, completed orders use content height, and area/dialog controls wrap within phone screens. Signed-in buyer basket and area switching checked at 320×720, 393×852, 393×600 and desktop; existing test trader and My Money checked on phones. No horizontal overflow or runtime errors; 14 targeted tests pass and build OK.
+
 - Learn-by-doing: buyer and trader icon steps follow existing basket, stock, online and delivery states, with small live feedback and no popups. Signed-in produce selection/removal and saved trader readiness checked at 1280×1800, 390×844 and 625×543; navigation stays visible, 16 targeted tests pass, lint clean and build OK.
 
 - Dynamic score freshness: terminal payment verification and marketplace actions refresh My Money, focus/reconnect refresh current activity, reliability samples use deterministic newest-first ordering, and tips track changed inputs. 21 targeted tests passed; signed-in My Money opened successfully, lint and build checks passed. No real MoMo payment was initiated or recorded.
@@ -28,8 +30,6 @@
 - Nearby trader pins, stock availability and lists share real-coordinate discovery; signed-in check showed the existing online stall 55 m away, distant-stall exclusion and camera stability after GPS updates verified. All 20 tests pass.
 
 ## Active / Backlog
-
-- Mobile layout: fit every navigation icon, keep the buyer map and basket controls clear, and check seller, money and dialogs at narrow phone widths.
 
 - Current request: verify one real payer-approved MTN MoMo payment in trader My Money; blocked until the buyer selects Pay with MoMo on a real accepted order and approves the phone prompt. Dynamic score refresh is implemented and tested; a real payment-to-dashboard update remains unverified.
 
