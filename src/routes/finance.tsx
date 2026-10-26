@@ -676,7 +676,9 @@ function FinancePage() {
                     key={step.label}
                     className={`min-w-0 break-words rounded-lg border p-2 ${step.done ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground"}`}
                   >
-                    <span className="block font-bold">{step.done ? <Check className="mx-auto size-4" /> : i + 1}</span>
+                    <span className="block font-bold">
+                      {step.done ? <Check className="mx-auto size-4" /> : i + 1}
+                    </span>
                     {step.label}
                   </li>
                 ))}
@@ -887,7 +889,11 @@ function FinancePage() {
       >
         <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto">
           <DialogTitle>
-            {panel === "bank" ? "My bank · FNB & other banks" : panel === "score" ? t.score : "My Mdeko record"}
+            {panel === "bank"
+              ? "My bank · FNB & other banks"
+              : panel === "score"
+                ? t.score
+                : "My Mdeko record"}
           </DialogTitle>
           <DialogDescription>
             {panel === "bank"
@@ -896,7 +902,13 @@ function FinancePage() {
                 ? "Based on your orders, payments, activity and savings."
                 : "Your completed purchases and sales on Mdeko."}
           </DialogDescription>
-          {panel === "bank" && <><FnbAccountInfo /><h3 className="font-semibold">Link an existing bank · Banklink</h3><BankConnection /></>}
+          {panel === "bank" && (
+            <>
+              <FnbAccountInfo />
+              <h3 className="font-semibold">Link an existing bank · Banklink</h3>
+              <BankConnection />
+            </>
+          )}
           {panel === "score" && <ScoreDetails score={score} t={t} />}
           {panel === "record" && <RecordDetails profile={profile} />}
         </DialogContent>

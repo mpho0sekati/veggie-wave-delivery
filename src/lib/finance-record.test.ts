@@ -3,10 +3,24 @@ import { createLenderRecordCsv } from "./finance-record";
 import type { ExportRecord } from "./finance.functions";
 
 const record: ExportRecord = {
-  userId: "test-user", name: "Trader", memberSince: "2026-10-01", totalOrders: 1,
-  totalTraded: 15, momoSuccessRate: 1, savingsBalance: 0.75,
-  exportedAt: "2026-10-26", format: "banklink-compatible",
-  transactions: [{ date: "2026-10-26", type: "credit", description: "Veggie sale", amount: 15, reference: "MDEKO-1" }],
+  userId: "test-user",
+  name: "Trader",
+  memberSince: "2026-10-01",
+  totalOrders: 1,
+  totalTraded: 15,
+  momoSuccessRate: 1,
+  savingsBalance: 0.75,
+  exportedAt: "2026-10-26",
+  format: "banklink-compatible",
+  transactions: [
+    {
+      date: "2026-10-26",
+      type: "credit",
+      description: "Veggie sale",
+      amount: 15,
+      reference: "MDEKO-1",
+    },
+  ],
 };
 
 describe("lender record export", () => {
@@ -21,7 +35,13 @@ describe("lender record export", () => {
     expect(createLenderRecordCsv(null, null)).toBeNull();
   });
   it("neutralizes spreadsheet formulas in transaction fields", () => {
-    const csv = createLenderRecordCsv({ ...record, transactions: [{ ...record.transactions[0], description: '=HYPERLINK("bad")' }] }, null);
+    const csv = createLenderRecordCsv(
+      {
+        ...record,
+        transactions: [{ ...record.transactions[0], description: '=HYPERLINK("bad")' }],
+      },
+      null,
+    );
     expect(csv).toContain('"\'=HYPERLINK(""bad"")"');
   });
 });
